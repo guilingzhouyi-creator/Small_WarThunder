@@ -1,48 +1,139 @@
-# 东七三
+**引擎**: Unity 6000.3.11f1 · **渲染**: HDRP 17.3.0 · **音频**: FMOD Studio  
+> **基于 Commit**: `83c0334e` (项目基线初始提交)
 
-《东七三》是一个 Unity 坦克载具项目，当前代码结构按“场景与全局调度、载具控制、火控与 UI、数据资产、资源内容”几层组织。项目使用 ScriptableObject 维护大部分运行时配置，使用 Unity 场景与 Resources 进行内容装载，UI 侧以 UI Toolkit 为主。
+---
 
-## 架构概览
+## 目录
 
-### 1. 场景与全局调度
-- `ProjectSettings/` 保存 Unity 项目的全局设置。
-- `Assets/GameMainAllSystem/` 放置场景加载、全局注册中心、时间管理、字幕和 UI 入口等系统。
-- `Assets/GameSwitchSceneList/` 保存菜单、加载和战斗等场景。
-- `Assets/Resources/SceneCatalog.asset` 作为场景目录，供场景加载器按资源引用读取。
+- [渲染与依赖](#渲染与依赖)
+- [架构总览](#架构总览)
+- [核心系统](#核心系统)
+- [数据驱动](#数据驱动)
+- [设计模式](#设计模式)
 
-### 2. 载具控制层
-- `Assets/Scripts/MoveManager/` 负责坦克移动、转向、动力与悬挂相关逻辑。
-- `Assets/Scripts/MoveManager/TankTurretMove/` 负责炮塔转动、武器控制和火控上报。
-- `Assets/Scripts/FireController/` 负责装填、开火、弹药切换、发射与验证等职责。
-- `Assets/GamePlayer/PlayerStateSnapshot/FCSSnapshot.cs` 是火控快照结构，记录炮口位置、朝向、相机矩阵和屏幕尺寸。
+---
 
-### 3. 火控、HUD 和 UI
-- `Assets/GameMainAllSystem/CentralRegistrySystem/FCSRegistrySystem.cs` 保存当前玩家火控快照，HUD/UI 从这里读取统一状态。
-- `Assets/GameMainAllSystem/Global EngineService/FCSEngine.cs` 负责世界坐标到屏幕坐标、弹道落点等计算。
-- `Assets/GameMainAllSystem/NewUIDesignSystem/` 与 `Assets/Scripts/UIController/` 共同负责 UI Toolkit HUD、准星、设置和战斗界面。
+## 渲染与依赖
 
-### 4. 数据与资源
-- `Assets/SOManager/` 与 `Assets/TankSO/` 保存所有核心 ScriptableObject 配置，包括瞄准、炮塔、移动、弹药、任务文本等。
-- `Assets/Art/`、`Assets/Audio/`、`Assets/Desktop/`、`Assets/prefabs/` 保存模型、贴图、音频和预制体资源。
-- `Assets/Miscellaneous Management System/Plugins/FMOD/` 保存 FMOD 插件和音频资源。
+| 组件 | 版本 |
+|------|------|
+| HDRP | 17.3.0 |
+| Cinemachine | 3.1.6 |
+| Input System | 1.19.0 |
+| UI Toolkit | 内置 |
+| ProBuilder | 6.0.9 |
+| Visual Scripting | 1.9.11 |
 
-## 运行时数据流
+## 架构总览
 
-1. 输入系统将移动、开火、自由视角和 UI 状态交给载具控制器。
-2. `TankWeaponController` 每帧生成 `FCSSnapshot`，写入 `FCSRegistry`。
-3. `FCSRegistry` 供 HUD、准星和 UI 读取统一火控状态。
-4. `FCSEngine` 根据快照中的矩阵、炮口方向和屏幕尺寸完成坐标转换与弹道计算。
-5. 音频通过 FMOD 和 `AudioManager`/坦克侧 partial 文件分层处理，不直接把音频逻辑写进主业务文件。
+项目采用 **Component + Partial Class 模块化** 架构。核心控制器以 `MonoBehaviour` 为基类，通过 C# `partial class` 按职责拆分到多个文件。
 
-## 代码组织原则
+```
+GameManager              ← 全局生命周期
+  └─ UIManager           ← UI 管理（暂停/任务/HUD/设置）
+       └─ TankAImUIController → FcsHudPainter（瞄准 HUD）
+MIddleInputingController ← 输入中介层（InputSystem → 游戏逻辑）
+TankMoveController       ← 坦克移动 (10 files)
+TankWeaponController     ← 炮塔/武器 (5 files)
+TankFireController       ← 开火/装填/测距 (9 files)
+TankController           ← 坦克整体 (6 files)
+AudioManager             ← 音频 (FMOD)
+WeatherController        ← 天气
+```
 
-- 配置优先：大多数可调参数放在 SO 里，而不是硬编码在控制器里。
-- 分层清晰：移动、火控、UI、音频、碰撞各自独立，控制器只负责调用与状态流转。
-- 资源与引用成对提交：`.meta` 文件必须保留，避免 Unity GUID 丢失。
-- 生成物不入库：`Library/`、`Temp/`、`Logs/`、`*.csproj`、`*.lscache` 等本地生成文件不提交。
+### 火控数据流
 
-## 首次提交范围
+```
+TankWeaponController → FCSRegistrySystem → TankAImUIController → FcsHudPainter
+  (数据生产者)         (静态注册中心)       (UI控制器)            (UI Toolkit 绘制)
+```
 
-- 必须提交：`Assets/`、`Packages/`、`ProjectSettings/`、`README.md`、`.gitignore`
-- 仅首次保留一次：`Small_WarThunder.slnx`
-- 不提交：Unity 生成目录、IDE 缓存和临时文件
+---
+
+## 核心系统
+
+### 坦克移动 — TankMoveController
+
+10 个 partial class 文件按职责划分：
+
+| 文件 | 职责 |
+|------|------|
+| `.cs` | 单例、引用、物理采样、Gizmos |
+| `.Input.cs` | 前进/后退/转向输入 |
+| `.Powertrain.cs` | 引擎开关、电力管理、输入锁 |
+| `.Hsm.cs` | 转向状态机 (Idle→Straight→Pivot/Brake/MovingTurn) |
+| `.Motion.cs` | 物理循环 (SimulatePowerSplit) |
+| `.Power.cs` | 功率分配、尼基金公式 |
+| `.Ground.cs` | 地面摩擦系数 |
+| `.Audio.cs` | 引擎音频状态机 → FMOD |
+| `.Validation.cs` | 运行时验证 |
+
+**物理核心**: 尼基金转向阻力公式 + 功率预算分配 + 各向异性摩擦力
+
+```
+AvailablePower = EnginePower × Efficiency × PowerCurve
+转向消耗 ≤ AvailablePower × 65%（最多吃掉 65% 引擎功率）
+剩余功率 = 前进驱动 + 克服滚阻
+```
+
+### 坦克武器 — TankWeaponController
+
+5 个 partial class:
+
+| 文件 | 职责 |
+|------|------|
+| `.cs` | 核心、FCS 注册、瞄准点计算 |
+| `.MainGunTurn.cs` | 炮塔旋转 (TPS/AIM 模式) |
+| `.FreeViewpoint.cs` | 自由视角 (C 键) |
+| `.Collision.cs` | 炮管碰撞规避（SphereCast + 二分搜索） |
+| `.ExtraFunction.cs` | 编辑器可视化 |
+
+### 音频系统 — AudioManager + FMOD
+
+```
+TankAudioDatabase (SO)
+  └─ TankAudioData (每坦克)
+       ├─ 引擎状态机: Off→Startup→Idle→Move→Shutdown
+       └─ 一次性音效: fire/reload/hit
+AudioVolumeCategory 分类: Engine/Weapon/Reload/Impact
+```
+
+引擎音频由 RPM、负载、速度实时驱动。
+
+### 其他系统
+
+- **悬挂**: TankSuspensionManager（悬挂臂 + 轮子旋转 + 视觉）
+- **碰撞/伤害**: GeneralHitPosition + TargetDamageResolver
+- **弹药**: CannonBall + Objectpooler
+- **受击检测**: 炮弹命中 → 穿透/跳弹 → 伤害结算
+
+---
+
+## 数据驱动
+
+所有坦克参数通过 ScriptableObject 配置：
+
+| SO | 主要参数 |
+|----|----------|
+| `TankMoveData` | 质量/速度/加速度/功率/多条调教曲线 |
+| `TankTurretData` | 旋转速度/俯仰角/炮管避撞 |
+| `TankAudioData` | FMOD 事件/引擎状态层 |
+| `NewAimConfigData` | HUD 布局/元素/变焦 |
+| `ProjectileData` | 弹丸参数 |
+| `ArmoredZoneData` | 装甲区域 |
+
+---
+
+## 设计模式
+
+| 模式 | 位置 |
+|------|------|
+| **Singleton** | 大部分控制器 (TankMove/Weapon/Fire/UI/Audio) |
+| **Partial Class** | 大型控制器拆分为 5~10 个文件 |
+| **Mediator** | MIddleInputingController (输入 → 逻辑) |
+| **Observer** | C# events (引擎状态/速度/暂停) |
+| **State Machine** | 转向状态机、引擎音频状态机 |
+| **Registry** | FCSRegistrySystem (火控数据注册) |
+| **Strategy** | 不同转向策略 (Pivot/Brake/Arc) |
+| **Data-Driven** | ScriptableObject 配置所有坦克参数 |
+| **Object Pool** | 炮弹对象池 |
