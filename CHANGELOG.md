@@ -1,6 +1,6 @@
 # 更新日志
 
-## v0.1.000（测试/Beta）— 2026-04-30
+## [v0.1.000（测试/Beta）](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-04-30
 
 ### 项目基线 — 核心玩法闭环
 
