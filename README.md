@@ -1,6 +1,6 @@
 # 东七三 — Small_WarThunder
 
-**版本号**: `0.1.000（测试/Beta）` · [📥 下载此版本](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta)  
+**版本号**: `0.1.000（测试/Beta）` · [📥 下载最新版本](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/latest)
 **引擎**: Unity 6000.3.11f1 · **渲染**: HDRP 17.3.0 · **音频**: FMOD Studio  
 **仓库**: [github.com/guilingzhouyi-creator/Small_WarThunder](https://github.com/guilingzhouyi-creator/Small_WarThunder)
 
