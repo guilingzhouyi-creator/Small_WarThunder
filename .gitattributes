@@ -1,0 +1,5 @@
+Assets/Desktop/** filter=lfs diff=lfs merge=lfs -text
+Assets/Art/Font/源字体库/** filter=lfs diff=lfs merge=lfs -text
+Assets/Audio/** filter=lfs diff=lfs merge=lfs -text
+Assets/Art/Pictures/** filter=lfs diff=lfs merge=lfs -text
+Assets/Art/TankModel/** filter=lfs diff=lfs merge=lfs -text

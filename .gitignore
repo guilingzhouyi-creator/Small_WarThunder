@@ -14,19 +14,6 @@ Builds/
 Dist/
 
 # Large generated or redistributable assets
-Assets/Desktop/
-Assets/Unity Asset Management System/VolumetricFogBundle/
-Assets/Art/Font/源字体库/
-Assets/Audio/
-Assets/Art/Pictures/
-Assets/Art/TankModel/
-Assets/Miscellaneous Management System/Plugins/FMOD/Cache/
-Assets/Miscellaneous Management System/Plugins/FMOD/platforms/html5/
-Assets/Miscellaneous Management System/Plugins/FMOD/platforms/ios/
-Assets/Miscellaneous Management System/Plugins/FMOD/platforms/mac/
-Assets/Miscellaneous Management System/Plugins/FMOD/platforms/tvos/
-Assets/Miscellaneous Management System/Plugins/FMOD/platforms/visionos/
-
 # IDE / editor state
 .vs/
 .idea/
