@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c04ac15515b87d54b9c94c66f7b0b961, type: 3}
+  m_Name: TankAudioDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::TankAudioDatabase
+  allConfigs:
+  - {fileID: 11400000, guid: b4a0c869f8c197f4db770334ff8309df, type: 2}
+  - {fileID: 11400000, guid: 9cd910ad4b94b5645b78f77ee692aedd, type: 2}
+  - {fileID: 11400000, guid: bcc00cc3dd6028741b1609fd589e5e97, type: 2}

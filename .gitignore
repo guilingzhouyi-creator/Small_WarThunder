@@ -1,0 +1,65 @@
+# Unity generated folders
+Library/
+Temp/
+Obj/
+Logs/
+UserSettings/
+MemoryCaptures/
+ProfilerCaptures/
+UIElementsSchema/
+
+# Build outputs
+Build/
+Builds/
+Dist/
+
+# Large generated or redistributable assets
+Assets/Desktop/
+Assets/Unity Asset Management System/VolumetricFogBundle/
+Assets/Art/Font/源字体库/
+Assets/Audio/
+Assets/Art/Pictures/
+Assets/Art/TankModel/
+Assets/Miscellaneous Management System/Plugins/FMOD/Cache/
+Assets/Miscellaneous Management System/Plugins/FMOD/platforms/html5/
+Assets/Miscellaneous Management System/Plugins/FMOD/platforms/ios/
+Assets/Miscellaneous Management System/Plugins/FMOD/platforms/mac/
+Assets/Miscellaneous Management System/Plugins/FMOD/platforms/tvos/
+Assets/Miscellaneous Management System/Plugins/FMOD/platforms/visionos/
+
+# IDE / editor state
+.vs/
+.idea/
+.vscode/
+.continue/
+.github/
+Assets/.git_disabled/
+*.user
+*.userprefs
+*.suo
+*.pidb
+*.booproj
+*.cache
+*.lscache
+
+# Generated solution / project files
+*.csproj
+*.csproj.user
+*.sln
+*.slnx
+
+# Logs and temporary files
+*.log
+*.tmp
+*.bak
+*.orig
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Keep Unity meta files and project data tracked
+!Assets/**/*.meta
+!Packages/**
+Packages/com.unity.render-pipelines.high-definition/
+!ProjectSettings/**

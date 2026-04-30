@@ -1,0 +1,101 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+/// <summary>
+/// 瞄准系统配置数据，包含与瞄准相关的各种参数和设置。
+/// 该数据通过ScriptableObject进行管理，便于在编辑器中进行配置和调整。
+/// </summary>
+/// 
+
+//资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
+[CreateAssetMenu(fileName = "AimConfigData", menuName = "DFCCCSystem/AimConfigData")]
+public class NewAimConfigData : ScriptableObject
+{
+    public enum HudPreset
+    {
+        TacticalRing,
+        ModernFireControl,
+        Custom
+    }
+
+    public enum HudElementType
+    {
+        Crosshair,
+        Ring,
+        Graticule,
+        CornerBracket,
+        CenterDot,
+        HorizontalScale,
+        VerticalScale,
+        RectangleFrame,
+        ReadoutBox,
+        CornerTick,
+        TextSlot
+    }
+
+    public enum HudAnchor
+    {
+        Center,
+        TopLeft,
+        TopRight,
+        BottomLeft,
+        BottomRight,
+        TopCenter,
+        BottomCenter,
+        LeftCenter,
+        RightCenter
+    }
+
+    [System.Serializable]
+    public class HudElementDefinition
+    {
+        public HudElementType ElementType = HudElementType.Crosshair;
+        public HudAnchor Anchor = HudAnchor.Center;
+        public Vector2 Offset = Vector2.zero;
+        public Vector2 Size = new Vector2(24f, 24f);
+        public float ScaleTotalLength = 24f;
+        public float ScaleDecayPerStep = 2f;
+        public float Thickness = 2f;
+        public float Radius = 14f;
+        public int RepeatCount = 1;
+        public float RepeatSpacing = 12f;
+        public Color Color = Color.white;
+        public bool Enabled = true;
+        public bool Filled = false;
+        public string Text = string.Empty;
+    }
+
+    [Header("探测参数")]
+    public float MaxDetectionRange = 4000f;  // 最大测距距离[cite: 11]
+    public LayerMask AimLayerMask;           // 射线检测掩码[cite: 1]
+
+    [Header("HUD 布局")]
+    public HudPreset HudLayout = HudPreset.ModernFireControl;
+    public List<HudElementDefinition> HudElements = new List<HudElementDefinition>();
+
+    [Header("AIM 变焦")]
+    public float[] ZoomFovLevels = { 60f, 20f, 10f }; // Existing line
+    public float ZoomSmoothSpeed = 10f;               // Existing line
+    public float BaseSensitivity = 6f;                 // New line
+    public bool AutoResetZoom = true;                  // New line
+
+    [Header("HUD 样式")]
+    public float HudScale = 1f;
+    public float HudFovReference = 60f;
+    public float HudFovScaleExponent = 0.35f;
+    public float HudFovScaleMin = 0.85f;
+    public float HudFovScaleMax = 1.9f;
+    public float CrosshairLength = 15f;
+    public float CrosshairGap = 3f;
+    public float TpsRingRadius = 16f;
+    public float TpsRingThickness = 2f;
+
+    [Header("刻度线定义")]
+    public Color HudThemeColor = Color.green;
+    public float GraticuleSpacingMil = 18f;   // 默认密位间距
+    public float GraticuleLineHalfWidth = 12f;
+    public float GraticuleStartOffsetMil = 0f;
+    public float LineThickness = 2.0f;
+    public int GraticuleCount = 10;         // 刻度线数量
+
+}

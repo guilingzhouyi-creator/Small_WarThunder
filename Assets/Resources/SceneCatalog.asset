@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e2f252d08df24a30b46f4fdd38c02044, type: 3}
+  m_Name: SceneCatalog
+  m_EditorClassIdentifier: Assembly-CSharp::SceneCatalog
+  _entries:
+  - SceneId: 0
+    _buildIndex: 0
+    _sceneName: MainMenuScene
+    _sceneAsset: {fileID: 102900000, guid: 9d5f4e0968a3f114a843f54fca3df5cd, type: 3}
+  - SceneId: 1
+    _buildIndex: 1
+    _sceneName: LoadingScene
+    _sceneAsset: {fileID: 102900000, guid: b4594d2e41203d94cb9ba13f485a7241, type: 3}
+  - SceneId: 2
+    _buildIndex: 2
+    _sceneName: Game
+    _sceneAsset: {fileID: 102900000, guid: 8124e5870f4fd4c779e7a5f994e84ad1, type: 3}
+  - SceneId: 3
+    _buildIndex: 3
+    _sceneName: GameOverScene
+    _sceneAsset: {fileID: 102900000, guid: 72d39913990e8344a85c2efd3e98ae20, type: 3}

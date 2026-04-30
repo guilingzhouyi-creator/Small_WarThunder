@@ -1,0 +1,14 @@
+.time-group-container {
+    flex-direction: column;
+    padding: 10px;
+    background-color: rgba(0, 20, 50, 0.5);
+}
+
+.timer-text {
+    color: rgb(255, 210, 0);
+    font-size: 15px;
+    margin-bottom: 15px;
+    -unity-font-style: bold;
+}
+
+
