@@ -2,6 +2,7 @@ using System.IO;
 using System.IO.Compression;
 using UnityEditor;
 using UnityEngine;
+using CompressionLevel = System.IO.Compression.CompressionLevel;
 
 /// <summary>
 /// 构建资源资产包工具 — 将大文件资源打包为 ZIP，用于 Release 分发。
