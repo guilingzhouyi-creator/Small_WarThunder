@@ -1,139 +1,145 @@
+# 东七三 — Small_WarThunder
+
+**版本号**: `0.1.000（测试/Beta）`  
 **引擎**: Unity 6000.3.11f1 · **渲染**: HDRP 17.3.0 · **音频**: FMOD Studio  
-> **基于 Commit**: `83c0334e` (项目基线初始提交)
+**仓库**: [github.com/guilingzhouyi-creator/Small_WarThunder](https://github.com/guilingzhouyi-creator/Small_WarThunder)
 
 ---
 
-## 目录
+## 项目简介
 
-- [渲染与依赖](#渲染与依赖)
-- [架构总览](#架构总览)
-- [核心系统](#核心系统)
-- [数据驱动](#数据驱动)
-- [设计模式](#设计模式)
+《东七三》是一个基于 Unity 的坦克载具模拟项目，以现代战争雷霆类游戏为参考，实现了完整的坦克移动、火控、装填、碰撞检测与 HUD 系统。项目采用 **Component + Partial Class 模块化架构**，所有坦克参数通过 ScriptableObject 数据驱动，UI 侧以 UI Toolkit 为主。
+
+当前阶段聚焦于**核心玩法闭环**：坦克可移动/转向、炮塔可旋转/俯仰、可开火/装填/切换弹药、HUD 准星与火控信息实时同步。
 
 ---
 
-## 渲染与依赖
+## 当前版本说明 — v0.1.000（测试/Beta）
 
-| 组件 | 版本 |
-|------|------|
-| HDRP | 17.3.0 |
-| Cinemachine | 3.1.6 |
-| Input System | 1.19.0 |
-| UI Toolkit | 内置 |
-| ProBuilder | 6.0.9 |
-| Visual Scripting | 1.9.11 |
+### 已实现的核心系统
 
-## 架构总览
+| 系统 | 状态 | 说明 |
+|------|------|------|
+| 坦克移动 | ✅ 完成 | 尼基金转向公式 + 功率分配 + 各向异性摩擦力，10 个 partial 文件 |
+| 炮塔控制 | ✅ 完成 | TPS/AIM 双模式旋转、自由视角（C 键）、炮管碰撞规避 |
+| 开火与装填 | ✅ 完成 | 弹药切换、装填计时、测距、弹道计算 |
+| 火控 HUD | ✅ 完成 | 自定义布局、FOV 缩放、准星/刻度/读数框/填充支持 |
+| 碰撞与伤害 | ✅ 完成 | 装甲区域、穿透/跳弹判定、伤害结算 |
+| 对象池 | ✅ 完成 | 炮弹池化回收 |
+| 音频系统 | ✅ 完成 | FMOD 引擎状态机 + 一次性音效 |
+| 悬挂系统 | ✅ 完成 | 悬挂臂 + 轮子旋转 + 视觉 |
+| 天气系统 | ✅ 完成 | 动态天气切换 |
+| UI 系统 | ✅ 完成 | 暂停/设置/HUD/瞄准镜 |
 
-项目采用 **Component + Partial Class 模块化** 架构。核心控制器以 `MonoBehaviour` 为基类，通过 C# `partial class` 按职责拆分到多个文件。
+### 下一个版本计划 — v0.2.000
 
-```
-GameManager              ← 全局生命周期
-  └─ UIManager           ← UI 管理（暂停/任务/HUD/设置）
-       └─ TankAImUIController → FcsHudPainter（瞄准 HUD）
-MIddleInputingController ← 输入中介层（InputSystem → 游戏逻辑）
-TankMoveController       ← 坦克移动 (10 files)
-TankWeaponController     ← 炮塔/武器 (5 files)
-TankFireController       ← 开火/装填/测距 (9 files)
-TankController           ← 坦克整体 (6 files)
-AudioManager             ← 音频 (FMOD)
-WeatherController        ← 天气
-```
+- **任务系统**：任务目标、进度追踪、完成判定
+- **多坦克支持**：选择不同坦克、切换载具
+- **伤害视觉反馈**：车体损伤模型、起火/爆炸特效
+- **AI 敌方坦克**：基础 AI 巡逻/索敌/开火
+- **地图系统**：小地图、标记、战术视图
+- **设置持久化**：图形/音频/控制设置保存与加载
 
-### 火控数据流
+### 待评估/远期规划
 
-```
-TankWeaponController → FCSRegistrySystem → TankAImUIController → FcsHudPainter
-  (数据生产者)         (静态注册中心)       (UI控制器)            (UI Toolkit 绘制)
-```
+- 网络联机（Photon/Netcode）
+- 完整战役模式
+- 坦克自定义改装
+- 回放系统
 
 ---
 
-## 核心系统
+## 资源资产包
 
-### 坦克移动 — TankMoveController
+项目的大文件资源（模型、音频、贴图、FMOD 插件等）通过 **Git LFS** 管理，同时提供独立的 ZIP 资源包用于 Release 分发。
 
-10 个 partial class 文件按职责划分：
+### 资源包内容
 
-| 文件 | 职责 |
-|------|------|
-| `.cs` | 单例、引用、物理采样、Gizmos |
-| `.Input.cs` | 前进/后退/转向输入 |
-| `.Powertrain.cs` | 引擎开关、电力管理、输入锁 |
-| `.Hsm.cs` | 转向状态机 (Idle→Straight→Pivot/Brake/MovingTurn) |
-| `.Motion.cs` | 物理循环 (SimulatePowerSplit) |
-| `.Power.cs` | 功率分配、尼基金公式 |
-| `.Ground.cs` | 地面摩擦系数 |
-| `.Audio.cs` | 引擎音频状态机 → FMOD |
-| `.Validation.cs` | 运行时验证 |
+| 类别 | 内容 | 路径 |
+|------|------|------|
+| 坦克模型 | T90A 测试车型模型 (.fbx) | `Assets/Art/TankModel/` |
+| 字体 | SourceHanSans 字体系列 | `Assets/Art/Font/` |
+| 贴图 | 测试图片、UI 贴图 | `Assets/Art/Pictures/` |
+| 音频 | OST、FMOD Bank | `Assets/Audio/`、`Assets/Desktop/` |
+| FMOD 插件 | 多平台原生库 | `Assets/Miscellaneous Management System/Plugins/FMOD/` |
+| 雾效资源包 | VolumetricFog2 (Builtin/URP) | `Assets/Unity Asset Management System/VolumetricFogBundle/` |
 
-**物理核心**: 尼基金转向阻力公式 + 功率预算分配 + 各向异性摩擦力
+### 生成资源包
 
-```
-AvailablePower = EnginePower × Efficiency × PowerCurve
-转向消耗 ≤ AvailablePower × 65%（最多吃掉 65% 引擎功率）
-剩余功率 = 前进驱动 + 克服滚阻
-```
-
-### 坦克武器 — TankWeaponController
-
-5 个 partial class:
-
-| 文件 | 职责 |
-|------|------|
-| `.cs` | 核心、FCS 注册、瞄准点计算 |
-| `.MainGunTurn.cs` | 炮塔旋转 (TPS/AIM 模式) |
-| `.FreeViewpoint.cs` | 自由视角 (C 键) |
-| `.Collision.cs` | 炮管碰撞规避（SphereCast + 二分搜索） |
-| `.ExtraFunction.cs` | 编辑器可视化 |
-
-### 音频系统 — AudioManager + FMOD
-
-```
-TankAudioDatabase (SO)
-  └─ TankAudioData (每坦克)
-       ├─ 引擎状态机: Off→Startup→Idle→Move→Shutdown
-       └─ 一次性音效: fire/reload/hit
-AudioVolumeCategory 分类: Engine/Weapon/Reload/Impact
-```
-
-引擎音频由 RPM、负载、速度实时驱动。
-
-### 其他系统
-
-- **悬挂**: TankSuspensionManager（悬挂臂 + 轮子旋转 + 视觉）
-- **碰撞/伤害**: GeneralHitPosition + TargetDamageResolver
-- **弹药**: CannonBall + Objectpooler
-- **受击检测**: 炮弹命中 → 穿透/跳弹 → 伤害结算
+在 Unity Editor 中执行菜单 `Tools / 构建资源资产包`，将在项目根目录生成 `Small_WarThunder_Assets_v{version}.zip`。
 
 ---
 
-## 数据驱动
+## 项目框架总括
+
+```
+GameManager                    ← 全局生命周期
+  └─ UIManager                 ← UI 管理（暂停/任务/HUD/设置）
+       └─ TankAImUIController  → FcsHudPainter（瞄准 HUD）
+MIddleInputingController       ← 输入中介层（InputSystem → 游戏逻辑）
+TankMoveController             ← 坦克移动（10 partial files）
+TankWeaponController           ← 炮塔/武器（5 partial files）
+TankFireController             ← 开火/装填/测距（9 partial files）
+TankController                 ← 坦克整体（6 partial files）
+AudioManager                   ← 音频（FMOD）
+WeatherController              ← 天气
+TankSuspensionManager          ← 悬挂
+GeneralHitPosition             ← 碰撞/伤害
+CannonBall + Objectpooler      ← 弹药/对象池
+```
+
+### 数据驱动架构
 
 所有坦克参数通过 ScriptableObject 配置：
 
 | SO | 主要参数 |
 |----|----------|
-| `TankMoveData` | 质量/速度/加速度/功率/多条调教曲线 |
+| `TankMoveData` | 质量/速度/加速度/功率/调教曲线 |
 | `TankTurretData` | 旋转速度/俯仰角/炮管避撞 |
 | `TankAudioData` | FMOD 事件/引擎状态层 |
 | `NewAimConfigData` | HUD 布局/元素/变焦 |
 | `ProjectileData` | 弹丸参数 |
 | `ArmoredZoneData` | 装甲区域 |
 
----
-
-## 设计模式
+### 设计模式
 
 | 模式 | 位置 |
 |------|------|
-| **Singleton** | 大部分控制器 (TankMove/Weapon/Fire/UI/Audio) |
-| **Partial Class** | 大型控制器拆分为 5~10 个文件 |
-| **Mediator** | MIddleInputingController (输入 → 逻辑) |
-| **Observer** | C# events (引擎状态/速度/暂停) |
-| **State Machine** | 转向状态机、引擎音频状态机 |
-| **Registry** | FCSRegistrySystem (火控数据注册) |
-| **Strategy** | 不同转向策略 (Pivot/Brake/Arc) |
-| **Data-Driven** | ScriptableObject 配置所有坦克参数 |
-| **Object Pool** | 炮弹对象池 |
+| Singleton | 大部分控制器 |
+| Partial Class | 大型控制器拆分 |
+| Mediator | MIddleInputingController |
+| Observer | C# events |
+| State Machine | 转向/引擎音频 |
+| Registry | FCSRegistrySystem |
+| Strategy | 转向策略 |
+| Data-Driven | ScriptableObject |
+| Object Pool | 炮弹池 |
+
+---
+
+## 贡献与合作
+
+### 开发人员
+
+- **guilingzhouyi-creator** — 项目发起人、主程、架构设计
+
+### 贡献方式
+
+欢迎提交 Issue 和 Pull Request。请遵循以下原则：
+
+1. 代码风格遵循项目既有约定（`_camelCase` 私有字段、PascalCase 公共属性）
+2. 修改前先阅读 `ARCHITECTURE.md` 了解架构
+3. 涉及对象池时，尊重池化回收流程
+4. 涉及 UI 时，同时考虑事件订阅和状态刷新
+5. 大改动建议先开 Issue 讨论
+
+### 第三方资源
+
+- FMOD Studio — 音频中间件
+- SourceHanSans — 思源黑体字体（SIL Open Font License）
+- VolumetricFog2 — 体积雾效果（Unity Asset Store）
+
+---
+
+> **构建要求**: Unity 6000.3.11f1 + HDRP 17.3.0  
+> **首次克隆后**: 确保已安装 Git LFS，执行 `git lfs pull` 拉取资源文件

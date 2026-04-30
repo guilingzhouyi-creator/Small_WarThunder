@@ -13,6 +13,9 @@ Build/
 Builds/
 Dist/
 
+# Generated asset zip packages
+Small_WarThunder_Assets_*.zip
+
 # Large generated or redistributable assets
 # IDE / editor state
 .vs/
