@@ -2,152 +2,114 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+/// <summary>
+/// 关卡总控（总控层）。
+/// 负责关卡生命周期协调：场景加载时调度各执行层系统（玩家生成、摄像机绑定、音频/设置引导、字幕触发）。
+/// 不直接执行具体逻辑，只做调度和协调。
+/// </summary>
 public partial class GameManager : MonoBehaviour
 {
-    //核心数据储存与处理类，负责管理游戏的核心数据和逻辑，例如坦克状态、关卡信息、游戏进度等
-    //可以通过单例模式来实现全局访问，确保游戏中的各个系统都能方便地访问和修改核心数据
-
     public static GameManager Instance { get; private set; }
-    private static int lvevlIndex = 1; // 当前关卡索引，初始值为1，表示第一关
-    // private Transform playerSpawnPoint; // 玩家出生点位置，后续会从 GameLevelManager 获取并设置
-    [SerializeField] private GameObject tankPrefab;
-    [SerializeField] private Transform playerSpawnPoint;
-    [SerializeField] private GameObject playerTank;
-    [SerializeField] private CameraPosition cameraPosition;
-    [SerializeField] private ZoomCameraPosition zoomCameraPosition;
-    [SerializeField] private AimCameraPosition aimCameraPosition;
-    [SerializeField] private SettingManager settingManager;
-    [SerializeField] private AudioManager audioManager;
-    [SerializeField] private List<GameLevelManager> gameLevelList;
-    private GameLevelManager runtimeGameLevel;
 
-    public GameObject PlayerTank => playerTank; // 公开只读属性，允许其他系统访问玩家坦克实例，但不允许直接修改
+    private static int _levelIndex = 1;
+
+    [Header("系统引用（可选，用于 Inspector 预绑定）")]
+    [SerializeField] private SettingManager _settingManager;
+    [SerializeField] private AudioManager _audioManager;
+
+    private GameLevelManager _runtimeGameLevel;
+
+    /// <summary>
+    /// 提供统一的玩家坦克查询入口，委托给执行层。
+    /// 供 LevelStreamingEngine 等外部系统使用。
+    /// </summary>
+    public GameObject PlayerTank => PlayerSpawnSystem.Instance?.PlayerTank;
 
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("GameManager: 已存在一个 GameManager 实例，当前实例将被销毁以保持单例模式。", this);
+            Debug.LogWarning("[GameManager] 已存在一个 GameManager 实例，当前实例将被销毁以保持单例模式。", this);
             Destroy(gameObject);
             return;
         }
 
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
 
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 
     private void Start()
     {
-        ValidateComponentsInThis();
-
-        ValidateComponentsInExternal();
-
-        BootstrapSystems();
-
-        SpawnPlayerTankIfNeeded();
-
+        BootstrapAudioAndSettings();
+        StartValidationIfNeeded();
         HandleGameSceneEntered(SceneManager.GetActiveScene());
-
-        // playerSpawnPoint = ;
     }
-
-
-
-
-
 
     private void OnEnable()
     {
         SceneManager.sceneLoaded += OnSceneLoaded;
     }
 
-
     private void OnDisable()
     {
         SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-
-
     private void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
     {
-        BootstrapSystems();
-
+        BootstrapAudioAndSettings();
+        OnSceneLoadedValidationIfNeeded(scene);
         HandleGameSceneEntered(scene);
     }
 
+    /// <summary>
+    /// GameScene 进入时，总控层协调各执行层。
+    /// </summary>
     private void HandleGameSceneEntered(Scene scene)
     {
-        bool isGameScene = SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene);
-
-        if (!isGameScene)
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
         {
             return;
         }
 
-        SpawnPlayerTankIfNeeded();
+        // 1. 执行层：玩家生成
+        PlayerSpawnSystem.Instance?.SpawnPlayer();
 
-        if (settingManager != null)
-        {
-            settingManager.ApplyCurrentSettingsToAudio();
-        }
+        // 2. 执行层：摄像机绑定
+        CameraSystem.Instance?.BindToPlayer();
 
-        audioManager ??= AudioManager.Instance;
-        if (audioManager != null)
-        {
-            audioManager.PlayBGM();
-        }
+        // 3. 执行层：音频设置引导
+        _settingManager ??= SettingManager.Instance;
 
-        LevelStreamingEngine.Instance?.RefreshVisibleRegionsNow();
-        TryPrepareCurrentLevelBootstrap(scene);
+        _audioManager ??= AudioManager.Instance;
+        _audioManager?.PlayBGM();
+
+        // 4. 总控层：尝试触发关卡开始叙事字幕
+        //    _runtimeGameLevel 由 LevelStreamingEngine → GameLevelManager.OnEnable → RegisterRuntimeGameLevel 注册
+        //    此时地图可能尚未加载完成，字幕触发在 RegisterRuntimeGameLevel 中处理
+        TryPrepareCurrentLevelBootstrap();
     }
 
-
-
-    private void BootstrapSystems()
+    /// <summary>
+    /// 引导音频和设置子系统的单例引用。
+    /// </summary>
+    private void BootstrapAudioAndSettings()
     {
+        _settingManager ??= SettingManager.Instance;
+        _audioManager ??= AudioManager.Instance;
 
-        if (settingManager == null)
-        {
-            settingManager = SettingManager.Instance;
-        }
-
-        if (audioManager == null)
-        {
-            audioManager = AudioManager.Instance;
-        }
-
-        if (settingManager != null)
-        {
-            settingManager.Initialize(audioManager);
-        }
-
+        _settingManager?.Initialize(_audioManager);
     }
 
-    private void SpawnPlayerTankIfNeeded()
-    {
-        if (playerTank != null)
-        {
-            BindCameraTargets(playerTank.transform);
-            return;
-        }
-
-        SpawnPlayerTankValidate();
-
-        playerTank = Instantiate(tankPrefab, playerSpawnPoint.position, playerSpawnPoint.rotation);
-        playerTank.name = tankPrefab.name;
-
-        BindCameraTargets(playerTank.transform);
-    }
-
-    private void LoadCurrentLevel()
-    {
-        var gameLevel = GetGameLevel();
-
-        var spawnedGameLevel = Instantiate(gameLevel, Vector3.zero, Quaternion.identity);
-
-    }
+    // ───────────── 关卡生命周期管理 ─────────────
 
     public void RegisterRuntimeGameLevel(GameLevelManager gameLevel)
     {
@@ -156,93 +118,34 @@ public partial class GameManager : MonoBehaviour
             return;
         }
 
-        if (gameLevel.LevelIndex == lvevlIndex)
+        if (gameLevel.LevelIndex == _levelIndex)
         {
-            runtimeGameLevel = gameLevel;
-            TryPrepareCurrentLevelBootstrap(gameLevel.gameObject.scene);
+            _runtimeGameLevel = gameLevel;
+            TryPrepareCurrentLevelBootstrap();
         }
     }
 
     public void UnregisterRuntimeGameLevel(GameLevelManager gameLevel)
     {
-        if (runtimeGameLevel == gameLevel)
+        if (_runtimeGameLevel == gameLevel)
         {
-            runtimeGameLevel = null;
+            _runtimeGameLevel = null;
         }
     }
 
-
-    private GameLevelManager GetGameLevel()
+    private void TryPrepareCurrentLevelBootstrap()
     {
-        foreach (var gameLevel in gameLevelList)
-        {
-            if (gameLevel.GetLevelIndex() == lvevlIndex)
-            {
-                return gameLevel;
-            }
-        }
-
-        return null;
-    }
-
-    private void TryPrepareCurrentLevelBootstrap(Scene scene)
-    {
-        GameLevelManager currentLevel = ResolveRuntimeGameLevel(scene);
-        currentLevel?.PrepareLevelStartNarrative();
-    }
-
-    private GameLevelManager ResolveRuntimeGameLevel(Scene scene)
-    {
-        if (runtimeGameLevel != null
-            && runtimeGameLevel.LevelIndex == lvevlIndex
-            && runtimeGameLevel.gameObject.scene == scene)
-        {
-            return runtimeGameLevel;
-        }
-
-        GameLevelManager[] runtimeLevels = FindObjectsByType<GameLevelManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
-        for (int index = 0; index < runtimeLevels.Length; index++)
-        {
-            GameLevelManager candidate = runtimeLevels[index];
-            if (candidate == null || candidate.LevelIndex != lvevlIndex)
-            {
-                continue;
-            }
-
-            if (candidate.gameObject.scene != scene)
-            {
-                continue;
-            }
-
-            runtimeGameLevel = candidate;
-            return runtimeGameLevel;
-        }
-
-        return null;
+        _runtimeGameLevel?.PrepareLevelStartNarrative();
     }
 
     public static void ResetStaticData()
     {
-        lvevlIndex = 1; // 重置关卡索引，回到第一关
-
+        _levelIndex = 1;
     }
 
     public void LoadNextLevel()
     {
-        lvevlIndex++;
-
-
-        if (GetGameLevel() == null)
-        {
-            SceneLoader.LoadScene(SceneLoader.Scene.GameOverScene);
-            return;
-        }
-        else
-        {
-            SceneLoader.LoadScene(SceneLoader.Scene.GameScene);
-        }
+        _levelIndex++;
+        SceneLoader.LoadScene(SceneLoader.Scene.GameScene);
     }
-
-
-
 }

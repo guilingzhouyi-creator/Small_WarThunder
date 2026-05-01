@@ -7,6 +7,8 @@ using UnityEngine;
 /// 玩家移动时通过 GameLevelMaker 触发 ShowNearbyRegions，控制区域可见性。
 ///
 /// 未来扩展预留接口：LoadMap(string mapId) / UnloadMap(string mapId)
+///
+/// 加载时扫描子物体上的 LevelMissionMarker，如果存在则激活 GameLevelManager 以触发注册和字幕。
 /// </summary>
 public class LevelStreamingEngine : MonoBehaviour
 {
@@ -36,7 +38,14 @@ public class LevelStreamingEngine : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
     }
 
     private void Start()
@@ -95,7 +104,6 @@ public class LevelStreamingEngine : MonoBehaviour
 
     /// <summary>
     /// 立即按当前玩家位置刷新一次区域可见性。
-    /// 用于玩家刚生成、地图刚加载完、或需要手动纠正初始视野时。
     /// </summary>
     public void RefreshVisibleRegionsNow()
     {
@@ -116,6 +124,7 @@ public class LevelStreamingEngine : MonoBehaviour
 
     /// <summary>
     /// 一次性加载所有配置的地图，扫描子物体注册为区域，默认全部隐藏。
+    /// 如果子物体上有 LevelMissionMarker 且带有 GameLevelManager，则激活以触发注册和字幕。
     /// </summary>
     public void LoadAllMaps()
     {
@@ -141,7 +150,7 @@ public class LevelStreamingEngine : MonoBehaviour
 
     /// <summary>
     /// 加载单张地图：Instantiate 父级预制体 → 扫描子物体 → 注册区域 → 默认隐藏。
-    /// 同时为每个子物体挂载 GameLevelMaker（如果没有的话）。
+    /// 如果子物体上有 LevelMissionMarker 且 Tag 为 "MissionRegion"，则激活以触发 GameLevelManager 注册和字幕。
     /// </summary>
     private void LoadSingleMap(MapEntry mapEntry)
     {
@@ -167,14 +176,29 @@ public class LevelStreamingEngine : MonoBehaviour
             Transform child = mapRoot.transform.GetChild(i);
             string regionId = $"{mapEntry.mapId}_{child.name}";
 
-            // 确保子物体上有 GameLevelMaker
-            var maker = child.GetComponent<GameLevelMaker>();
-            if (maker == null)
+            // ─── 任务区域处理（带 LevelMissionMarker）───
+            if (child.TryGetComponent<LevelMissionMarker>(out var missionMarker))
             {
-                maker = child.gameObject.AddComponent<GameLevelMaker>();
-                Debug.Log($"[LevelStreamingEngine] 已为 {child.name} 自动添加 GameLevelMaker");
+                var gameLevel = child.GetComponent<GameLevelManager>();
+                if (gameLevel == null)
+                {
+                    Debug.LogWarning(
+                        $"[LevelStreamingEngine] 区域 {child.name} 有 LevelMissionMarker 但缺少 GameLevelManager，" +
+                        "无法触发任务注册和字幕。请确保子区域预制体上同时挂载了 GameLevelManager 组件。");
+                }
+                else
+                {
+                    Debug.Log(
+                        $"[LevelStreamingEngine] 检测到任务区域 {child.name}（关卡 {missionMarker.LevelIndex}），" +
+                        "激活 GameLevelManager 以触发注册和字幕。");
+                }
+
+                // 激活子物体以触发 GameLevelManager.OnEnable → 注册 → 字幕
+                child.gameObject.SetActive(true);
+                continue; // 跳过区域列表注册和默认隐藏
             }
 
+            // ─── 普通区域处理 ───
             var regionEntry = new RegionEntry
             {
                 regionId = regionId,
@@ -189,16 +213,11 @@ public class LevelStreamingEngine : MonoBehaviour
             child.gameObject.SetActive(false);
         }
 
-        Debug.Log($"[LevelStreamingEngine] 地图 {mapEntry.mapId} 加载完成，共 {mapEntry.regions.Count} 个区域");
+        Debug.Log($"[LevelStreamingEngine] 地图 {mapEntry.mapId} 加载完成，共 {mapEntry.regions.Count} 个普通区域");
     }
 
     // ==================== 运行时可见性 ====================
 
-    /// <summary>
-    /// 根据玩家位置显示附近区域，隐藏远处区域。
-    /// 由 GameLevelMaker.OnTriggerEnter/Exit 调用。
-    /// </summary>
-    /// <param name="playerPos">玩家世界坐标</param>
     public void ShowNearbyRegions(Vector3 playerPos)
     {
         if (_registrySystem == null) return;
@@ -238,9 +257,6 @@ public class LevelStreamingEngine : MonoBehaviour
         return false;
     }
 
-    /// <summary>
-    /// 显示指定区域
-    /// </summary>
     public void ShowRegion(string regionId)
     {
         var entry = _registrySystem?.Get(regionId);
@@ -250,9 +266,6 @@ public class LevelStreamingEngine : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// 隐藏指定区域
-    /// </summary>
     public void HideRegion(string regionId)
     {
         var entry = _registrySystem?.Get(regionId);
@@ -264,10 +277,6 @@ public class LevelStreamingEngine : MonoBehaviour
 
     // ==================== 内部辅助 ====================
 
-    /// <summary>
-    /// 判断区域是否在玩家附近。
-    /// 优先用 regionTransform.position 计算，regionSize 作为兜底。
-    /// </summary>
     private bool IsRegionNearby(RegionEntry entry, Vector3 playerPos, Vector2Int anchorGrid, int gridRadius)
     {
         if (TryGetRegionGridCoordinate(entry, out Vector2Int regionGrid))
@@ -428,9 +437,6 @@ public class LevelStreamingEngine : MonoBehaviour
 
     // ==================== 预留：未来按需加载 ====================
 
-    /// <summary>
-    /// 【预留】动态加载单张地图（Instantiate + 注册）
-    /// </summary>
     public void LoadMap(string mapId)
     {
         var mapEntry = _registrySystem?.GetMap(mapId);
@@ -449,10 +455,6 @@ public class LevelStreamingEngine : MonoBehaviour
         LoadSingleMap(mapEntry);
     }
 
-    /// <summary>
-    /// 【预留】卸载地图（Destroy + 清理注册表中的 loadedRoot 引用）
-    /// 注意：不会释放 AssetBundle 资源，未来需要配合 Addressables 使用。
-    /// </summary>
     public void UnloadMap(string mapId)
     {
         var mapEntry = _registrySystem?.GetMap(mapId);

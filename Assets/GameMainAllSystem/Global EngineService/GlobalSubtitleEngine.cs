@@ -66,7 +66,15 @@ public class GlobalSubtitleEngine : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+            _activePackage = null;
+        }
     }
 
 

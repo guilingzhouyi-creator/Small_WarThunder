@@ -1,21 +1,72 @@
 using UnityEngine;
 
-public partial class GameManager : MonoBehaviour
+/// <summary>
+/// 摄像机绑定系统（执行层）。
+/// 负责将场景中的 CameraPosition/ZoomCameraPosition/AimCameraPosition 绑定到玩家坦克的标记点。
+/// 由 GameManager（总控层）在场景加载后调用 BindToPlayer()。
+/// </summary>
+public class CameraSystem : MonoBehaviour
 {
+    public static CameraSystem Instance { get; private set; }
 
-    private void BindCameraTargets(Transform tankRoot)
+    [SerializeField] private CameraPosition _cameraPosition;
+    [SerializeField] private ZoomCameraPosition _zoomCameraPosition;
+    [SerializeField] private AimCameraPosition _aimCameraPosition;
+
+    private void Awake()
     {
-        if (tankRoot == null)
+        if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("GameManager: 无法绑定相机目标，tankRoot 为空。");
+            Destroy(gameObject);
             return;
         }
 
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
+    /// <summary>
+    /// 绑定场景中的摄像机控制器到玩家坦克的相机标记点。
+    /// 如果 playerRoot 为 null，会自动从 PlayerSpawnSystem 获取当前玩家坦克。
+    /// </summary>
+    public void BindToPlayer(Transform playerRoot = null)
+    {
+        if (playerRoot == null)
+        {
+            var playerTank = PlayerSpawnSystem.Instance?.PlayerTank;
+            if (playerTank == null)
+            {
+                Debug.LogWarning("[CameraSystem] 无法绑定摄像机：玩家坦克不存在。");
+                return;
+            }
+
+            playerRoot = playerTank.transform;
+        }
+
+        if (playerRoot == null)
+        {
+            Debug.LogWarning("[CameraSystem] 无法绑定摄像机：playerRoot 为空。");
+            return;
+        }
+
+        BindCameraTargets(playerRoot);
+    }
+
+    private void BindCameraTargets(Transform tankRoot)
+    {
         TankCameraBindMarker[] markers = GetCameraBindMarkers(tankRoot);
 
         if (markers == null || markers.Length == 0)
         {
-            Debug.LogWarning($"GameManager: 在 {tankRoot.name} 下没有找到 TankCameraBindMarker，将使用 tankRoot 作为相机回退目标。");
+            Debug.LogWarning($"[CameraSystem] 在 {tankRoot.name} 下没有找到 TankCameraBindMarker，将使用 tankRoot 作为相机回退目标。");
         }
 
         Transform thirdPersonFollow = GetCameraTargetByRole(markers, TankCameraBindMarker.BindRole.ThirdPersonFollow, tankRoot);
@@ -31,59 +82,52 @@ public partial class GameManager : MonoBehaviour
         if (resolvedCameraPosition != null)
         {
             resolvedCameraPosition.BindTarget(thirdPersonFollow, thirdPersonLookAt);
-
             LogCameraBinding("CameraPosition", thirdPersonFollow, thirdPersonLookAt);
         }
         else
         {
-            Debug.LogWarning("GameManager: 未找到可绑定的 CameraPosition 控制器。");
+            Debug.LogWarning("[CameraSystem] 未找到可绑定的 CameraPosition 控制器。");
         }
-
 
         ZoomCameraPosition resolvedZoomCameraPosition = ResolveZoomCameraPositionController();
         if (resolvedZoomCameraPosition != null)
         {
             resolvedZoomCameraPosition.BindTarget(zoomFollow, zoomLookAt);
             resolvedZoomCameraPosition.BindAimTarget(aimFollow, aimLookAt);
-
             LogCameraBinding("ZoomCameraPosition", zoomFollow, zoomLookAt);
             LogCameraBinding("ZoomCameraPosition(Aim)", aimFollow, aimLookAt);
         }
         else
         {
-            Debug.LogWarning("GameManager: 未找到可绑定的 ZoomCameraPosition 控制器。");
+            Debug.LogWarning("[CameraSystem] 未找到可绑定的 ZoomCameraPosition 控制器。");
         }
-
 
         AimCameraPosition resolvedAimCameraPosition = ResolveAimCameraPositionController();
         if (resolvedAimCameraPosition != null)
         {
             resolvedAimCameraPosition.BindTarget(aimFollow, aimLookAt);
-
             LogCameraBinding("AimCameraPosition", aimFollow, aimLookAt);
         }
         else
         {
-            Debug.LogWarning("GameManager: 未找到可绑定的 AimCameraPosition 控制器。");
+            Debug.LogWarning("[CameraSystem] 未找到可绑定的 AimCameraPosition 控制器。");
         }
     }
 
-
     private CameraPosition ResolveCameraPositionController()
     {
-        if (cameraPosition != null && cameraPosition.HasCameraReference)
+        if (_cameraPosition != null && _cameraPosition.HasCameraReference)
         {
-            return cameraPosition;
+            return _cameraPosition;
         }
 
-        //
         CameraPosition[] cameraPositions = FindObjectsByType<CameraPosition>(FindObjectsSortMode.None);
         for (int i = 0; i < cameraPositions.Length; i++)
         {
             CameraPosition candidate = cameraPositions[i];
             if (candidate != null && candidate.HasCameraReference)
             {
-                cameraPosition = candidate;
+                _cameraPosition = candidate;
                 return candidate;
             }
         }
@@ -93,20 +137,18 @@ public partial class GameManager : MonoBehaviour
 
     private ZoomCameraPosition ResolveZoomCameraPositionController()
     {
-        if (zoomCameraPosition != null && zoomCameraPosition.HasCameraReference)
+        if (_zoomCameraPosition != null && _zoomCameraPosition.HasCameraReference)
         {
-            return zoomCameraPosition;
+            return _zoomCameraPosition;
         }
 
         ZoomCameraPosition[] zoomCameraPositions = FindObjectsByType<ZoomCameraPosition>(FindObjectsSortMode.None);
-
         for (int i = 0; i < zoomCameraPositions.Length; i++)
         {
             ZoomCameraPosition candidate = zoomCameraPositions[i];
-
             if (candidate != null && candidate.HasCameraReference)
             {
-                zoomCameraPosition = candidate;
+                _zoomCameraPosition = candidate;
                 return candidate;
             }
         }
@@ -116,20 +158,18 @@ public partial class GameManager : MonoBehaviour
 
     private AimCameraPosition ResolveAimCameraPositionController()
     {
-        if (aimCameraPosition != null && aimCameraPosition.HasCameraReference)
+        if (_aimCameraPosition != null && _aimCameraPosition.HasCameraReference)
         {
-            return aimCameraPosition;
+            return _aimCameraPosition;
         }
 
         AimCameraPosition[] aimCameraPositions = FindObjectsByType<AimCameraPosition>(FindObjectsSortMode.None);
-
         for (int i = 0; i < aimCameraPositions.Length; i++)
         {
             AimCameraPosition candidate = aimCameraPositions[i];
-
             if (candidate != null && candidate.HasCameraReference)
             {
-                aimCameraPosition = candidate;
+                _aimCameraPosition = candidate;
                 return candidate;
             }
         }
@@ -137,10 +177,6 @@ public partial class GameManager : MonoBehaviour
         return null;
     }
 
-
-    /// <summary>
-    /// 解析场景中的 CameraPosition 控制器，优先使用已分配的 cameraPosition 字段，如果无效则搜索场景中所有 CameraPosition 组件并选择第一个有效的
-    /// </summary>
     private TankCameraBindMarker[] GetCameraBindMarkers(Transform tankRoot)
     {
         if (tankRoot == null)
@@ -151,9 +187,6 @@ public partial class GameManager : MonoBehaviour
         return tankRoot.GetComponentsInChildren<TankCameraBindMarker>(true);
     }
 
-    /// <summary>
-    /// 根据指定的绑定角色从标记数组中获取相机目标，如果未找到则返回提供的回退目标
-    /// </summary>
     private Transform GetCameraTargetByRole(TankCameraBindMarker[] markers, TankCameraBindMarker.BindRole role, Transform fallback)
     {
         if (markers != null)
@@ -170,16 +203,10 @@ public partial class GameManager : MonoBehaviour
         return fallback;
     }
 
-
-
-    /// <summary>
-    /// 记录相机绑定信息的辅助方法，方便调试和验证相机目标的正确性
-    /// </summary>
     private void LogCameraBinding(string controllerName, Transform followTarget, Transform lookAtTarget)
     {
         string followName = followTarget != null ? followTarget.name : "null";
         string lookAtName = lookAtTarget != null ? lookAtTarget.name : "null";
-        Debug.Log($"GameManager: {controllerName} 已绑定 Follow = {followName}, LookAt = {lookAtName}");
+        Debug.Log($"[CameraSystem] {controllerName} 已绑定 Follow = {followName}, LookAt = {lookAtName}");
     }
-
 }

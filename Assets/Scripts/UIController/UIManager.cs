@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
@@ -75,12 +76,24 @@ public class UIManager : MonoBehaviour
 
         BindInputEvents();
         BindSettingEvents();
+        SceneManager.sceneLoaded += HandleSceneLoaded;
     }
 
     private void OnDisable()
     {
         UnbindInputEvents();
         UnbindSettingEvents();
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
+    }
+
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
+    {
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            SetCursorLocked(false);
+        }
+
+        RefreshUIState();
     }
 
     private void Update()
@@ -316,9 +329,11 @@ public class UIManager : MonoBehaviour
     //刷新UI状态的方法根据当前的暂停状态和瞄准UI的可见性来更新相关UI元素的显示状态。
     private void RefreshUIState()
     {
+        bool isGameplayScene = IsGameplayScene();
+
         if (pauseUIController != null)
         {
-            bool shouldShowPauseUI = _isPaused && !_isSettingUIVisible;
+            bool shouldShowPauseUI = isGameplayScene && _isPaused && !_isSettingUIVisible;
 
             pauseUIController.gameObject.SetActive(shouldShowPauseUI);
 
@@ -330,7 +345,7 @@ public class UIManager : MonoBehaviour
 
         if (missionPannelUIController != null)
         {
-            bool shouldShowMissionPanel = _isTabed && !_isSettingUIVisible;
+            bool shouldShowMissionPanel = isGameplayScene && _isTabed && !_isSettingUIVisible;
 
             missionPannelUIController.gameObject.SetActive(shouldShowMissionPanel);
 
@@ -342,7 +357,7 @@ public class UIManager : MonoBehaviour
 
         if (settingManager != null)
         {
-            bool shouldShowSettingUI = _isPaused && _isSettingUIVisible;
+            bool shouldShowSettingUI = isGameplayScene && _isPaused && _isSettingUIVisible;
 
             settingManager.gameObject.SetActive(shouldShowSettingUI);
 
@@ -354,13 +369,18 @@ public class UIManager : MonoBehaviour
 
         if (tankStatsUIController != null)
         {
-            tankStatsUIController.gameObject.SetActive(!IsGameplayControlLocked);// 坦克状态UI在未暂停、未打开 Tab、未显示设置界面时才显示
+            tankStatsUIController.gameObject.SetActive(isGameplayScene && !IsGameplayControlLocked);// 坦克状态UI在未暂停、未打开 Tab、未显示设置界面时才显示
         }
 
         if (sightUIPanel != null)
         {
-            sightUIPanel.gameObject.SetActive(!IsGameplayControlLocked && _isSightUIVisible);// 瞄准UI在未暂停、未打开 Tab、未显示设置界面时才显示
+            sightUIPanel.gameObject.SetActive(isGameplayScene && !IsGameplayControlLocked && _isSightUIVisible);// 瞄准UI在未暂停、未打开 Tab、未显示设置界面时才显示
         }
+    }
+
+    private bool IsGameplayScene()
+    {
+        return SceneLoader.IsScene(SceneManager.GetActiveScene(), SceneLoader.Scene.GameScene);
     }
 
 }

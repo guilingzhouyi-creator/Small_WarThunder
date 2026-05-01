@@ -1,15 +1,13 @@
 using UnityEngine;
-using TMPro;
-using SmallWar.Data;
 
+/// <summary>
+/// 任务面板 UIController。
+/// 接收 GameLevelManager 传来的 SubtitlePackage，转交给 GlobalSubtitleEngine 渲染。
+/// OnEnable 时恢复暂停的播放，OnDisable 时暂停播放。
+/// </summary>
 public class MissionPannelUIController : MonoBehaviour
 {
-    // [SerializeField] private TextMeshProUGUI MissionTextMeshLab;
-    [SerializeField] private MissionRegistrySystem registrysystem;
     private SubtitlePackage _pendingNarrative;
-
-    // public MissionCategory currentCat = MissionCategory.Frontline;
-    // public int currentSubID = 201;
 
     private void OnEnable()
     {
@@ -21,12 +19,10 @@ public class MissionPannelUIController : MonoBehaviour
             return;
         }
 
-        if (_pendingNarrative == null)
+        if (_pendingNarrative != null)
         {
-            _pendingNarrative = CreateLevelStartNarrative();
+            TryPlayPendingNarrative();
         }
-
-        TryPlayPendingNarrative();
     }
 
     private void OnDisable()
@@ -37,35 +33,27 @@ public class MissionPannelUIController : MonoBehaviour
         }
     }
 
-    public void TriggerLevelStartNarrative()
+    /// <summary>
+    /// 接收 GameLevelManager 传来的 SubtitlePackage，播放或缓存等待 UI 激活后播放。
+    /// </summary>
+    public void PlayNarrative(SubtitlePackage package)
     {
-        // 先缓存开场叙事，等任务面板真正显示时再播放。
-        _pendingNarrative = CreateLevelStartNarrative();
-
-        TryPlayPendingNarrative();
-    }
-
-    private SubtitlePackage CreateLevelStartNarrative()
-    {
-        if (registrysystem == null)
-        {
-            return null;
-        }
-
-        return registrysystem.GetPackageSequence
-        (
-            MissionCategory.Training, 100, 105, SubtitleChannel.Dialogue
-        );
-    }
-
-    private void TryPlayPendingNarrative()
-    {
-        if (!isActiveAndEnabled || _pendingNarrative == null)
+        if (package == null)
         {
             return;
         }
 
-        if (GlobalSubtitleEngine.Instance == null)
+        _pendingNarrative = package;
+
+        if (isActiveAndEnabled)
+        {
+            TryPlayPendingNarrative();
+        }
+    }
+
+    private void TryPlayPendingNarrative()
+    {
+        if (_pendingNarrative == null || GlobalSubtitleEngine.Instance == null)
         {
             return;
         }
@@ -74,27 +62,4 @@ public class MissionPannelUIController : MonoBehaviour
         GlobalSubtitleEngine.Instance.RequestSubtitle(_pendingNarrative);
         _pendingNarrative = null;
     }
-
-
-    // private void Awake()
-    // {
-    //     if (registrysystem != null) registrysystem.Initialize();
-
-    // }
-
-    // private void OnEnable()
-    // {
-    //     var data = registrysystem.Get(currentCat, currentSubID);
-
-    //     if (data != null)
-    //     {
-    //         // 如果是加密数据，此处应调用 Decrypt 方法
-
-    //         SubtitleEngine.Render(MissionTextMeshLab, data.content);
-    //     }
-    //     else
-    //     {
-    //         Debug.LogWarning($"[MissionSystem] 找不到任务数据: {currentCat} - {currentSubID}");
-    //     }
-    // }
 }

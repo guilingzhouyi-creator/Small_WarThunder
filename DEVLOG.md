@@ -20,3 +20,47 @@
 - 每个子物体自动挂载 `GameLevelMaker`（如果缺失），regionId 格式为 `"mapId_childName"`
 - `GameLevelMaker.IsTank()` 从 `CompareTag` 改为 `TryGetComponent<PlayerMaker/EnemyMaker>`，不再依赖 Tag 字符串
 - `ShowNearbyRegions()` 优先用 Collider.bounds 计算区域中心，regionSize 兜底
+
+---
+
+### 2026-05-01 修复场景切换后对象池丢失
+
+**问题：** 从 GameScene 退出到 MainMenu 再进入 GameScene 时，`TankAmmoPoolGroup` 和 `TerrainObjectPoolGroup` 随旧场景被销毁，对象池（弹药/地形）丢失。
+
+**根因：** `ObjectPool` 层级下的两个容器节点均未做跨场景保护：
+- `TankAmmoPoolGroup` — 未调用 `DontDestroyOnLoad`
+- `TerrainObjectPoolGroup` — 纯空节点，无任何脚本保护
+
+场景卸载时两者及其子物体一并销毁。
+
+**修复：**
+1. `TankAmmoPoolGroup.Awake()` — 在 `Instance = this` 后添加 `DontDestroyOnLoad(gameObject)`
+2. 新建 `DontDestroyOnLoadMarker.cs` — 极简标记组件，挂载后自动跨场景保持，拖到 `TerrainObjectPoolGroup` 上
+
+**影响范围：** 
+- `TankAmmoPoolGroup.cs` — Awake 增加一行
+- `Assets/Scripts/ObjectSystem/DontDestroyOnLoadMarker.cs` — 新建
+- 需在 Unity Editor 中为 `TerrainObjectPoolGroup` 挂载 `DontDestroyOnLoadMarker` 组件
+
+---
+
+### 2026-05-01 教程关卡敌人脚本确定
+
+**新增内容：**
+
+- `PatrolTarget.cs` — 教程关卡巡逻靶标车移动脚本，沿固定路径点循环移动，带 Editor Gizmos 可视化
+
+**审查结论（敌人坦克组件清单）：**
+
+| 组件 | 用途 | 固定靶 | 巡逻靶 |
+|------|------|--------|--------|
+| `EnemyMaker` | 空标记组件，替代 Tag | ✓ | ✓ |
+| `GeneralHitTopLevel` | 命中顶层接收器 | ✓ | ✓ |
+| `TargetDamageResolver` | 伤害计算（扣血/摧毁） | ✓ | ✓ |
+| `GeneralHitPosition` (子物体) | 各部位命中检测 + Collider | ✓ | ✓ |
+| `PatrolTarget` (新建) | 沿路径点移动 | ✗ | ✓ |
+
+**关键发现：**
+- 敌人坦克**不能**挂 `Tank`（玩家单例，会冲突）
+- 敌人坦克**不需要**挂 `TankMoveController` / `TankFireController` / `TankWeaponController` 等玩家专用脚本
+- 命中链路（CannonBall→GeneralHitPosition→GeneralHitTopLevel→TargetDamageResolver）已存在，敌人只需挂这组组件即可正常受击扣血

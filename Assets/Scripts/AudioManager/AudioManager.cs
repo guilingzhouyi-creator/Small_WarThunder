@@ -48,7 +48,13 @@ public partial class AudioManager : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(transform.root.gameObject);
+
+        if (transform.parent != null)
+        {
+            transform.SetParent(null, true);
+        }
+
+        DontDestroyOnLoad(gameObject);
     }
 
 

@@ -24,6 +24,14 @@ public class TankAmmoPoolGroup : MonoBehaviour
         AutoCollectPools();
     }
 
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
+
     private void OnValidate()
     {
         AutoCollectPools();
