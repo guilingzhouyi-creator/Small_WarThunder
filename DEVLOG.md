@@ -44,6 +44,28 @@
 
 ---
 
+### 2026-05-02 CG 播放系统 + 字幕重播间隔修复
+
+**新增内容：**
+- `CgSystem/CgClip.cs` — ScriptableObject 数据资产，配置 VideoClip/AudioClip/可跳过/淡入淡出
+- `CgSystem/CgPlaybackSystem.cs` — 单例 CG 播放器，DontDestroyOnLoad，支持全屏播放 + 任意键跳过 + 完成回调
+
+**改动及优化：**
+- `GameLevelManager.cs`：
+  - 新增 `TriggerPolicy` 枚举（OnceOnly / Repeatable），拆分字幕和 CG 的触发策略
+  - 新增 `_cgClip` / `_cgPolicy` 字段，支持 CG → 字幕的顺序播放管线
+  - CG 播完后通过回调链触发字幕，不阻塞后续逻辑
+  - **修复字幕重播间隔**：包播完（HasFinished）后才重置 `_lastDispatchTime`，确保 `_repeatInterval` 从播完时刻开始等待
+- `UIManager.cs`：新增 `SetCgPlaying(bool)` 和 `IsGameplayControlLocked` 包含 CG 状态，CG 播放时锁定输入并隐藏 HUD
+- `MissionPannelUIController.cs` / `GlobalSubtitleEngine.cs`：配合 CG 播放暂停/恢复字幕渲染
+
+**设计细节：**
+- CgPlaybackSystem 预制体放 MainMenuScene，常驻 Hierarchy，播放时显示 RawImage，播完后隐藏
+- CG 固定 OnceOnly（一次性），字幕策略可选 Repeatable / OnceOnly
+- 退出区域时 CG 标记不重置，字幕根据策略决定是否重置
+
+---
+
 ### 2026-05-01 教程关卡敌人脚本确定
 
 **新增内容：**
