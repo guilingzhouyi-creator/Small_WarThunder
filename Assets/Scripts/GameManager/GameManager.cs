@@ -19,6 +19,7 @@ public partial class GameManager : MonoBehaviour
     [SerializeField] private SettingManager settingManager;
     [SerializeField] private AudioManager audioManager;
     [SerializeField] private List<GameLevelManager> gameLevelList;
+    private GameLevelManager runtimeGameLevel;
 
     public GameObject PlayerTank => playerTank; // 公开只读属性，允许其他系统访问玩家坦克实例，但不允许直接修改
 
@@ -97,6 +98,9 @@ public partial class GameManager : MonoBehaviour
         {
             audioManager.PlayBGM();
         }
+
+        LevelStreamingEngine.Instance?.RefreshVisibleRegionsNow();
+        TryPrepareCurrentLevelBootstrap(scene);
     }
 
 
@@ -145,6 +149,28 @@ public partial class GameManager : MonoBehaviour
 
     }
 
+    public void RegisterRuntimeGameLevel(GameLevelManager gameLevel)
+    {
+        if (gameLevel == null)
+        {
+            return;
+        }
+
+        if (gameLevel.LevelIndex == lvevlIndex)
+        {
+            runtimeGameLevel = gameLevel;
+            TryPrepareCurrentLevelBootstrap(gameLevel.gameObject.scene);
+        }
+    }
+
+    public void UnregisterRuntimeGameLevel(GameLevelManager gameLevel)
+    {
+        if (runtimeGameLevel == gameLevel)
+        {
+            runtimeGameLevel = null;
+        }
+    }
+
 
     private GameLevelManager GetGameLevel()
     {
@@ -154,6 +180,42 @@ public partial class GameManager : MonoBehaviour
             {
                 return gameLevel;
             }
+        }
+
+        return null;
+    }
+
+    private void TryPrepareCurrentLevelBootstrap(Scene scene)
+    {
+        GameLevelManager currentLevel = ResolveRuntimeGameLevel(scene);
+        currentLevel?.PrepareLevelStartNarrative();
+    }
+
+    private GameLevelManager ResolveRuntimeGameLevel(Scene scene)
+    {
+        if (runtimeGameLevel != null
+            && runtimeGameLevel.LevelIndex == lvevlIndex
+            && runtimeGameLevel.gameObject.scene == scene)
+        {
+            return runtimeGameLevel;
+        }
+
+        GameLevelManager[] runtimeLevels = FindObjectsByType<GameLevelManager>(FindObjectsInactive.Include, FindObjectsSortMode.None);
+        for (int index = 0; index < runtimeLevels.Length; index++)
+        {
+            GameLevelManager candidate = runtimeLevels[index];
+            if (candidate == null || candidate.LevelIndex != lvevlIndex)
+            {
+                continue;
+            }
+
+            if (candidate.gameObject.scene != scene)
+            {
+                continue;
+            }
+
+            runtimeGameLevel = candidate;
+            return runtimeGameLevel;
         }
 
         return null;

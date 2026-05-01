@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 
 
@@ -7,16 +8,52 @@ using UnityEngine;
 public class GameLevelManager : MonoBehaviour
 {
     [SerializeField] private int levelIndex; // 关卡索引，表示这是第几关，初始值为0，表示第一关
+    private Coroutine _prepareNarrativeRoutine;
+    private bool _hasPreparedLevelStartNarrative;
+
+    public int LevelIndex => levelIndex;
     public int GetLevelIndex() => levelIndex;
 
-    private void Start()
+    private void OnEnable()
     {
+        GameManager.Instance?.RegisterRuntimeGameLevel(this);
+    }
+
+    private void OnDisable()
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.UnregisterRuntimeGameLevel(this);
+        }
+
+        if (_prepareNarrativeRoutine != null)
+        {
+            StopCoroutine(_prepareNarrativeRoutine);
+            _prepareNarrativeRoutine = null;
+        }
+    }
+
+    public void PrepareLevelStartNarrative()
+    {
+        if (_hasPreparedLevelStartNarrative || _prepareNarrativeRoutine != null)
+        {
+            return;
+        }
+
+        _prepareNarrativeRoutine = StartCoroutine(PrepareLevelStartNarrativeWhenReady());
+    }
+
+    private IEnumerator PrepareLevelStartNarrativeWhenReady()
+    {
+        yield return null;
+
         if (UIManager.Instance != null)
         {
-            var missionUI = FindFirstObjectByType<MissionPannelUIController>();
+            var missionUI = FindFirstObjectByType<MissionPannelUIController>(FindObjectsInactive.Include);
             if (missionUI != null)
             {
                 missionUI.TriggerLevelStartNarrative();
+                _hasPreparedLevelStartNarrative = true;
                 Debug.Log($"[GameLevelManager] 触发关卡 {levelIndex} 的开始叙事。");
             }
             else
@@ -24,7 +61,8 @@ public class GameLevelManager : MonoBehaviour
                 Debug.LogWarning("[GameLevelManager] 在场景中找不到 MissionPannelUIController 组件，无法触发关卡开始叙事。请确保场景中有一个对象挂载了 MissionPannelUIController 组件。");
             }
         }
-    }
 
+        _prepareNarrativeRoutine = null;
+    }
 
 }

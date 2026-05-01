@@ -8981,10 +8981,11 @@ GameObject:
   - component: {fileID: 4699886566893244874}
   - component: {fileID: 1058244556373886214}
   - component: {fileID: 4599824779799959925}
+  - component: {fileID: 2317045533814102768}
   - component: {fileID: 6829293422091876548}
   m_Layer: 0
   m_Name: Type99A
-  m_TagString: Untagged
+  m_TagString: Tank
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -9106,6 +9107,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Tank
   mainData: {fileID: 11400000, guid: a313358f55980d14d9c0e6da2170aa82, type: 2}
   colliders: []
+--- !u!114 &2317045533814102768
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8712899223371345879}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef0c18bbf340eb0478b22809e6431598, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMaker
 --- !u!54 &6829293422091876548
 Rigidbody:
   m_ObjectHideFlags: 0

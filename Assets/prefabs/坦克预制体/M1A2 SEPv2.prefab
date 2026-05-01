@@ -1777,6 +1777,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionManager
   nodeBindings: []
   autoBindNodes: 1
+  nodeBindingExtraDistance: 0.2
+  nodeFollowVerticalOffset: 0
   restHeight: 0
   springStrength: 8500
   damperStrength: 900
@@ -2257,7 +2259,7 @@ GameObject:
   - component: {fileID: 617935749371537346}
   m_Layer: 0
   m_Name: M1A2 SEPv2
-  m_TagString: Untagged
+  m_TagString: Tank
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -2337,6 +2339,8 @@ MonoBehaviour:
   barrelLengthInner: 11.25
   barrelRadiusInner: 0.15
   turretData: {fileID: 11400000, guid: 0b45694c7e3916246aaa4f9666aac068, type: 2}
+  aimConfigData: {fileID: 0}
+  tpsConfigData: {fileID: 0}
   snapSmoothTime: 0.15
   maxRecoverDuration: 0.5
   aimYawMouseSensitivity: 0.18
@@ -4980,6 +4984,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionManager
   nodeBindings: []
   autoBindNodes: 1
+  nodeBindingExtraDistance: 0.2
+  nodeFollowVerticalOffset: 0
   restHeight: 0
   springStrength: 8500
   damperStrength: 900

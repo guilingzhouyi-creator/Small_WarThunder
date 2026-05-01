@@ -6,22 +6,73 @@ public class MissionPannelUIController : MonoBehaviour
 {
     // [SerializeField] private TextMeshProUGUI MissionTextMeshLab;
     [SerializeField] private MissionRegistrySystem registrysystem;
+    private SubtitlePackage _pendingNarrative;
 
     // public MissionCategory currentCat = MissionCategory.Frontline;
     // public int currentSubID = 201;
 
+    private void OnEnable()
+    {
+        if (GlobalSubtitleEngine.Instance != null
+            && GlobalSubtitleEngine.Instance.HasActivePackage
+            && !GlobalSubtitleEngine.Instance.IsPlaying)
+        {
+            GlobalSubtitleEngine.Instance.ResumePlayback();
+            return;
+        }
+
+        if (_pendingNarrative == null)
+        {
+            _pendingNarrative = CreateLevelStartNarrative();
+        }
+
+        TryPlayPendingNarrative();
+    }
+
+    private void OnDisable()
+    {
+        if (GlobalSubtitleEngine.Instance != null)
+        {
+            GlobalSubtitleEngine.Instance.PausePlayback();
+        }
+    }
+
     public void TriggerLevelStartNarrative()
     {
-        // 从中央注册表提取 101 到 105 的任务序列，设为 Dialogue 优先级
-        SubtitlePackage narrative = registrysystem.GetPackageSequence
-        (
-            MissionCategory.Training, 101, 105, SubtitleChannel.Dialogue
-        );
+        // 先缓存开场叙事，等任务面板真正显示时再播放。
+        _pendingNarrative = CreateLevelStartNarrative();
 
-        if (narrative != null)
+        TryPlayPendingNarrative();
+    }
+
+    private SubtitlePackage CreateLevelStartNarrative()
+    {
+        if (registrysystem == null)
         {
-            GlobalSubtitleEngine.Instance.RequestSubtitle(narrative);
+            return null;
         }
+
+        return registrysystem.GetPackageSequence
+        (
+            MissionCategory.Training, 100, 105, SubtitleChannel.Dialogue
+        );
+    }
+
+    private void TryPlayPendingNarrative()
+    {
+        if (!isActiveAndEnabled || _pendingNarrative == null)
+        {
+            return;
+        }
+
+        if (GlobalSubtitleEngine.Instance == null)
+        {
+            return;
+        }
+
+        GlobalSubtitleEngine.Instance.ResetPlayback();
+        GlobalSubtitleEngine.Instance.RequestSubtitle(_pendingNarrative);
+        _pendingNarrative = null;
     }
 
 

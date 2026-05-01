@@ -106,7 +106,7 @@ GameObject:
   - component: {fileID: 8320356466942661651}
   m_Layer: 0
   m_Name: "T90A\u6D4B\u8BD5\u8F66\u578B"
-  m_TagString: Untagged
+  m_TagString: Tank
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -140,6 +140,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f022d12585555664690c59a1d0489db7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankMoveController
+  startWithEngineOn: 0
+  startWithElectricalPower: 1
+  linkElectricalPowerToEngine: 1
+  engineStartupInputLockSeconds: 3.25
   tanker: {fileID: 20983059193722293}
   tankMoveData: {fileID: 11400000, guid: 824e37c4b866a6248bfb026ab1f0f95b, type: 2}
   groundLayerMask:
@@ -174,26 +178,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2ea684fd967591340935ffc223f664fa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankWeaponController
-  aimLayer:
-    serializedVersion: 2
-    m_Bits: 0
-  turretData: {fileID: 11400000, guid: dc2f261a8d1be734696081de1891a0f3, type: 2}
   sphereRadius: 50
-  TPSCamera: {fileID: 0}
-  snapSmoothTime: 0.15
-  turret: {fileID: 5259858854568227204}
-  barrel: {fileID: 8693455958961726947}
-  barrelRoot: {fileID: 8693455958961726947}
-  bodyLayer:
-    serializedVersion: 2
-    m_Bits: 64
-  rearWaterTankCollide: {fileID: 2508674693824579005}
   barrelLengthOuter: 14.5
   barrelRadiusOuter: 0.8
   barrelLengthMiddle: 14.5
   barrelRadiusMiddle: 0.5
   barrelLengthInner: 14.5
   barrelRadiusInner: 0.35
+  turretData: {fileID: 11400000, guid: dc2f261a8d1be734696081de1891a0f3, type: 2}
+  aimConfigData: {fileID: 0}
+  tpsConfigData: {fileID: 0}
+  snapSmoothTime: 0.15
+  maxRecoverDuration: 0.5
+  aimYawMouseSensitivity: 0.18
+  aimPitchMouseSensitivity: 0.12
+  turret: {fileID: 5259858854568227204}
+  barrel: {fileID: 8693455958961726947}
+  barrelRoot: {fileID: 8693455958961726947}
 --- !u!114 &5861989441563972473
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -209,9 +210,10 @@ MonoBehaviour:
   _ammoPoolGroup: {fileID: 0}
   _firePoint: {fileID: 2814402890124095048}
   _projectileData: {fileID: 11400000, guid: f73e8912c39864846941ff663e4beeee, type: 2}
-  _weaponData: {fileID: 11400000, guid: 7d1bbd2058f2815478e310e0dca5907d, type: 2}
-  _tankMainData: {fileID: 11400000, guid: 0178f451c7a8ff242b1cbc545de80c5f, type: 2}
+  _MainGunWeaponData: {fileID: 0}
   _tank: {fileID: 967179875438958255}
+  _machineGunFirePoint: {fileID: 0}
+  _machineGunSubType: 0
 --- !u!114 &967179875438958255
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3911,18 +3913,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 4806851303970586223}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 3688677020531272235}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &590168490766429932
 GameObject:
   m_ObjectHideFlags: 0
@@ -11473,18 +11483,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0.06588495, y: -0, z: -0, w: 0.9978273}
   wheelPivot: {fileID: 5399982258841469748}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 7801173012151005581}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &1738337438191232417
 GameObject:
   m_ObjectHideFlags: 0
@@ -11970,19 +11988,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf6d41bd1d762374a8ef341f2b0c3113, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionManager
+  nodeBindings: []
+  autoBindNodes: 1
+  nodeBindingExtraDistance: 0.2
+  nodeFollowVerticalOffset: 0
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  autoTuneSpringDamper: 1
+  targetRideCompressionRatio: 0.4
+  damperRatio: 0.9
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
   wheelRadius: 0.85
   wheelRotationAxis: {x: 1, y: 0, z: 0}
   isLeftWheelRotation: 1
+  antiRollStrength: 5000
+  terrainAlignStrength: 3000
+  terrainAlignDamping: 500
   showDebugGizmos: 1
   rayColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   wheelColor: {r: 0, g: 1, b: 1, a: 1}
@@ -14347,18 +14381,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 5044889145513644182}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 3192035362111205424}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &2094168447772869789
 GameObject:
   m_ObjectHideFlags: 0
@@ -14944,18 +14986,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 2028974138376111251}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 6500412003557846355}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &2144488042504120853
 GameObject:
   m_ObjectHideFlags: 0
@@ -26585,18 +26635,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 9147797806538528793}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 4288320578858464944}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &3743801712551938118
 GameObject:
   m_ObjectHideFlags: 0
@@ -28353,18 +28411,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 5488425226774741176}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 4836272848848911365}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &3870613893473431948
 GameObject:
   m_ObjectHideFlags: 0
@@ -28410,18 +28476,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 7088717630771594549}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 1041334394602064932}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &3879090807421700849
 GameObject:
   m_ObjectHideFlags: 0
@@ -34695,19 +34769,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cf6d41bd1d762374a8ef341f2b0c3113, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionManager
+  nodeBindings: []
+  autoBindNodes: 1
+  nodeBindingExtraDistance: 0.2
+  nodeFollowVerticalOffset: 0
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  autoTuneSpringDamper: 1
+  targetRideCompressionRatio: 0.4
+  damperRatio: 0.9
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
   wheelRadius: 0.85
   wheelRotationAxis: {x: 1, y: 0, z: 0}
   isLeftWheelRotation: 0
+  antiRollStrength: 5000
+  terrainAlignStrength: 3000
+  terrainAlignDamping: 500
   showDebugGizmos: 1
   rayColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   wheelColor: {r: 0, g: 1, b: 1, a: 1}
@@ -42133,18 +42223,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 1968809855749913460}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 3945456279979636044}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &5922066391776929720
 GameObject:
   m_ObjectHideFlags: 0
@@ -43512,18 +43610,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 3954152287926389374}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 4543272286445771633}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &6228118466180741799
 GameObject:
   m_ObjectHideFlags: 0
@@ -44261,18 +44367,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 386103772557309731}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 4049610012948171018}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &6305306547888265230
 GameObject:
   m_ObjectHideFlags: 0
@@ -47209,18 +47323,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
   wheelPivot: {fileID: 4198662214810222696}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 6871077874543443789}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &6651345885354420386
 GameObject:
   m_ObjectHideFlags: 0
@@ -48557,18 +48679,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 8277034907064080429}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 1973008717548192157}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &6808430304100140377
 GameObject:
   m_ObjectHideFlags: 0
@@ -48614,18 +48744,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 1338494262913898477}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 4908919149305613244}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &6809586318871544956
 GameObject:
   m_ObjectHideFlags: 0
@@ -51148,18 +51286,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 5157817693876866860}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 5510511702432114561}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &7156634669075566458
 GameObject:
   m_ObjectHideFlags: 0
@@ -54389,18 +54535,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
   wheelPivot: {fileID: 2769036193505404630}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 3565659513855849883}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &7652865167354866264
 GameObject:
   m_ObjectHideFlags: 0
@@ -57065,18 +57219,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 99b127c5b6adb894dbcb7d76becb4fe1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TankSuspensionArm
+  authoredRestLocalRotation: {x: 0, y: 0, z: 0, w: 1}
   wheelPivot: {fileID: 3790290052123025913}
-  groundCheckPoint: {fileID: 0}
+  groundCheckPoint: {fileID: 6488400940216357033}
   restHeight: 0.45
   springStrength: 8500
   damperStrength: 900
   maxCompression: 0.38
   maxExtension: 0.18
+  wheelRadius: 0.85
+  probeExtraLength: 0.2
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
+  extensionAngleMultiplier: 110
   minAngle: -32
   maxAngle: 22
   rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
 --- !u!1 &7962214948917597653
 GameObject:
   m_ObjectHideFlags: 0

@@ -92,8 +92,8 @@ MonoBehaviour:
   - 60
   - 20
   - 10
-  ZoomSmoothSpeed: 8
-  BaseSensitivity: 6
+  ZoomSmoothSpeed: 1.8875
+  BaseSensitivity: 0.985
   AutoResetZoom: 1
   HudScale: 1
   HudFovReference: 60

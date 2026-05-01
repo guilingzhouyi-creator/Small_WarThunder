@@ -31,6 +31,7 @@ Assets/.git_disabled/
 *.booproj
 *.cache
 *.lscache
+*.clinerules
 
 # Generated solution / project files
 *.csproj

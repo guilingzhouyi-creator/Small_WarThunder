@@ -53,6 +53,9 @@ public class GlobalSubtitleEngine : MonoBehaviour
     private List<SubtitlePackage> _priorityPool = new List<SubtitlePackage>();
     private Coroutine _typeRoutine;
 
+    public bool HasActivePackage => _activePackage != null;
+    public bool IsPlaying => _typeRoutine != null;
+
 
     private void Awake()
     {
@@ -77,7 +80,7 @@ public class GlobalSubtitleEngine : MonoBehaviour
         if (_activePackage != null)
         {
             // 如果新包的频道优先级高于当前正在显示的包，则立即切换到新包；否则将新包加入优先级池等待显示
-            if ((int)newPackage.Channel < (int)SubtitleChannel.System)
+            if ((int)newPackage.Channel < (int)_activePackage.Channel)
             {
                 StopCurrentAndSave();
                 _priorityPool.Add(_activePackage); // 旧包带进度回池
@@ -131,6 +134,44 @@ public class GlobalSubtitleEngine : MonoBehaviour
     {
         if (_typeRoutine != null) StopCoroutine(_typeRoutine);
 
+    }
+
+    public void ResetPlayback()
+    {
+        if (_typeRoutine != null)
+        {
+            StopCoroutine(_typeRoutine);
+            _typeRoutine = null;
+        }
+
+        _priorityPool.Clear();
+        _activePackage = null;
+
+        if (targetLabel != null)
+        {
+            targetLabel.text = string.Empty;
+        }
+    }
+
+    public void PausePlayback()
+    {
+        if (_typeRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(_typeRoutine);
+        _typeRoutine = null;
+    }
+
+    public void ResumePlayback()
+    {
+        if (_activePackage == null || _typeRoutine != null)
+        {
+            return;
+        }
+
+        _typeRoutine = StartCoroutine(SubtitleRoutine(_activePackage));
     }
 
     private void TryPlayNext()
