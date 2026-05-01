@@ -23,9 +23,10 @@ public class UIManager : MonoBehaviour
     private bool _isSettingUIVisible;
     private bool _isSightUIVisible = true;   // 默认情况下，瞄准UI是可见的
     private bool _isAimMode;
+    private bool _isCgPlaying;
 
     public bool IsPaused => _isPaused;
-    public bool IsGameplayControlLocked => _isPaused || _isTabed || _isSettingUIVisible;
+    public bool IsGameplayControlLocked => _isPaused || _isTabed || _isSettingUIVisible || _isCgPlaying;
     public bool IsAimMode => _isAimMode;
 
     private void Awake()
@@ -278,6 +279,29 @@ public class UIManager : MonoBehaviour
 
         RefreshUIState();
 
+    }
+
+    /// <summary>
+    /// 设置 CG 播放状态，锁定所有游戏操作输入并隐藏 HUD。
+    /// </summary>
+    public void SetCgPlaying(bool playing)
+    {
+        if (_isCgPlaying == playing)
+        {
+            return;
+        }
+
+        _isCgPlaying = playing;
+
+        if (playing)
+        {
+            _isAimMode = false;
+            _isTabed = false;
+            _isSettingUIVisible = false;
+        }
+
+        SetCursorLocked(!playing);
+        RefreshUIState();
     }
 
     public void ShowSettingsUI()

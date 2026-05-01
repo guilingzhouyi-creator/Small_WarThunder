@@ -19,7 +19,6 @@ public class TankAmmoPoolGroup : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
         AutoCollectPools();
     }

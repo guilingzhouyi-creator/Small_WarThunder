@@ -85,7 +85,11 @@ public class MissionPannelUIController : MonoBehaviour
     public void ClearNarrative()
     {
         _requestedNarrative = null;
-        GlobalSubtitleEngine.Instance?.ShowIdleState();
+
+        if (!MissionNarrativeRuntime.HasCurrentPackage)
+        {
+            GlobalSubtitleEngine.Instance?.ShowIdleState();
+        }
     }
 
     private void SyncRequestedNarrative()

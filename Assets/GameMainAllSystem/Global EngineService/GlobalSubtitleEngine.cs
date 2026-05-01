@@ -257,6 +257,11 @@ public class GlobalSubtitleEngine : MonoBehaviour
             return;
         }
 
+        if (_activePackage != null || MissionNarrativeRuntime.HasCurrentPackage)
+        {
+            return;
+        }
+
         targetLabel.text = IdleText;
     }
 

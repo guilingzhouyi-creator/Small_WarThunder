@@ -79,6 +79,8 @@ public class LoadingManager : MonoBehaviour
         {
             progressFill.sizeDelta = new Vector2(0f, progressFill.sizeDelta.y);
         }
+
+        EnsureSceneAudioListener();
     }
 
     private void Start()
@@ -135,5 +137,43 @@ public class LoadingManager : MonoBehaviour
         }
 
         Debug.Log("🎉 GameScene 加载完成！");
+    }
+
+    private void EnsureSceneAudioListener()
+    {
+        Camera[] cameras = FindObjectsByType<Camera>(FindObjectsSortMode.None);
+        if (cameras == null || cameras.Length == 0)
+        {
+            return;
+        }
+
+        for (int i = 0; i < cameras.Length; i++)
+        {
+            Camera camera = cameras[i];
+            if (camera == null)
+            {
+                continue;
+            }
+
+            AudioListener existingListener = camera.GetComponent<AudioListener>();
+            if (existingListener != null && existingListener.enabled)
+            {
+                return;
+            }
+        }
+
+        Camera targetCamera = Camera.main != null ? Camera.main : cameras[0];
+        if (targetCamera == null)
+        {
+            return;
+        }
+
+        AudioListener listener = targetCamera.GetComponent<AudioListener>();
+        if (listener == null)
+        {
+            listener = targetCamera.gameObject.AddComponent<AudioListener>();
+        }
+
+        listener.enabled = true;
     }
 }

@@ -18,6 +18,8 @@ public class GameLevelMaker : MonoBehaviour
     private Collider _regionCollider;
     private bool _usesTriggerCallbacks = true;
     private bool _isPlayerInsideByPolling;
+    private float _outsideDetectedTime = float.NegativeInfinity;
+    [SerializeField] private float _pollingExitGraceSeconds = 0.2f;
     private string RegionId => string.IsNullOrWhiteSpace(_regionId) ? gameObject.name : _regionId;
 
     private void Awake()
@@ -66,6 +68,8 @@ public class GameLevelMaker : MonoBehaviour
         bool isInside = IsPlayerInsideRegion(playerTank);
         if (isInside)
         {
+            _outsideDetectedTime = float.NegativeInfinity;
+
             if (!_isPlayerInsideByPolling)
             {
                 LevelStreamingEngine.Instance?.ShowNearbyRegions(playerTank.transform.position);
@@ -79,6 +83,18 @@ public class GameLevelMaker : MonoBehaviour
 
         if (_isPlayerInsideByPolling)
         {
+            if (_outsideDetectedTime < 0f)
+            {
+                _outsideDetectedTime = Time.unscaledTime;
+                return;
+            }
+
+            if (Time.unscaledTime - _outsideDetectedTime < Mathf.Max(0.01f, _pollingExitGraceSeconds))
+            {
+                return;
+            }
+
+            _outsideDetectedTime = float.NegativeInfinity;
             LevelStreamingEngine.Instance?.ShowNearbyRegions(playerTank.transform.position);
             _gameLevelManager?.NotifyPlayerExitedRegion(playerTank, RegionId);
             _isPlayerInsideByPolling = false;

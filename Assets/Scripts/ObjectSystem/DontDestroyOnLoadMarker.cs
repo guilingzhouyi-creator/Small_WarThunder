@@ -6,8 +6,21 @@ using UnityEngine;
 /// </summary>
 public class DontDestroyOnLoadMarker : MonoBehaviour
 {
+    private static bool _hasLoggedNonRootSkipInfo;
+
     private void Awake()
     {
+        if (transform.parent != null)
+        {
+            if (!_hasLoggedNonRootSkipInfo)
+            {
+                _hasLoggedNonRootSkipInfo = true;
+                Debug.Log("[DontDestroyOnLoadMarker] 检测到非根节点标记，已跳过 DontDestroyOnLoad。需要常驻时请把标记挂到根对象上。", this);
+            }
+
+            return;
+        }
+
         DontDestroyOnLoad(gameObject);
     }
 }
