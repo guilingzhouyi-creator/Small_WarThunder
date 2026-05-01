@@ -1,7 +1,6 @@
 using UnityEngine;
 
 [RequireComponent(typeof(PooledObject))]
-[RequireComponent(typeof(Collider))]
 public partial class CannonBall : MonoBehaviour
 {
     [SerializeField] private LayerMask _hitMask = ~0;

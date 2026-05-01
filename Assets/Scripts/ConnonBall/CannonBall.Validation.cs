@@ -7,9 +7,20 @@ public partial class CannonBall : MonoBehaviour
         _pooledObject = GetComponent<PooledObject>();
         InitializeTrailRenderer();
 
+        Collider anyCollider = GetComponent<Collider>();
+        if (anyCollider == null)
+        {
+            anyCollider = GetComponentInChildren<Collider>(true);
+        }
+
         if (_pooledObject == null)
         {
             Debug.LogError($"CannonBall needs a PooledObject on {name}.", this);
+        }
+
+        if (anyCollider == null)
+        {
+            Debug.LogError($"CannonBall requires at least one Collider on {name} or its children.", this);
         }
 
         if (isRealisticFlight)

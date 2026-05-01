@@ -13,6 +13,7 @@ public class WheelRotatorManager : MonoBehaviour
 
     private List<Transform> wheels = new List<Transform>();
     private readonly Dictionary<Transform, float> wheelSpeeds = new Dictionary<Transform, float>();
+    private bool _hasLoggedMissingSetupWarning;
 
     void Start()
     {
@@ -47,18 +48,35 @@ public class WheelRotatorManager : MonoBehaviour
             }
         }
 
-        Debug.Log($"总共找到 {wheels.Count} 个轮子");
+        Debug.Log($"[WheelRotatorManager] 轮子绑定扫描完成，共找到 {wheels.Count} 个轮子。");
     }
 
     void LateUpdate()
     {
         if (_trackController == null || wheels.Count == 0)
         {
-            // 每秒提醒一次，避免刷屏
-            if (Time.frameCount % 60 == 0)
-                Debug.LogWarning("轮子未找到，轮子无法旋转");
+            if (!_hasLoggedMissingSetupWarning)
+            {
+                List<string> issues = new List<string>();
+
+                if (_trackController == null)
+                {
+                    issues.Add("TrackController 未绑定");
+                }
+
+                if (wheels.Count == 0)
+                {
+                    issues.Add("没有扫描到可旋转轮子");
+                }
+
+                Debug.LogWarning($"[WheelRotatorManager] 轮子旋转未启用：{string.Join(" | ", issues)}");
+                _hasLoggedMissingSetupWarning = true;
+            }
+
             return;
         }
+
+        _hasLoggedMissingSetupWarning = false;
 
         foreach (var wheel in wheels)
         {

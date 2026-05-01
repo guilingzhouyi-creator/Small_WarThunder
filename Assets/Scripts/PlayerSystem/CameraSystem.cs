@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// 摄像机绑定系统（执行层）。
@@ -62,11 +63,14 @@ public class CameraSystem : MonoBehaviour
 
     private void BindCameraTargets(Transform tankRoot)
     {
+        List<string> bindingSummaries = new List<string>();
+        List<string> issues = new List<string>();
+
         TankCameraBindMarker[] markers = GetCameraBindMarkers(tankRoot);
 
         if (markers == null || markers.Length == 0)
         {
-            Debug.LogWarning($"[CameraSystem] 在 {tankRoot.name} 下没有找到 TankCameraBindMarker，将使用 tankRoot 作为相机回退目标。");
+            issues.Add($"在 {tankRoot.name} 下没有找到 TankCameraBindMarker，将使用 tankRoot 作为回退目标");
         }
 
         Transform thirdPersonFollow = GetCameraTargetByRole(markers, TankCameraBindMarker.BindRole.ThirdPersonFollow, tankRoot);
@@ -82,11 +86,11 @@ public class CameraSystem : MonoBehaviour
         if (resolvedCameraPosition != null)
         {
             resolvedCameraPosition.BindTarget(thirdPersonFollow, thirdPersonLookAt);
-            LogCameraBinding("CameraPosition", thirdPersonFollow, thirdPersonLookAt);
+            bindingSummaries.Add(BuildCameraBindingSummary("CameraPosition", thirdPersonFollow, thirdPersonLookAt));
         }
         else
         {
-            Debug.LogWarning("[CameraSystem] 未找到可绑定的 CameraPosition 控制器。");
+            issues.Add("未找到可绑定的 CameraPosition 控制器");
         }
 
         ZoomCameraPosition resolvedZoomCameraPosition = ResolveZoomCameraPositionController();
@@ -94,23 +98,33 @@ public class CameraSystem : MonoBehaviour
         {
             resolvedZoomCameraPosition.BindTarget(zoomFollow, zoomLookAt);
             resolvedZoomCameraPosition.BindAimTarget(aimFollow, aimLookAt);
-            LogCameraBinding("ZoomCameraPosition", zoomFollow, zoomLookAt);
-            LogCameraBinding("ZoomCameraPosition(Aim)", aimFollow, aimLookAt);
+            bindingSummaries.Add(BuildCameraBindingSummary("ZoomCameraPosition", zoomFollow, zoomLookAt));
+            bindingSummaries.Add(BuildCameraBindingSummary("ZoomCameraPosition(Aim)", aimFollow, aimLookAt));
         }
         else
         {
-            Debug.LogWarning("[CameraSystem] 未找到可绑定的 ZoomCameraPosition 控制器。");
+            issues.Add("未找到可绑定的 ZoomCameraPosition 控制器");
         }
 
         AimCameraPosition resolvedAimCameraPosition = ResolveAimCameraPositionController();
         if (resolvedAimCameraPosition != null)
         {
             resolvedAimCameraPosition.BindTarget(aimFollow, aimLookAt);
-            LogCameraBinding("AimCameraPosition", aimFollow, aimLookAt);
+            bindingSummaries.Add(BuildCameraBindingSummary("AimCameraPosition", aimFollow, aimLookAt));
         }
         else
         {
-            Debug.LogWarning("[CameraSystem] 未找到可绑定的 AimCameraPosition 控制器。");
+            issues.Add("未找到可绑定的 AimCameraPosition 控制器");
+        }
+
+        if (bindingSummaries.Count > 0)
+        {
+            Debug.Log($"[CameraSystem] 相机绑定完成：{string.Join(" | ", bindingSummaries)}");
+        }
+
+        if (issues.Count > 0)
+        {
+            Debug.LogWarning($"[CameraSystem] 相机绑定存在回退或缺失：{string.Join(" | ", issues)}");
         }
     }
 
@@ -203,10 +217,10 @@ public class CameraSystem : MonoBehaviour
         return fallback;
     }
 
-    private void LogCameraBinding(string controllerName, Transform followTarget, Transform lookAtTarget)
+    private string BuildCameraBindingSummary(string controllerName, Transform followTarget, Transform lookAtTarget)
     {
         string followName = followTarget != null ? followTarget.name : "null";
         string lookAtName = lookAtTarget != null ? lookAtTarget.name : "null";
-        Debug.Log($"[CameraSystem] {controllerName} 已绑定 Follow = {followName}, LookAt = {lookAtName}");
+        return $"{controllerName}: Follow = {followName}, LookAt = {lookAtName}";
     }
 }

@@ -120,7 +120,6 @@ public class UIManager : MonoBehaviour
         MIddleInputingController.Instance.OnPauseInputProcessed += HandlePauseInput;
 
         MIddleInputingController.Instance.OnTabInputProcessed += HandleTabInput;
-        Debug.Log("UIManager: MissionPannelUIController 已成功绑定输入事件。");
 
         _isInputBound = true;
     }

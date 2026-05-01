@@ -8,7 +8,7 @@ using UnityEngine;
 ///
 /// 未来扩展预留接口：LoadMap(string mapId) / UnloadMap(string mapId)
 ///
-/// 加载时扫描子物体上的 LevelMissionMarker，如果存在则激活 GameLevelManager 以触发注册和字幕。
+/// Mission 区域仍然作为普通区域参与流式加载；任务字幕的触发改由区域上的 GameLevelMaker + GameLevelManager 在玩家进入时处理。
 /// </summary>
 public class LevelStreamingEngine : MonoBehaviour
 {
@@ -124,7 +124,7 @@ public class LevelStreamingEngine : MonoBehaviour
 
     /// <summary>
     /// 一次性加载所有配置的地图，扫描子物体注册为区域，默认全部隐藏。
-    /// 如果子物体上有 LevelMissionMarker 且带有 GameLevelManager，则激活以触发注册和字幕。
+    /// Mission 区域和普通区域使用同一套注册/显隐链路。
     /// </summary>
     public void LoadAllMaps()
     {
@@ -150,7 +150,7 @@ public class LevelStreamingEngine : MonoBehaviour
 
     /// <summary>
     /// 加载单张地图：Instantiate 父级预制体 → 扫描子物体 → 注册区域 → 默认隐藏。
-    /// 如果子物体上有 LevelMissionMarker 且 Tag 为 "MissionRegion"，则激活以触发 GameLevelManager 注册和字幕。
+    /// 如果子物体上有 LevelMissionMarker，会额外检查它是否挂载了 GameLevelManager，但不再在加载时直接触发任务字幕。
     /// </summary>
     private void LoadSingleMap(MapEntry mapEntry)
     {
@@ -176,7 +176,6 @@ public class LevelStreamingEngine : MonoBehaviour
             Transform child = mapRoot.transform.GetChild(i);
             string regionId = $"{mapEntry.mapId}_{child.name}";
 
-            // ─── 任务区域处理（带 LevelMissionMarker）───
             if (child.TryGetComponent<LevelMissionMarker>(out var missionMarker))
             {
                 var gameLevel = child.GetComponent<GameLevelManager>();
@@ -184,21 +183,16 @@ public class LevelStreamingEngine : MonoBehaviour
                 {
                     Debug.LogWarning(
                         $"[LevelStreamingEngine] 区域 {child.name} 有 LevelMissionMarker 但缺少 GameLevelManager，" +
-                        "无法触发任务注册和字幕。请确保子区域预制体上同时挂载了 GameLevelManager 组件。");
+                        "无法在玩家进入时触发任务叙事。请确保子区域预制体上同时挂载了 GameLevelManager 组件。");
                 }
                 else
                 {
                     Debug.Log(
                         $"[LevelStreamingEngine] 检测到任务区域 {child.name}（关卡 {missionMarker.LevelIndex}），" +
-                        "激活 GameLevelManager 以触发注册和字幕。");
+                        "已注册为可流式加载的任务区域，等待玩家进入时触发叙事。");
                 }
-
-                // 激活子物体以触发 GameLevelManager.OnEnable → 注册 → 字幕
-                child.gameObject.SetActive(true);
-                continue; // 跳过区域列表注册和默认隐藏
             }
 
-            // ─── 普通区域处理 ───
             var regionEntry = new RegionEntry
             {
                 regionId = regionId,
@@ -213,7 +207,7 @@ public class LevelStreamingEngine : MonoBehaviour
             child.gameObject.SetActive(false);
         }
 
-        Debug.Log($"[LevelStreamingEngine] 地图 {mapEntry.mapId} 加载完成，共 {mapEntry.regions.Count} 个普通区域");
+        Debug.Log($"[LevelStreamingEngine] 地图 {mapEntry.mapId} 加载完成，共 {mapEntry.regions.Count} 个区域");
     }
 
     // ==================== 运行时可见性 ====================

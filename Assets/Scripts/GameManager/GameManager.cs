@@ -17,8 +17,6 @@ public partial class GameManager : MonoBehaviour
     [SerializeField] private SettingManager _settingManager;
     [SerializeField] private AudioManager _audioManager;
 
-    private GameLevelManager _runtimeGameLevel;
-
     /// <summary>
     /// 提供统一的玩家坦克查询入口，委托给执行层。
     /// 供 LevelStreamingEngine 等外部系统使用。
@@ -48,6 +46,7 @@ public partial class GameManager : MonoBehaviour
 
     private void Start()
     {
+        MissionNarrativeRuntime.ResetAll();
         BootstrapAudioAndSettings();
         StartValidationIfNeeded();
         HandleGameSceneEntered(SceneManager.GetActiveScene());
@@ -65,6 +64,7 @@ public partial class GameManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
     {
+        MissionNarrativeRuntime.ResetAll();
         BootstrapAudioAndSettings();
         OnSceneLoadedValidationIfNeeded(scene);
         HandleGameSceneEntered(scene);
@@ -92,10 +92,6 @@ public partial class GameManager : MonoBehaviour
         _audioManager ??= AudioManager.Instance;
         _audioManager?.PlayBGM();
 
-        // 4. 总控层：尝试触发关卡开始叙事字幕
-        //    _runtimeGameLevel 由 LevelStreamingEngine → GameLevelManager.OnEnable → RegisterRuntimeGameLevel 注册
-        //    此时地图可能尚未加载完成，字幕触发在 RegisterRuntimeGameLevel 中处理
-        TryPrepareCurrentLevelBootstrap();
     }
 
     /// <summary>
@@ -108,39 +104,10 @@ public partial class GameManager : MonoBehaviour
 
         _settingManager?.Initialize(_audioManager);
     }
-
-    // ───────────── 关卡生命周期管理 ─────────────
-
-    public void RegisterRuntimeGameLevel(GameLevelManager gameLevel)
-    {
-        if (gameLevel == null)
-        {
-            return;
-        }
-
-        if (gameLevel.LevelIndex == _levelIndex)
-        {
-            _runtimeGameLevel = gameLevel;
-            TryPrepareCurrentLevelBootstrap();
-        }
-    }
-
-    public void UnregisterRuntimeGameLevel(GameLevelManager gameLevel)
-    {
-        if (_runtimeGameLevel == gameLevel)
-        {
-            _runtimeGameLevel = null;
-        }
-    }
-
-    private void TryPrepareCurrentLevelBootstrap()
-    {
-        _runtimeGameLevel?.PrepareLevelStartNarrative();
-    }
-
     public static void ResetStaticData()
     {
         _levelIndex = 1;
+        MissionNarrativeRuntime.ResetAll();
     }
 
     public void LoadNextLevel()

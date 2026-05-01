@@ -23,7 +23,6 @@ public partial class GameManager : MonoBehaviour
         if (!_runValidationOnSceneLoad) return;
         if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene)) return;
         ValidateSystemReferences();
-        ValidateRuntimeGameLevel(scene);
     }
 
     // ───────────── 检查方法 ─────────────
@@ -41,23 +40,6 @@ public partial class GameManager : MonoBehaviour
         if (_audioManager == null && AudioManager.Instance == null)
         {
             Debug.LogWarning("[GameManager.Validation] AudioManager 未绑定且单例不可用。", this);
-        }
-    }
-
-    /// <summary>
-    /// 检查运行时关卡是否已注册。
-    /// </summary>
-    private void ValidateRuntimeGameLevel(Scene scene)
-    {
-        if (_runtimeGameLevel == null)
-        {
-            Debug.LogWarning($"[GameManager.Validation] 场景 '{scene.name}' 中没有解析到 GameLevelManager（_runtimeGameLevel 为 null）。", this);
-        }
-        else if (_runtimeGameLevel.gameObject.scene != scene)
-        {
-            Debug.LogWarning(
-                $"[GameManager.Validation] _runtimeGameLevel 所在的场景 '{_runtimeGameLevel.gameObject.scene.name}' 与当前场景 '{scene.name}' 不一致。",
-                this);
         }
     }
 }

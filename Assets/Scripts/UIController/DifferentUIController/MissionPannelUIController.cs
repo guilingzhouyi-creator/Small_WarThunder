@@ -7,10 +7,39 @@ using UnityEngine;
 /// </summary>
 public class MissionPannelUIController : MonoBehaviour
 {
-    private SubtitlePackage _pendingNarrative;
+    public static MissionPannelUIController Instance { get; private set; }
+
+    private SubtitlePackage _requestedNarrative;
+
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        Instance = this;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
+        {
+            Instance = null;
+        }
+    }
 
     private void OnEnable()
     {
+        MissionNarrativeRuntime.RebindMissionPanel();
+
+        if (_requestedNarrative != null)
+        {
+            SyncRequestedNarrative();
+            return;
+        }
+
         if (GlobalSubtitleEngine.Instance != null
             && GlobalSubtitleEngine.Instance.HasActivePackage
             && !GlobalSubtitleEngine.Instance.IsPlaying)
@@ -19,10 +48,7 @@ public class MissionPannelUIController : MonoBehaviour
             return;
         }
 
-        if (_pendingNarrative != null)
-        {
-            TryPlayPendingNarrative();
-        }
+        GlobalSubtitleEngine.Instance?.ShowIdleState();
     }
 
     private void OnDisable()
@@ -36,30 +62,39 @@ public class MissionPannelUIController : MonoBehaviour
     /// <summary>
     /// 接收 GameLevelManager 传来的 SubtitlePackage，播放或缓存等待 UI 激活后播放。
     /// </summary>
-    public void PlayNarrative(SubtitlePackage package)
+    public void PresentNarrative(SubtitlePackage package)
     {
         if (package == null)
         {
             return;
         }
 
-        _pendingNarrative = package;
+        _requestedNarrative = package;
 
         if (isActiveAndEnabled)
         {
-            TryPlayPendingNarrative();
+            SyncRequestedNarrative();
         }
     }
 
-    private void TryPlayPendingNarrative()
+    public void PlayNarrative(SubtitlePackage package)
     {
-        if (_pendingNarrative == null || GlobalSubtitleEngine.Instance == null)
+        PresentNarrative(package);
+    }
+
+    public void ClearNarrative()
+    {
+        _requestedNarrative = null;
+        GlobalSubtitleEngine.Instance?.ShowIdleState();
+    }
+
+    private void SyncRequestedNarrative()
+    {
+        if (_requestedNarrative == null || GlobalSubtitleEngine.Instance == null)
         {
             return;
         }
 
-        GlobalSubtitleEngine.Instance.ResetPlayback();
-        GlobalSubtitleEngine.Instance.RequestSubtitle(_pendingNarrative);
-        _pendingNarrative = null;
+        GlobalSubtitleEngine.Instance.PlayOrResume(_requestedNarrative);
     }
 }

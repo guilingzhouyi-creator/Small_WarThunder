@@ -11,7 +11,7 @@ public class ZoomCameraPosition : MonoBehaviour
     [Header("缩放参数")]
     [SerializeField] private float NormalFOV = 60f;
     // [SerializeField] private float ZoomedFOV = 35f;
-    [SerializeField] private float ZoomSpeed = 10f;
+    // [SerializeField] private float ZoomSpeed = 10f;
 
     private int _ActiveZoomPriority = 20;//缩放摄像机的优先级，当按下缩放键时切换到该摄像机
     private int _ZoomCameraNormalPriority = 0;//默认摄像机的优先级，当松开缩放键时切换回该摄像机

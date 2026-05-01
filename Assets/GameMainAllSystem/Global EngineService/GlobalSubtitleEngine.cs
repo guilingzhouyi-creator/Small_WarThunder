@@ -25,10 +25,19 @@ public class SubtitlePackage
     public int CurrentCharIndex = 0;   // 断点字符索引
     public Action OnFinished;
 
+    public bool HasContent => ContentList != null && ContentList.Count > 0;
+    public bool HasFinished => !HasContent || CurrentLineIndex >= ContentList.Count;
+
     public SubtitlePackage(SubtitleChannel channel, List<string> contents)
     {
         Channel = channel;
         ContentList = contents;
+    }
+
+    public void ResetProgress()
+    {
+        CurrentLineIndex = 0;
+        CurrentCharIndex = 0;
     }
 }
 
@@ -41,6 +50,7 @@ public class SubtitlePackage
 /// </summary>
 public class GlobalSubtitleEngine : MonoBehaviour
 {
+    private const string IdleText = "暂无";
 
     public static GlobalSubtitleEngine Instance { get; private set; }
     [SerializeField] private TextMeshProUGUI targetLabel;
@@ -55,6 +65,8 @@ public class GlobalSubtitleEngine : MonoBehaviour
 
     public bool HasActivePackage => _activePackage != null;
     public bool IsPlaying => _typeRoutine != null;
+    public bool IsPaused => _activePackage != null && _typeRoutine == null;
+    public SubtitlePackage CurrentPackage => _activePackage;
 
 
     private void Awake()
@@ -66,6 +78,7 @@ public class GlobalSubtitleEngine : MonoBehaviour
         }
 
         Instance = this;
+        ShowIdleState();
     }
 
     private void OnDestroy()
@@ -85,6 +98,21 @@ public class GlobalSubtitleEngine : MonoBehaviour
     /// </summary>
     public void RequestSubtitle(SubtitlePackage newPackage)
     {
+        if (newPackage == null || !newPackage.HasContent)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(_activePackage, newPackage))
+        {
+            if (_typeRoutine == null)
+            {
+                ResumePlayback();
+            }
+
+            return;
+        }
+
         if (_activePackage != null)
         {
             // 如果新包的频道优先级高于当前正在显示的包，则立即切换到新包；否则将新包加入优先级池等待显示
@@ -106,11 +134,60 @@ public class GlobalSubtitleEngine : MonoBehaviour
         }
     }
 
+    public void PlayOrResume(SubtitlePackage package, bool restartIfFinished = false)
+    {
+        if (package == null || !package.HasContent)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(_activePackage, package))
+        {
+            if (package.HasFinished)
+            {
+                if (!restartIfFinished)
+                {
+                    return;
+                }
+
+                package.ResetProgress();
+                ReplaceActivePackage(package);
+                return;
+            }
+
+            if (_typeRoutine == null)
+            {
+                ResumePlayback();
+            }
+
+            return;
+        }
+
+        if (package.HasFinished)
+        {
+            if (!restartIfFinished)
+            {
+                return;
+            }
+
+            package.ResetProgress();
+        }
+
+        ReplaceActivePackage(package);
+    }
+
 
     private void PlayPackage(SubtitlePackage package)
     {
         _activePackage = package;
         _typeRoutine = StartCoroutine(SubtitleRoutine(package));
+    }
+
+    private void ReplaceActivePackage(SubtitlePackage package)
+    {
+        StopActiveRoutine();
+        _priorityPool.Clear();
+        PlayPackage(package);
     }
 
     private IEnumerator SubtitleRoutine(SubtitlePackage package)
@@ -140,7 +217,19 @@ public class GlobalSubtitleEngine : MonoBehaviour
 
     private void StopCurrentAndSave()
     {
-        if (_typeRoutine != null) StopCoroutine(_typeRoutine);
+        StopActiveRoutine();
+
+    }
+
+    private void StopActiveRoutine()
+    {
+        if (_typeRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(_typeRoutine);
+        _typeRoutine = null;
 
     }
 
@@ -157,8 +246,18 @@ public class GlobalSubtitleEngine : MonoBehaviour
 
         if (targetLabel != null)
         {
-            targetLabel.text = string.Empty;
+            targetLabel.text = IdleText;
         }
+    }
+
+    public void ShowIdleState()
+    {
+        if (targetLabel == null)
+        {
+            return;
+        }
+
+        targetLabel.text = IdleText;
     }
 
     public void PausePlayback()
@@ -197,33 +296,5 @@ public class GlobalSubtitleEngine : MonoBehaviour
     private void SortPool() => _priorityPool.Sort((a, b) => ((int)a.Channel).CompareTo((int)b.Channel)); // 按频道优先级排序，数值越小优先级越高
 
 
-    // //speed后续将内嵌到settings里，允许玩家调整字幕显示速度
-    // public static void Render(TextMeshProUGUI label, string text, float speed = 0.03f)
-    // {
-    //     if (UIManager.Instance == null) return;
 
-    //     if (_activeRoutine != null)
-    //     {
-    //         UIManager.Instance.StopCoroutine(_activeRoutine);
-    //     }
-
-    //     _activeRoutine = UIManager.Instance.StartCoroutine(DoType(label, text, speed));
-    // }
-
-
-    // private static IEnumerator DoType(TextMeshProUGUI label, string text, float speed)
-    // {
-    //     label.text = text;
-    //     label.maxVisibleCharacters = 0;// 从0开始，逐渐增加可见字符数，直到显示完整文本
-    //     label.ForceMeshUpdate();
-
-    //     for (int i = 0; i <= text.Length; i++)
-    //     {
-    //         label.maxVisibleCharacters = i;
-
-    //         yield return new WaitForSeconds(speed);
-    //     }
-
-    //     _activeRoutine = null;
-    // }
 }
