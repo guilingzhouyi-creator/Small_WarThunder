@@ -31,7 +31,7 @@ Assets/.git_disabled/
 *.booproj
 *.cache
 *.lscache
-*.clinerules
+.clinerules/
 
 # Generated solution / project files
 *.csproj
@@ -48,6 +48,9 @@ Assets/.git_disabled/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Agent conversation rules
+Md库/
 
 # Keep Unity meta files and project data tracked
 !Assets/**/*.meta

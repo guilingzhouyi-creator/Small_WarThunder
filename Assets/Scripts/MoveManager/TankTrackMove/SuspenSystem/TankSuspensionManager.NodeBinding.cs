@@ -37,11 +37,11 @@ public partial class TankSuspensionManager : MonoBehaviour
                 newPos += binding.arm.SuspensionUp * nodeFollowVerticalOffset;
             }
 
-            // 防穿模：将节点投影到地面平面（用法线精确处理斜面，无额外射线）
             if (binding.arm.IsGrounded)
             {
                 Vector3 hitPoint = binding.arm.GroundHitPoint;
                 Vector3 normal = binding.arm.LastGroundNormal;
+
                 // 平面方程：dot(normal, P - hitPoint) = 0，解出节点 X/Z 对应的地面 Y
                 if (Mathf.Abs(normal.y) > 0.01f)
                 {

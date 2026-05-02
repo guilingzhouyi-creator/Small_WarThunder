@@ -222,6 +222,7 @@ public class UIManager : MonoBehaviour
         }
 
         _isAimMode = isAimMode;
+        RefreshUIState();
     }
 
     private void SetCursorLocked(bool locked)
@@ -392,12 +393,14 @@ public class UIManager : MonoBehaviour
 
         if (tankStatsUIController != null)
         {
-            tankStatsUIController.gameObject.SetActive(isGameplayScene && !IsGameplayControlLocked);// 坦克状态UI在未暂停、未打开 Tab、未显示设置界面时才显示
+            bool shouldShowTankStatsUI = isGameplayScene && !IsGameplayControlLocked && !_isAimMode;
+            tankStatsUIController.gameObject.SetActive(shouldShowTankStatsUI);// TPS 状态UI只在非 AIM、非暂停、非 Tab、非设置界面时显示
         }
 
         if (sightUIPanel != null)
         {
-            sightUIPanel.gameObject.SetActive(isGameplayScene && !IsGameplayControlLocked && _isSightUIVisible);// 瞄准UI在未暂停、未打开 Tab、未显示设置界面时才显示
+            bool shouldShowSightUI = isGameplayScene && !IsGameplayControlLocked && _isSightUIVisible;
+            sightUIPanel.gameObject.SetActive(shouldShowSightUI);// TPS/AIM 共用的瞄准控制与 HUD 入口都依赖该面板保持激活
         }
     }
 

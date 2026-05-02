@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
 /// <summary>
 /// 瞄准系统配置数据，包含与瞄准相关的各种参数和设置。
@@ -78,6 +79,36 @@ public class NewAimConfigData : ScriptableObject
     public float ZoomSmoothSpeed = 10f;               // Existing line
     public float BaseSensitivity = 6f;                 // New line
     public bool AutoResetZoom = true;                  // New line
+
+    [Header("全屏蒙版 Vignette")]
+    public bool EnableVignetteMask = true;
+    /// <summary>
+    /// 四角阴影沿屏幕长边向中心靠拢的范围。数值越大，左右两侧阴影越靠近中心。
+    /// </summary>
+    [FormerlySerializedAs("VignetteSmoothness")]
+    [Range(0f, 1f)]
+    public float CornerShadowLongSideRange = 0.55f;
+    /// <summary>
+    /// 四角阴影沿屏幕短边向中心靠拢的范围。数值越大，上下两侧阴影越靠近中心。
+    /// </summary>
+    [Range(0f, 1f)]
+    public float CornerShadowShortSideRange = 0.55f;
+    /// <summary>
+    /// 中央观察区沿屏幕长边的尺寸。数值越大，中央清晰区左右更宽。
+    /// </summary>
+    [FormerlySerializedAs("VignetteRadius")]
+    [Range(0f, 1f)]
+    public float CenterViewLongSideSize = 0.72f;
+    /// <summary>
+    /// 中央观察区沿屏幕短边的尺寸。数值越大，中央清晰区上下更高。
+    /// </summary>
+    [Range(0f, 1f)]
+    public float CenterViewShortSideSize = 0.62f;
+    /// <summary>
+    /// 周角阴影颜色，alpha 同时控制阴影强度。
+    /// </summary>
+    [FormerlySerializedAs("VignetteColor")]
+    public Color ShadowColor = new Color(0f, 0f, 0f, 0.9f);
 
     [Header("HUD 样式")]
     public float HudScale = 1f;

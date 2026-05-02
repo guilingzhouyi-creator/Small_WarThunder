@@ -8,10 +8,21 @@ public class FcsHudPainter : VisualElement
     private Vector2 _currentVisualPos;
     private Vector2 _smoothVelocity;
     private bool _isAimMode;
+    private Texture2D _vignetteTexture;
+    private Texture2D _transparentTexture;
+    private int _cachedVignetteWidth;
+    private int _cachedVignetteHeight;
+    private float _cachedCornerShadowLongSideRange;
+    private float _cachedCornerShadowShortSideRange;
+    private float _cachedCenterViewLongSideSize;
+    private float _cachedCenterViewShortSideSize;
+    private Color _cachedShadowColor;
+    private Texture2D _appliedBackgroundTexture;
 
     public FcsHudPainter()
     {
         generateVisualContent += OnGenerateVisualContent;
+        RegisterCallback<DetachFromPanelEvent>(_ => ReleaseVignetteTextures());
         style.position = Position.Absolute;
         style.left = 0f;
         style.top = 0f;
@@ -37,6 +48,8 @@ public class FcsHudPainter : VisualElement
             ? targetPos
             : Vector2.SmoothDamp(_currentVisualPos, targetPos, ref _smoothVelocity, smoothTime);
 
+        UpdateVignetteMaskBackground();
+
         MarkDirtyRepaint();
     }
 
@@ -49,6 +62,7 @@ public class FcsHudPainter : VisualElement
 
         float zoomScale = GetZoomHudScale();
         Painter2D painter = mgc.painter2D;
+
         painter.strokeColor = _config.HudThemeColor;
         painter.lineWidth = Mathf.Max(1f, _config.LineThickness * zoomScale);
 
@@ -170,6 +184,156 @@ public class FcsHudPainter : VisualElement
             default:
                 return new Vector2(width * 0.5f, height * 0.5f);
         }
+    }
+
+    private void UpdateVignetteMaskBackground()
+    {
+        if (_config == null || !_config.EnableVignetteMask)
+        {
+            SetBackgroundTexture(GetTransparentTexture());
+            return;
+        }
+
+        int textureWidth = Mathf.Clamp(Mathf.RoundToInt(Mathf.Max(1f, _state.ScreenWidth) * 0.25f), 128, 512);
+        int textureHeight = Mathf.Clamp(Mathf.RoundToInt(Mathf.Max(1f, _state.ScreenHeight) * 0.25f), 128, 512);
+        float cornerShadowLongSideRange = Mathf.Clamp01(_config.CornerShadowLongSideRange);
+        float cornerShadowShortSideRange = Mathf.Clamp01(_config.CornerShadowShortSideRange);
+        float centerViewLongSideSize = Mathf.Clamp01(_config.CenterViewLongSideSize);
+        float centerViewShortSideSize = Mathf.Clamp01(_config.CenterViewShortSideSize);
+        Color shadowColor = _config.ShadowColor;
+        float shadowAlpha = Mathf.Clamp01(shadowColor.a);
+
+        if (shadowAlpha <= 0f)
+        {
+            SetBackgroundTexture(GetTransparentTexture());
+            return;
+        }
+
+        bool needsRebuild = _vignetteTexture == null
+            || _cachedVignetteWidth != textureWidth
+            || _cachedVignetteHeight != textureHeight
+            || !Mathf.Approximately(_cachedCornerShadowLongSideRange, cornerShadowLongSideRange)
+            || !Mathf.Approximately(_cachedCornerShadowShortSideRange, cornerShadowShortSideRange)
+            || !Mathf.Approximately(_cachedCenterViewLongSideSize, centerViewLongSideSize)
+            || !Mathf.Approximately(_cachedCenterViewShortSideSize, centerViewShortSideSize)
+            || _cachedShadowColor != shadowColor;
+
+        if (!needsRebuild)
+        {
+            SetBackgroundTexture(_vignetteTexture);
+            return;
+        }
+
+        ReleaseVignetteTexture();
+
+        _vignetteTexture = new Texture2D(textureWidth, textureHeight, TextureFormat.RGBA32, false, true);
+        _vignetteTexture.wrapMode = TextureWrapMode.Clamp;
+        _vignetteTexture.filterMode = FilterMode.Bilinear;
+        _vignetteTexture.hideFlags = HideFlags.HideAndDontSave;
+
+        Color32[] pixels = new Color32[textureWidth * textureHeight];
+        bool isWidthLonger = textureWidth >= textureHeight;
+        float centerHalfLong = Mathf.Lerp(0.26f, 0.78f, centerViewLongSideSize);
+        float centerHalfShort = Mathf.Lerp(0.16f, 0.62f, centerViewShortSideSize);
+        float fadeLong = Mathf.Lerp(0.04f, 0.34f, cornerShadowLongSideRange);
+        float fadeShort = Mathf.Lerp(0.04f, 0.34f, cornerShadowShortSideRange);
+        float roundRadius = Mathf.Min(centerHalfLong, centerHalfShort) * Mathf.Lerp(0.18f, 0.42f, (cornerShadowLongSideRange + cornerShadowShortSideRange) * 0.5f);
+        float sideShadowWeight = 0.2f;
+
+        Color32 baseColor = shadowColor;
+        for (int y = 0; y < textureHeight; y++)
+        {
+            float uvY = (y + 0.5f) / textureHeight;
+            for (int x = 0; x < textureWidth; x++)
+            {
+                float uvX = (x + 0.5f) / textureWidth;
+                float centeredX = Mathf.Abs(uvX - 0.5f) * 2f;
+                float centeredY = Mathf.Abs(uvY - 0.5f) * 2f;
+
+                float longAxis = isWidthLonger ? centeredX : centeredY;
+                float shortAxis = isWidthLonger ? centeredY : centeredX;
+
+                float coreLong = Mathf.Max(0.0001f, centerHalfLong - roundRadius);
+                float coreShort = Mathf.Max(0.0001f, centerHalfShort - roundRadius);
+                float overflowLong = Mathf.Max(longAxis - coreLong, 0f);
+                float overflowShort = Mathf.Max(shortAxis - coreShort, 0f);
+                float normalizedLong = overflowLong / Mathf.Max(fadeLong, 0.0001f);
+                float normalizedShort = overflowShort / Mathf.Max(fadeShort, 0.0001f);
+                float arcDistance = Mathf.Max(
+                    0f,
+                    Mathf.Sqrt(normalizedLong * normalizedLong + normalizedShort * normalizedShort) - Mathf.Max(roundRadius / Mathf.Max(Mathf.Min(fadeLong, fadeShort), 0.0001f), 0f));
+                float cornerShadow = Mathf.SmoothStep(0f, 1f, arcDistance);
+                float sideShadow = Mathf.SmoothStep(0f, 1f, Mathf.Max(normalizedLong, normalizedShort)) * sideShadowWeight;
+                float alpha = shadowAlpha * Mathf.Clamp01(Mathf.Max(cornerShadow, sideShadow));
+                pixels[y * textureWidth + x] = new Color32(baseColor.r, baseColor.g, baseColor.b, (byte)Mathf.RoundToInt(alpha * 255f));
+            }
+        }
+
+        _vignetteTexture.SetPixels32(pixels);
+        _vignetteTexture.Apply(false, false);
+
+        _cachedVignetteWidth = textureWidth;
+        _cachedVignetteHeight = textureHeight;
+        _cachedCornerShadowLongSideRange = cornerShadowLongSideRange;
+        _cachedCornerShadowShortSideRange = cornerShadowShortSideRange;
+        _cachedCenterViewLongSideSize = centerViewLongSideSize;
+        _cachedCenterViewShortSideSize = centerViewShortSideSize;
+        _cachedShadowColor = shadowColor;
+
+        SetBackgroundTexture(_vignetteTexture);
+    }
+
+    private void SetBackgroundTexture(Texture2D texture)
+    {
+        if (texture == null || _appliedBackgroundTexture == texture)
+        {
+            return;
+        }
+
+        style.backgroundImage = new StyleBackground(texture);
+        _appliedBackgroundTexture = texture;
+    }
+
+    private Texture2D GetTransparentTexture()
+    {
+        if (_transparentTexture == null)
+        {
+            _transparentTexture = new Texture2D(1, 1, TextureFormat.RGBA32, false, true);
+            _transparentTexture.hideFlags = HideFlags.HideAndDontSave;
+            _transparentTexture.SetPixel(0, 0, Color.clear);
+            _transparentTexture.Apply(false, false);
+            _transparentTexture.wrapMode = TextureWrapMode.Clamp;
+            _transparentTexture.filterMode = FilterMode.Bilinear;
+        }
+
+        return _transparentTexture;
+    }
+
+    private void ReleaseVignetteTexture()
+    {
+        if (_vignetteTexture != null)
+        {
+            if (_appliedBackgroundTexture == _vignetteTexture)
+            {
+                _appliedBackgroundTexture = null;
+            }
+
+            Object.DestroyImmediate(_vignetteTexture);
+            _vignetteTexture = null;
+        }
+    }
+
+    private void ReleaseVignetteTextures()
+    {
+        ReleaseVignetteTexture();
+
+        if (_transparentTexture != null)
+        {
+            Object.DestroyImmediate(_transparentTexture);
+            _transparentTexture = null;
+        }
+
+        _appliedBackgroundTexture = null;
     }
 
     private void DrawGraticules(Painter2D painter, Vector2 center, float zoomScale, NewAimConfigData.HudElementDefinition element = null)
