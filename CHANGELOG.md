@@ -1,8 +1,16 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
+
 # 更新日志
 
-## [v0.1.000（测试/Beta）](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-04-30
+## [v0.1.000-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-04-30
 
-### 项目基线 — 核心玩法闭环
+### Baseline — Core Gameplay Loop
+
+First public beta of Dong Qi San, completing the core tank simulation loop.
 
 这是《东七三》项目的第一个测试版本，完成了坦克载具模拟的核心玩法闭环。
 

@@ -1,147 +1,156 @@
-# 东七三 — Small_WarThunder
+# Dong Qi San (东七三) — Small_WarThunder
 
-[📋 开发日志](./DEVLOG.md) · [🗺️ 路线图](./ROADMAP.md) · [📝 更新日志](./CHANGELOG.md)
+> A Unity-based tank simulation project inspired by modern military vehicle combat games — featuring full tank movement, fire control, loading, collision detection, and HUD systems.
 
-**版本号**: `0.1.000（测试/Beta）` · [📥 下载最新版本](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/latest)
-**引擎**: Unity 6000.3.11f1 · **渲染**: HDRP 17.3.0 · **音频**: FMOD Studio  
-**仓库**: [github.com/guilingzhouyi-creator/Small_WarThunder](https://github.com/guilingzhouyi-creator/Small_WarThunder)
+[📋 Dev Log](./DEVLOG.md) · [🗺️ Roadmap](./ROADMAP.md) · [📝 Changelog](./CHANGELOG.md)
 
----
+**Version**: `v0.1.000-beta` | **License**: MIT  
+[📥 Download Latest Release](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/latest)
 
-## 项目简介
-
-《东七三》是一个基于 Unity 的坦克载具模拟项目，以现代战争雷霆类游戏为参考，实现了完整的坦克移动、火控、装填、碰撞检测与 HUD 系统。项目采用 **Component + Partial Class 模块化架构**，所有坦克参数通过 ScriptableObject 数据驱动，UI 侧以 UI Toolkit 为主。
-
-当前阶段聚焦于**核心玩法闭环**：坦克可移动/转向、炮塔可旋转/俯仰、可开火/装填/切换弹药、HUD 准星与火控信息实时同步。
+**Engine**: Unity 6000.3.11f1 · **Render Pipeline**: HDRP 17.3.0 · **Audio**: FMOD Studio  
+**Repository**: [github.com/guilingzhouyi-creator/Small_WarThunder](https://github.com/guilingzhouyi-creator/Small_WarThunder)
 
 ---
 
-## 当前版本说明 — v0.1.000（测试/Beta）
+## Overview
 
-### 已实现的核心系统
+Dong Qi San is a tank combat simulator focusing on a complete gameplay loop: tank movement / turning, turret rotation / elevation, firing / reloading / ammo switching, and real-time FCS HUD rendering. The architecture is **data-driven via ScriptableObjects**, with UI built on **UI Toolkit**.
 
-| 系统 | 状态 | 说明 |
-|------|------|------|
-| 坦克移动 | ✅ 完成 | 尼基金转向公式 + 功率分配 + 各向异性摩擦力，10 个 partial 文件 |
-| 炮塔控制 | ✅ 完成 | TPS/AIM 双模式旋转、自由视角（C 键）、炮管碰撞规避 |
-| 开火与装填 | ✅ 完成 | 弹药切换、装填计时、测距、弹道计算 |
-| 火控 HUD | ✅ 完成 | 自定义布局、FOV 缩放、准星/刻度/读数框/填充支持 |
-| 碰撞与伤害 | ✅ 完成 | 装甲区域、穿透/跳弹判定、伤害结算 |
-| 对象池 | ✅ 完成 | 炮弹池化回收 |
-| 音频系统 | ✅ 完成 | FMOD 引擎状态机 + 一次性音效 |
-| 悬挂系统 | ✅ 完成 | 悬挂臂 + 轮子旋转 + 视觉 |
-| 天气系统 | ✅ 完成 | 动态天气切换 |
-| UI 系统 | ✅ 完成 | 暂停/设置/HUD/瞄准镜 |
+### Features (v0.1.000-beta)
 
-### 下一个版本计划 — v0.2.000
+| System | Status | Description |
+|--------|--------|-------------|
+| Tank Movement | ✅ | Nikiforov steering model + power budget + anisotropic ground friction |
+| Turret Control | ✅ | TPS / AIM dual mode, freelook (C key), barrel collision avoidance |
+| Fire & Reload | ✅ | Ammo switching, reload timer, laser rangefinder, ballistics |
+| FCS HUD | ✅ | Custom layout, FOV scaling, reticle / scale / readout boxes, fill support |
+| Collision & Damage | ✅ | Armor zones, penetration / ricochet, damage resolution |
+| Object Pooling | ✅ | Cannonball pooled lifecycle |
+| Audio System | ✅ | FMOD engine state machine + one-shot events |
+| Suspension | ✅ | Suspension arm physics + wheel rotation visuals |
+| Weather | ✅ | Dynamic weather transitions |
+| UI System | ✅ | Pause / Settings / HUD / Scope |
 
-- **任务系统**：任务目标、进度追踪、完成判定
-- **多坦克支持**：选择不同坦克、切换载具
-- **伤害视觉反馈**：车体损伤模型、起火/爆炸特效
-- **AI 敌方坦克**：基础 AI 巡逻/索敌/开火
-- **地图系统**：小地图、标记、战术视图
-- **设置持久化**：图形/音频/控制设置保存与加载
+### Next Milestone — v0.2.000
 
-### 待评估/远期规划
+- Mission system (objectives, progress tracking)
+- Multiple tank support (selection, switching)
+- Damage visual feedback (deformation, fire / explosion VFX)
+- AI enemy tanks (patrol / search / engage)
+- Mini-map & tactical markers
+- Settings persistence (graphics / audio / controls)
 
-- 网络联机（Photon/Netcode）
-- 完整战役模式
-- 坦克自定义改装
-- 回放系统
+---
+
+## Dependencies & Third-Party Assets
+
+| Asset | Usage | License |
+|-------|-------|---------|
+| Unity HDRP 17.3.0 | Rendering pipeline | Unity Companion License |
+| FMOD Studio | Audio middleware | FMOD EULA |
+| SourceHanSans | UI font (SIL Open Font License) | OFL-1.1 |
+| VolumetricFog2 | Volumetric fog VFX (Built-in/URP) | Asset Store EULA |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Unity 6000.3.11f1** (LTS)
+- **Git LFS** installed (`git lfs --version`)
+- **Windows 11** (primary development target)
+
+### Clone & Setup
+
+```bash
+git clone git@github.com:guilingzhouyi-creator/Small_WarThunder.git
+cd Small_WarThunder
+git lfs pull
+```
+
+Then open the project in Unity Hub and let the HDRP shaders compile.
+
+### Build Asset Bundle (for Release)
+
+In Unity Editor: `Tools → 构建资源资产包`  
+Generates `Small_WarThunder_Assets_v{version}.zip` at the project root.
+
+---
+
+## Architecture
+
+```
+GameManager                    ← Global lifecycle & state machine
+  └─ UIManager                 ← UI management (pause/mission/HUD/settings)
+       └─ TankAImUIController  → FcsHudPainter (FCS reticle HUD)
+MIddleInputingController       ← Input mediation (InputSystem → game logic)
+TankMoveController             ← Tank movement (multiple partial files)
+TankWeaponController           ← Turret & weapon control
+TankFireController             ← Fire / reload / rangefinding
+TankController                 ← Tank integration
+AudioManager                   ← FMOD audio
+WeatherController              ← Weather
+GeneralHitPosition             ← Hit detection & damage
+CannonBall + ObjectPool        ← Projectile pooling
+```
+
+### Data-Driven Design
+
+All tank parameters are configured via ScriptableObject assets:
+
+| SO Asset | Parameters |
+|----------|------------|
+| `TankMoveData` | Mass, speed, acceleration, power, tuning curves |
+| `TankTurretData` | Rotation speed, elevation limits, barrel collision |
+| `TankAudioData` | FMOD events, engine state layers |
+| `NewAimConfigData` | HUD layout, elements, zoom |
+| `ProjectileData` | Projectile parameters |
+| `ArmoredZoneData` | Armor zone definitions |
+
+### Design Patterns
+
+| Pattern | Usage |
+|---------|-------|
+| Singleton | Most controllers |
+| Partial Class | Large controller decomposition |
+| Mediator | MIddleInputingController |
+| Observer | C# events |
+| State Machine | Steering / engine audio |
+| Registry | FCSRegistrySystem |
+| Strategy | Steering strategies |
+| Data-Driven | ScriptableObject configuration |
+| Object Pool | Cannonball pooling |
+
+---
+
+## Contributing
+
+Contributions are welcome! Please open an Issue or Pull Request.
+
+1. Follow the existing code conventions ( `_camelCase` private fields, `PascalCase` public properties).
+2. Respect the object pooling lifecycle — never use `SetActive(false)` alone on pooled objects.
+3. UI changes must consider both event subscriptions and state refresh.
+4. Discuss major changes in an Issue first.
+
+---
+
+## License
+
+This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for the full text.
+
+Third-party assets retain their original licenses — see [Dependencies](#dependencies--third-party-assets) above.
+
+---
+
+## Author
+
+- **guilingzhouyi-creator** — Project initiator, lead developer, architecture design
+
+> **Build Requirements**: Unity 6000.3.11f1 + HDRP 17.3.0  
 
 ---
 
 ## 资源资产包
 
-项目的大文件资源（模型、音频、贴图、FMOD 插件等）通过 **Git LFS** 管理，同时提供独立的 ZIP 资源包用于 Release 分发。
-
-### 资源包内容
-
-| 类别 | 内容 | 路径 |
-|------|------|------|
-| 坦克模型 | T90A 测试车型模型 (.fbx) | `Assets/Art/TankModel/` |
-| 字体 | SourceHanSans 字体系列 | `Assets/Art/Font/` |
-| 贴图 | 测试图片、UI 贴图 | `Assets/Art/Pictures/` |
-| 音频 | OST、FMOD Bank | `Assets/Audio/`、`Assets/Desktop/` |
-| FMOD 插件 | 多平台原生库 | `Assets/Miscellaneous Management System/Plugins/FMOD/` |
-| 雾效资源包 | VolumetricFog2 (Builtin/URP) | `Assets/Unity Asset Management System/VolumetricFogBundle/` |
-
-### 生成资源包
-
-在 Unity Editor 中执行菜单 `Tools / 构建资源资产包`，将在项目根目录生成 `Small_WarThunder_Assets_v{version}.zip`。
-
----
-
-## 项目框架总括
-
-```
-GameManager                    ← 全局生命周期
-  └─ UIManager                 ← UI 管理（暂停/任务/HUD/设置）
-       └─ TankAImUIController  → FcsHudPainter（瞄准 HUD）
-MIddleInputingController       ← 输入中介层（InputSystem → 游戏逻辑）
-TankMoveController             ← 坦克移动（10 partial files）
-TankWeaponController           ← 炮塔/武器（5 partial files）
-TankFireController             ← 开火/装填/测距（9 partial files）
-TankController                 ← 坦克整体（6 partial files）
-AudioManager                   ← 音频（FMOD）
-WeatherController              ← 天气
-TankSuspensionManager          ← 悬挂
-GeneralHitPosition             ← 碰撞/伤害
-CannonBall + Objectpooler      ← 弹药/对象池
-```
-
-### 数据驱动架构
-
-所有坦克参数通过 ScriptableObject 配置：
-
-| SO | 主要参数 |
-|----|----------|
-| `TankMoveData` | 质量/速度/加速度/功率/调教曲线 |
-| `TankTurretData` | 旋转速度/俯仰角/炮管避撞 |
-| `TankAudioData` | FMOD 事件/引擎状态层 |
-| `NewAimConfigData` | HUD 布局/元素/变焦 |
-| `ProjectileData` | 弹丸参数 |
-| `ArmoredZoneData` | 装甲区域 |
-
-### 设计模式
-
-| 模式 | 位置 |
-|------|------|
-| Singleton | 大部分控制器 |
-| Partial Class | 大型控制器拆分 |
-| Mediator | MIddleInputingController |
-| Observer | C# events |
-| State Machine | 转向/引擎音频 |
-| Registry | FCSRegistrySystem |
-| Strategy | 转向策略 |
-| Data-Driven | ScriptableObject |
-| Object Pool | 炮弹池 |
-
----
-
-## 贡献与合作
-
-### 开发人员
-
-- **guilingzhouyi-creator** — 项目发起人、主程、架构设计
-
-### 贡献方式
-
-欢迎提交 Issue 和 Pull Request。请遵循以下原则：
-
-1. 代码风格遵循项目既有约定（`_camelCase` 私有字段、PascalCase 公共属性）
-2. 修改前先阅读 `ARCHITECTURE.md` 了解架构
-3. 涉及对象池时，尊重池化回收流程
-4. 涉及 UI 时，同时考虑事件订阅和状态刷新
-5. 大改动建议先开 Issue 讨论
-
-### 第三方资源
-
-- FMOD Studio — 音频中间件
-- SourceHanSans — 思源黑体字体（SIL Open Font License）
-- VolumetricFog2 — 体积雾效果（Unity Asset Store）
-
----
-
-> **构建要求**: Unity 6000.3.11f1 + HDRP 17.3.0  
-> **首次克隆后**: 确保已安装 Git LFS，执行 `git lfs pull` 拉取资源文件
+项目的大文件资源（模型、音频、贴图、FMOD 插件等）通过 **Git LFS** 管理，同时提供独立的 ZIP 资源包用于 Release 分发。详见上方 Clone & Setup。
