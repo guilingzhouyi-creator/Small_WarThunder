@@ -40,6 +40,7 @@ public class CameraTransitionConfig : ScriptableObject
     }
 }
 
+
 public enum CameraBlendTarget
 {
     Any = 0,
