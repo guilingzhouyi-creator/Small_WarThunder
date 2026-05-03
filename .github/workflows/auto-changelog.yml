@@ -1,0 +1,42 @@
+name: 自动化仓管 — DEVLOG & CHANGELOG
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+    paths-ignore:
+      - 'DEVLOG.md'
+      - 'CHANGELOG.md'
+      - '.github/workflows/auto-changelog.yml'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  update-logs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout 仓库
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 设置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 运行自动化仓管 Agent
+        run: python3 .github/scripts/update_logs.py
+        env:
+          GITHUB_EVENT_BEFORE: ${{ github.event.before }}
+          GITHUB_EVENT_AFTER: ${{ github.event.after }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}

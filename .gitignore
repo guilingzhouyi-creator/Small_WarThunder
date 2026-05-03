@@ -22,7 +22,7 @@ Small_WarThunder_Assets_*.zip
 .idea/
 .vscode/
 .continue/
-.github/
+!.github/
 Assets/.git_disabled/
 *.user
 *.userprefs
