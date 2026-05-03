@@ -306,7 +306,7 @@ public partial class SettingManager : MonoBehaviour
     {
         if (UIManager.Instance != null)
         {
-            UIManager.Instance.ShowSettingsUI();
+            UIManager.Instance.OpenOverlay(UIOverlayId.Setting);
         }
     }
 
@@ -314,7 +314,7 @@ public partial class SettingManager : MonoBehaviour
     {
         if (UIManager.Instance != null)
         {
-            UIManager.Instance.ShowPauseUI();
+            UIManager.Instance.CloseOverlay(UIOverlayId.Setting);
         }
     }
 

@@ -15,7 +15,6 @@ public class CameraTransitionConfig : ScriptableObject
 
     [Header("切换后行为")]
     public bool ResetZoomOnAim = true;
-    public bool AutoResetFovOnTps = true;
 
     private void OnValidate()
     {

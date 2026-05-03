@@ -84,8 +84,14 @@ public class GameLevelManager : MonoBehaviour
             return;
         }
 
+        string resolvedRegionId = ResolveRegionId(regionId);
+        if (_isPlayerInside && _trackedPlayerTank == playerTank && _activeRegionId == resolvedRegionId)
+        {
+            return;
+        }
+
         _trackedPlayerTank = playerTank;
-        _activeRegionId = ResolveRegionId(regionId);
+        _activeRegionId = resolvedRegionId;
         _isPlayerInside = true;
         TryDispatchEntrySequence(true);
     }

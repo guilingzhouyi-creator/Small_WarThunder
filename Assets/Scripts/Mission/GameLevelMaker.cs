@@ -1,10 +1,10 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
 /// 区域触发器：挂载在区域 Prefab 中的触发碰撞体上。
 /// 检测进入区域的玩家/敌人坦克（通过 PlayerMaker/EnemyMaker 组件），
 /// 通知 LevelStreamingEngine 刷新附近区域可见性。
-/// 不依赖 Tag 字符串，使用强类型组件检测更安全。
 /// </summary>
 [RequireComponent(typeof(Collider))]
 public class GameLevelMaker : MonoBehaviour
@@ -14,91 +14,129 @@ public class GameLevelMaker : MonoBehaviour
     [Header("区域标识")]
     [SerializeField] private string _regionId;
 
+    [Header("边界缓冲")]
+    [SerializeField] private float _enterBufferMeters = 8f;
+    [SerializeField] private float _exitBufferMeters = 12f;
+    [SerializeField] private float _enterConfirmSeconds = 0.12f;
+    [SerializeField] private float _exitConfirmSeconds = 0.25f;
+
     private GameLevelManager _gameLevelManager;
     private Collider _regionCollider;
     private bool _usesTriggerCallbacks = true;
-    private bool _isPlayerInsideByPolling;
+    private bool _isPlayerInside;
+    private float _insideDetectedTime = float.NegativeInfinity;
     private float _outsideDetectedTime = float.NegativeInfinity;
-    [SerializeField] private float _pollingExitGraceSeconds = 0.2f;
+    private readonly HashSet<int> _playerTriggerColliderIds = new HashSet<int>();
+
     private string RegionId => string.IsNullOrWhiteSpace(_regionId) ? gameObject.name : _regionId;
 
     private void Awake()
     {
         _gameLevelManager = GetComponent<GameLevelManager>();
-
         _regionCollider = GetComponent<Collider>();
-        if (_regionCollider != null)
+
+        if (_regionCollider == null)
         {
-            if (_regionCollider is MeshCollider meshCollider && !meshCollider.convex)
+            return;
+        }
+
+        if (_regionCollider is MeshCollider meshCollider && !meshCollider.convex)
+        {
+            _usesTriggerCallbacks = false;
+
+            if (!_hasLoggedNonConvexFallbackInfo)
             {
-                _usesTriggerCallbacks = false;
-
-                if (!_hasLoggedNonConvexFallbackInfo)
-                {
-                    _hasLoggedNonConvexFallbackInfo = true;
-                    Debug.Log("[GameLevelMaker] 检测到任务区域使用非凸 MeshCollider，已自动切换为轮询检测模式；后续同类区域不再重复提示。", this);
-                }
-
-                return;
+                _hasLoggedNonConvexFallbackInfo = true;
+                Debug.Log("[GameLevelMaker] 检测到任务区域使用非凸 MeshCollider，已自动切换为轮询检测模式；后续同类区域不再重复提示。", this);
             }
 
-            _regionCollider.isTrigger = true;
+            return;
         }
+
+        _regionCollider.isTrigger = true;
     }
 
     private void Update()
     {
-        if (_usesTriggerCallbacks || _regionCollider == null)
-        {
-            return;
-        }
-
         GameObject playerTank = GameManager.Instance != null ? GameManager.Instance.PlayerTank : null;
         if (playerTank == null)
         {
-            if (_isPlayerInsideByPolling)
-            {
-                _gameLevelManager?.NotifyPlayerExitedRegion(null, RegionId);
-                _isPlayerInsideByPolling = false;
-            }
-
+            ForceExitIfNeeded();
             return;
         }
 
-        bool isInside = IsPlayerInsideRegion(playerTank);
-        if (isInside)
+        bool shouldEvaluateGeometry = !_usesTriggerCallbacks || _isPlayerInside || _playerTriggerColliderIds.Count > 0;
+        bool desiredInside = shouldEvaluateGeometry && IsPlayerInsideRegion(playerTank, _isPlayerInside);
+
+        if (desiredInside)
         {
             _outsideDetectedTime = float.NegativeInfinity;
 
-            if (!_isPlayerInsideByPolling)
+            if (!_isPlayerInside)
             {
+                if (_insideDetectedTime < 0f)
+                {
+                    _insideDetectedTime = Time.unscaledTime;
+                    return;
+                }
+
+                if (Time.unscaledTime - _insideDetectedTime < Mathf.Max(0.01f, _enterConfirmSeconds))
+                {
+                    return;
+                }
+
+                _isPlayerInside = true;
+                _insideDetectedTime = float.NegativeInfinity;
                 LevelStreamingEngine.Instance?.ShowNearbyRegions(playerTank.transform.position);
                 _gameLevelManager?.NotifyPlayerEnteredRegion(playerTank, RegionId);
-                _isPlayerInsideByPolling = true;
             }
 
             _gameLevelManager?.NotifyPlayerStayedRegion(playerTank, RegionId);
             return;
         }
 
-        if (_isPlayerInsideByPolling)
+        _insideDetectedTime = float.NegativeInfinity;
+
+        if (!_isPlayerInside)
         {
-            if (_outsideDetectedTime < 0f)
-            {
-                _outsideDetectedTime = Time.unscaledTime;
-                return;
-            }
-
-            if (Time.unscaledTime - _outsideDetectedTime < Mathf.Max(0.01f, _pollingExitGraceSeconds))
-            {
-                return;
-            }
-
-            _outsideDetectedTime = float.NegativeInfinity;
-            LevelStreamingEngine.Instance?.ShowNearbyRegions(playerTank.transform.position);
-            _gameLevelManager?.NotifyPlayerExitedRegion(playerTank, RegionId);
-            _isPlayerInsideByPolling = false;
+            return;
         }
+
+        if (_outsideDetectedTime < 0f)
+        {
+            _outsideDetectedTime = Time.unscaledTime;
+            return;
+        }
+
+        if (Time.unscaledTime - _outsideDetectedTime < Mathf.Max(0.01f, _exitConfirmSeconds))
+        {
+            return;
+        }
+
+        _outsideDetectedTime = float.NegativeInfinity;
+        _isPlayerInside = false;
+        LevelStreamingEngine.Instance?.ShowNearbyRegions(playerTank.transform.position);
+        _gameLevelManager?.NotifyPlayerExitedRegion(playerTank, RegionId);
+    }
+
+    private void OnDisable()
+    {
+        _playerTriggerColliderIds.Clear();
+        _insideDetectedTime = float.NegativeInfinity;
+        _outsideDetectedTime = float.NegativeInfinity;
+        _isPlayerInside = false;
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        Collider regionCollider = _regionCollider != null ? _regionCollider : GetComponent<Collider>();
+        if (regionCollider == null)
+        {
+            return;
+        }
+
+        DrawBufferedBounds(regionCollider.bounds, -_enterBufferMeters, new Color(0.2f, 0.9f, 0.3f, 0.9f));
+        DrawBufferedBounds(regionCollider.bounds, _exitBufferMeters, new Color(1f, 0.6f, 0.1f, 0.9f));
     }
 
     private void OnTriggerEnter(Collider other)
@@ -108,17 +146,17 @@ public class GameLevelMaker : MonoBehaviour
             LevelStreamingEngine.Instance?.ShowNearbyRegions(other.transform.position);
         }
 
-        if (TryGetPlayerTank(other, out GameObject playerTank))
+        if (TryGetPlayerTank(other, out _))
         {
-            _gameLevelManager?.NotifyPlayerEnteredRegion(playerTank, RegionId);
+            _playerTriggerColliderIds.Add(other.GetInstanceID());
         }
     }
 
     private void OnTriggerStay(Collider other)
     {
-        if (TryGetPlayerTank(other, out GameObject playerTank))
+        if (TryGetPlayerTank(other, out _))
         {
-            _gameLevelManager?.NotifyPlayerStayedRegion(playerTank, RegionId);
+            _playerTriggerColliderIds.Add(other.GetInstanceID());
         }
     }
 
@@ -129,26 +167,40 @@ public class GameLevelMaker : MonoBehaviour
             LevelStreamingEngine.Instance?.ShowNearbyRegions(other.transform.position);
         }
 
-        if (TryGetPlayerTank(other, out GameObject playerTank))
+        if (TryGetPlayerTank(other, out _))
         {
-            _gameLevelManager?.NotifyPlayerExitedRegion(playerTank, RegionId);
+            _playerTriggerColliderIds.Remove(other.GetInstanceID());
         }
     }
 
-    /// <summary>
-    /// 通过组件检测判断是否为坦克（玩家或敌人）。
-    /// 先检查进入对象自身，再向上查找根对象。
-    /// </summary>
+    private void ForceExitIfNeeded()
+    {
+        if (!_isPlayerInside)
+        {
+            _playerTriggerColliderIds.Clear();
+            return;
+        }
+
+        _gameLevelManager?.NotifyPlayerExitedRegion(null, RegionId);
+        _playerTriggerColliderIds.Clear();
+        _insideDetectedTime = float.NegativeInfinity;
+        _outsideDetectedTime = float.NegativeInfinity;
+        _isPlayerInside = false;
+    }
+
     private static bool IsTank(Collider other)
     {
-        // 先检查自身
+        if (other == null)
+        {
+            return false;
+        }
+
         if (other.TryGetComponent<PlayerMaker>(out _))
             return true;
         if (other.TryGetComponent<EnemyMaker>(out _))
             return true;
 
-        // 再检查根对象（坦克可能有多个子碰撞体）
-        var root = other.transform.root;
+        Transform root = other.transform.root;
         if (root.TryGetComponent<PlayerMaker>(out _))
             return true;
         if (root.TryGetComponent<EnemyMaker>(out _))
@@ -181,14 +233,19 @@ public class GameLevelMaker : MonoBehaviour
         return false;
     }
 
-    private bool IsPlayerInsideRegion(GameObject playerTank)
+    private bool IsPlayerInsideRegion(GameObject playerTank, bool currentlyInside)
     {
         if (_regionCollider == null || playerTank == null)
         {
             return false;
         }
 
-        bool supportsClosestPoint = SupportsClosestPoint(_regionCollider);
+        Bounds regionBounds = GetBufferedBounds(currentlyInside ? _exitBufferMeters : -_enterBufferMeters);
+        if (regionBounds.size.x <= 0f || regionBounds.size.y <= 0f || regionBounds.size.z <= 0f)
+        {
+            regionBounds = _regionCollider.bounds;
+        }
+
         Collider[] playerColliders = playerTank.GetComponentsInChildren<Collider>();
         for (int i = 0; i < playerColliders.Length; i++)
         {
@@ -198,61 +255,58 @@ public class GameLevelMaker : MonoBehaviour
                 continue;
             }
 
-            if (!_regionCollider.bounds.Intersects(playerCollider.bounds))
-            {
-                continue;
-            }
-
-            if (Physics.ComputePenetration(
-                _regionCollider,
-                _regionCollider.transform.position,
-                _regionCollider.transform.rotation,
-                playerCollider,
-                playerCollider.transform.position,
-                playerCollider.transform.rotation,
-                out _,
-                out _))
+            if (regionBounds.Intersects(playerCollider.bounds))
             {
                 return true;
             }
 
-            if (supportsClosestPoint && IsPointInsideRegion(playerCollider.bounds.center))
+            if (regionBounds.Contains(playerCollider.bounds.center))
             {
                 return true;
             }
         }
 
-        return supportsClosestPoint && IsPointInsideRegion(playerTank.transform.position);
+        return regionBounds.Contains(playerTank.transform.position);
     }
 
-    private static bool SupportsClosestPoint(Collider collider)
+    private Bounds GetBufferedBounds(float bufferMeters)
     {
-        if (collider == null)
+        Bounds bounds = _regionCollider.bounds;
+        Vector3 expandAmount = Vector3.one * (bufferMeters * 2f);
+
+        if (bufferMeters >= 0f)
         {
-            return false;
+            bounds.Expand(expandAmount);
+            return bounds;
         }
 
-        if (collider is BoxCollider || collider is SphereCollider || collider is CapsuleCollider)
-        {
-            return true;
-        }
-
-        if (collider is MeshCollider meshCollider)
-        {
-            return meshCollider.convex;
-        }
-
-        return false;
+        Vector3 nextSize = bounds.size + expandAmount;
+        nextSize.x = Mathf.Max(0.01f, nextSize.x);
+        nextSize.y = Mathf.Max(0.01f, nextSize.y);
+        nextSize.z = Mathf.Max(0.01f, nextSize.z);
+        bounds.size = nextSize;
+        return bounds;
     }
 
-    private bool IsPointInsideRegion(Vector3 point)
+    private static void DrawBufferedBounds(Bounds sourceBounds, float bufferMeters, Color color)
     {
-        if (_regionCollider == null || !_regionCollider.bounds.Contains(point))
+        Bounds drawBounds = sourceBounds;
+        Vector3 expandAmount = Vector3.one * (bufferMeters * 2f);
+
+        if (bufferMeters >= 0f)
         {
-            return false;
+            drawBounds.Expand(expandAmount);
+        }
+        else
+        {
+            Vector3 nextSize = drawBounds.size + expandAmount;
+            nextSize.x = Mathf.Max(0.01f, nextSize.x);
+            nextSize.y = Mathf.Max(0.01f, nextSize.y);
+            nextSize.z = Mathf.Max(0.01f, nextSize.z);
+            drawBounds.size = nextSize;
         }
 
-        Vector3 closestPoint = _regionCollider.ClosestPoint(point);
-        return (closestPoint - point).sqrMagnitude <= 0.0001f;
+        Gizmos.color = color;
+        Gizmos.DrawWireCube(drawBounds.center, drawBounds.size);
     }
 }

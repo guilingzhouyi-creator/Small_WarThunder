@@ -56,6 +56,11 @@ public class GlobalSubtitleEngine : MonoBehaviour
     [SerializeField] private TextMeshProUGUI targetLabel;
     [SerializeField] private float typingSpeed = 0.05f;
 
+    /// <summary>
+    /// 每次字幕文本更新时触发（支持 UI Toolkit 层镜像显示）
+    /// </summary>
+    public event Action<string> OnSubtitleTextChanged;
+
     private static SubtitlePackage _activePackage;
 
 
@@ -199,7 +204,9 @@ public class GlobalSubtitleEngine : MonoBehaviour
             for (int i = package.CurrentCharIndex; i <= text.Length; i++)
             {
                 package.CurrentCharIndex = i; // 更新当前字符索引，支持断点续显
-                targetLabel.text = text.Substring(0, i);
+                string currentText = text.Substring(0, i);
+                targetLabel.text = currentText;
+                OnSubtitleTextChanged?.Invoke(currentText);
 
                 yield return new WaitForSeconds(typingSpeed);
             }
@@ -247,6 +254,7 @@ public class GlobalSubtitleEngine : MonoBehaviour
         if (targetLabel != null)
         {
             targetLabel.text = IdleText;
+            OnSubtitleTextChanged?.Invoke(IdleText);
         }
     }
 
@@ -263,6 +271,7 @@ public class GlobalSubtitleEngine : MonoBehaviour
         }
 
         targetLabel.text = IdleText;
+        OnSubtitleTextChanged?.Invoke(IdleText);
     }
 
     public void PausePlayback()

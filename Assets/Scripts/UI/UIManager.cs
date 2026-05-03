@@ -15,8 +15,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private MapUIController mapUIController;
 
     [Header("小地图状态")]
-    [SerializeField] private bool _showMiniMapInTPS = true;   // 第三人称时显示小地图
-    [SerializeField] private bool _showMiniMapInAim = false;  // 瞄准模式时隐藏小地图
+    [SerializeField] private bool _showMiniMapInTPS = true;
+    [SerializeField] private bool _showMiniMapInAim = false;
 
     public event EventHandler OnGamePaused;
     public event EventHandler OnGameUnPaused;
@@ -30,16 +30,17 @@ public class UIManager : MonoBehaviour
     private bool _isSightUIVisible = true;
     private bool _isAimMode;
     private bool _isCgPlaying;
+    private readonly UIOverlayStack _overlayStack = new UIOverlayStack();
 
     public bool IsPaused => _isPaused;
-    public bool IsGameplayControlLocked => _isPaused || _isTabed || _isMapShown || _isSettingUIVisible || _isCgPlaying;
+    public bool IsGameplayControlLocked => _overlayStack.HasAnyOverlay || _isCgPlaying;
     public bool IsAimMode => _isAimMode;
 
     private void Awake()
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("UIManager: 已存在一个 UIManager 实例，当前实例将被销毁以保持单例模式。", this);
+            Debug.LogWarning("UIManager: duplicate instance detected, destroying the new one.", this);
             Destroy(gameObject);
             return;
         }
@@ -85,29 +86,44 @@ public class UIManager : MonoBehaviour
     private void HandleSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
     {
         if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
             SetCursorLocked(false);
+        }
 
+        _overlayStack.Clear();
+        _isPaused = false;
+        _isTabed = false;
+        _isMapShown = false;
+        _isSettingUIVisible = false;
+        _isAimMode = false;
+
+        RefreshCursorLockState();
         RefreshUIState();
     }
 
     private void Update()
     {
         if (IsGameplayControlLocked)
+        {
             return;
+        }
 
         if (MIddleInputingController.Instance != null && MIddleInputingController.Instance.IsAimingPressed())
+        {
             ToggleAimMode();
+        }
     }
 
     private void BindInputEvents()
     {
         if (_isInputBound || MIddleInputingController.Instance == null)
+        {
             return;
+        }
 
         MIddleInputingController.Instance.OnPauseInputProcessed += HandlePauseInput;
         MIddleInputingController.Instance.OnTabInputProcessed += HandleTabInput;
         MIddleInputingController.Instance.OnMapShowInputProcessed += HandleMapShowInput;
-
         _isInputBound = true;
     }
 
@@ -120,21 +136,17 @@ public class UIManager : MonoBehaviour
         }
 
         MIddleInputingController.Instance.OnPauseInputProcessed -= HandlePauseInput;
-        MIddleInputingController.Instance.OnPauseInputProcessed += HandlePauseInput;
-
         MIddleInputingController.Instance.OnTabInputProcessed -= HandleTabInput;
-        MIddleInputingController.Instance.OnTabInputProcessed += HandleTabInput;
-
         MIddleInputingController.Instance.OnMapShowInputProcessed -= HandleMapShowInput;
-        MIddleInputingController.Instance.OnMapShowInputProcessed += HandleMapShowInput;
-
         _isInputBound = false;
     }
 
     private void BindSettingEvents()
     {
         if (_isSettingBound || settingManager == null)
+        {
             return;
+        }
 
         settingManager.SettingsApplied += HandleSettingsApplied;
         _isSettingBound = true;
@@ -154,57 +166,38 @@ public class UIManager : MonoBehaviour
 
     private void HandlePauseInput(object sender, EventArgs e)
     {
-        if (_isTabed)
-        {
-            SetPaused(true);
-            return;
-        }
-
         if (_isSettingUIVisible)
         {
-            ShowPauseUI();
+            CloseOverlay(UIOverlayId.Setting);
             return;
         }
 
-        TogglePause();
+        ToggleOverlay(UIOverlayId.Pause);
     }
 
     private void HandleTabInput(object sender, EventArgs e)
     {
-        if (_isPaused || _isSettingUIVisible || _isMapShown)
+        if (_isPaused || _isSettingUIVisible)
+        {
             return;
+        }
 
-        if (_isAimMode)
-            SetAimMode(false);
-
-        ToggleTab();
+        ToggleOverlay(UIOverlayId.Tab);
     }
 
     private void HandleMapShowInput(object sender, EventArgs e)
     {
-        if (_isPaused || _isSettingUIVisible || _isTabed)
+        if (_isPaused || _isSettingUIVisible)
+        {
             return;
+        }
 
-        if (_isAimMode)
-            SetAimMode(false);
-
-        ToggleMap();
+        ToggleOverlay(UIOverlayId.Map);
     }
 
-    public void TogglePause()
-    {
-        SetPaused(!_isPaused);
-    }
-
-    public void ToggleTab()
-    {
-        SetTabed(!_isTabed);
-    }
-
-    public void ToggleMap()
-    {
-        SetMapShown(!_isMapShown);
-    }
+    public void TogglePause() => ToggleOverlay(UIOverlayId.Pause);
+    public void ToggleTab() => ToggleOverlay(UIOverlayId.Tab);
+    public void ToggleMap() => ToggleOverlay(UIOverlayId.Map);
 
     public void ToggleAimMode()
     {
@@ -214,166 +207,226 @@ public class UIManager : MonoBehaviour
     public void SetAimMode(bool isAimMode)
     {
         if (_isAimMode == isAimMode)
+        {
             return;
+        }
 
         _isAimMode = isAimMode;
         RefreshUIState();
     }
 
-    private void SetCursorLocked(bool locked)
-    {
-        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !locked;
-    }
-
     public void SetPaused(bool paused)
     {
-        if (_isPaused == paused)
-            return;
-
-        _isPaused = paused;
-        _isTabed = false;
-
-        if (!paused)
-            _isSettingUIVisible = false;
-
-        Time.timeScale = paused ? 0f : 1f;
-        SetCursorLocked(!paused);
-        RefreshUIState();
-
         if (paused)
-            OnGamePaused?.Invoke(this, EventArgs.Empty);
+        {
+            OpenOverlay(UIOverlayId.Pause);
+        }
         else
-            OnGameUnPaused?.Invoke(this, EventArgs.Empty);
+        {
+            CloseOverlay(UIOverlayId.Pause);
+        }
     }
 
     public void SetMapShown(bool shown)
     {
-        if (_isMapShown == shown)
-            return;
-
-        _isMapShown = shown;
-
         if (shown)
         {
-            _isSettingUIVisible = false;
-
-            if (mapUIController != null)
-            {
-                mapUIController.gameObject.SetActive(true);
-                mapUIController.OpenFullMap();
-            }
+            OpenOverlay(UIOverlayId.Map);
         }
         else
         {
-            if (mapUIController != null)
-                mapUIController.CloseFullMap();
+            CloseOverlay(UIOverlayId.Map);
         }
-
-        SetCursorLocked(!shown);
-        RefreshUIState();
     }
 
     public void SetTabed(bool tabed)
     {
-        if (_isTabed == tabed)
-            return;
-
-        _isTabed = tabed;
-
         if (tabed)
-            _isSettingUIVisible = false;
-
-        SetCursorLocked(!tabed);
-        RefreshUIState();
+        {
+            OpenOverlay(UIOverlayId.Tab);
+        }
+        else
+        {
+            CloseOverlay(UIOverlayId.Tab);
+        }
     }
 
     public void SetCgPlaying(bool playing)
     {
         if (_isCgPlaying == playing)
+        {
             return;
+        }
 
         _isCgPlaying = playing;
 
         if (playing)
         {
             _isAimMode = false;
-            _isTabed = false;
             _isSettingUIVisible = false;
+            _overlayStack.Close(UIOverlayId.Setting);
+            _overlayStack.Close(UIOverlayId.Pause);
+            _isPaused = false;
         }
 
-        SetCursorLocked(!playing);
+        RefreshCursorLockState();
         RefreshUIState();
     }
 
-    public void ShowSettingsUI()
-    {
-        if (!_isPaused)
-            SetPaused(true);
-
-        _isSettingUIVisible = true;
-
-        if (settingManager != null)
-        {
-            settingManager.gameObject.SetActive(true);
-            settingManager.transform.SetAsLastSibling();
-        }
-
-        RefreshUIState();
-    }
-
-    public void ShowPauseUI()
-    {
-        if (!_isPaused)
-        {
-            SetPaused(true);
-            return;
-        }
-
-        _isSettingUIVisible = false;
-        RefreshUIState();
-    }
+    public void ShowSettingsUI() => OpenOverlay(UIOverlayId.Setting);
+    public void ShowPauseUI() => OpenOverlay(UIOverlayId.Pause);
 
     private void HandleSettingsApplied(SettingManager.AudioSettingState audioSettingState)
     {
-        ShowPauseUI();
+        OpenOverlay(UIOverlayId.Pause);
+    }
+
+    public void ToggleOverlay(UIOverlayId overlay)
+    {
+        if (overlay == UIOverlayId.None)
+        {
+            return;
+        }
+
+        if (_overlayStack.Contains(overlay))
+        {
+            CloseOverlay(overlay);
+        }
+        else
+        {
+            OpenOverlay(overlay);
+        }
+    }
+
+    public void OpenOverlay(UIOverlayId overlay)
+    {
+        switch (overlay)
+        {
+            case UIOverlayId.Map:
+                _isMapShown = true;
+                _overlayStack.Open(UIOverlayId.Map);
+                break;
+
+            case UIOverlayId.Tab:
+                _isTabed = true;
+                _overlayStack.Open(UIOverlayId.Tab);
+                break;
+
+            case UIOverlayId.Pause:
+                if (!_isPaused)
+                {
+                    _isPaused = true;
+                    Time.timeScale = 0f;
+                    OnGamePaused?.Invoke(this, EventArgs.Empty);
+                }
+
+                _overlayStack.Open(UIOverlayId.Pause);
+                break;
+
+            case UIOverlayId.Setting:
+                if (!_isPaused)
+                {
+                    OpenOverlay(UIOverlayId.Pause);
+                }
+
+                _isSettingUIVisible = true;
+                _overlayStack.Open(UIOverlayId.Setting);
+                break;
+        }
+
+        RefreshCursorLockState();
+        RefreshUIState();
+    }
+
+    public void CloseOverlay(UIOverlayId overlay)
+    {
+        switch (overlay)
+        {
+            case UIOverlayId.Map:
+                _isMapShown = false;
+                _overlayStack.Close(UIOverlayId.Map);
+                break;
+
+            case UIOverlayId.Tab:
+                _isTabed = false;
+                _overlayStack.Close(UIOverlayId.Tab);
+                break;
+
+            case UIOverlayId.Setting:
+                _isSettingUIVisible = false;
+                _overlayStack.Close(UIOverlayId.Setting);
+                break;
+
+            case UIOverlayId.Pause:
+                _isSettingUIVisible = false;
+                _overlayStack.Close(UIOverlayId.Setting);
+                _overlayStack.Close(UIOverlayId.Pause);
+
+                if (_isPaused)
+                {
+                    _isPaused = false;
+                    Time.timeScale = 1f;
+                    OnGameUnPaused?.Invoke(this, EventArgs.Empty);
+                }
+                break;
+        }
+
+        RefreshCursorLockState();
+        RefreshUIState();
     }
 
     private void RefreshUIState()
     {
         bool isGameplayScene = IsGameplayScene();
 
+        if (mapUIController != null)
+        {
+            bool mapPanelActive = isGameplayScene;
+            if (mapUIController.gameObject.activeSelf != mapPanelActive)
+            {
+                mapUIController.gameObject.SetActive(mapPanelActive);
+            }
+
+            bool shouldShowFullMap = mapPanelActive && _isMapShown;
+            if (shouldShowFullMap)
+            {
+                mapUIController.OpenFullMap();
+            }
+            else
+            {
+                mapUIController.CloseFullMap();
+
+                bool miniMapVisible = mapPanelActive &&
+                                      !_isMapShown &&
+                                      !_isPaused &&
+                                      !_isSettingUIVisible &&
+                                      _overlayStack.Top == UIOverlayId.None;
+                if (miniMapVisible)
+                {
+                    bool show = _isAimMode ? _showMiniMapInAim : _showMiniMapInTPS;
+                    mapUIController.SetMiniMapVisible(show);
+                }
+                else
+                {
+                    mapUIController.SetMiniMapVisible(false);
+                }
+            }
+        }
+
+        if (missionPannelUIController != null)
+        {
+            bool shouldShowMissionDisplay = isGameplayScene && _isTabed && _overlayStack.Top == UIOverlayId.Tab;
+            missionPannelUIController.gameObject.SetActive(shouldShowMissionDisplay);
+            missionPannelUIController.SetDisplayActive(shouldShowMissionDisplay);
+        }
+
         if (pauseUIController != null)
         {
             bool shouldShowPauseUI = isGameplayScene && _isPaused && !_isSettingUIVisible;
             pauseUIController.gameObject.SetActive(shouldShowPauseUI);
             if (shouldShowPauseUI)
+            {
                 pauseUIController.transform.SetAsLastSibling();
-        }
-
-        if (missionPannelUIController != null)
-        {
-            bool shouldShowMissionPanel = isGameplayScene && _isTabed && !_isSettingUIVisible && !_isMapShown;
-            missionPannelUIController.gameObject.SetActive(shouldShowMissionPanel);
-            if (shouldShowMissionPanel)
-                missionPannelUIController.transform.SetAsLastSibling();
-        }
-
-        if (mapUIController != null)
-        {
-            bool mapPanelActive = isGameplayScene;
-            if (mapUIController.gameObject.activeSelf != mapPanelActive)
-                mapUIController.gameObject.SetActive(mapPanelActive);
-
-            bool miniMapVisible = mapPanelActive && !_isMapShown && !_isSettingUIVisible && !_isPaused;
-            if (miniMapVisible)
-            {
-                bool show = _isAimMode ? _showMiniMapInAim : _showMiniMapInTPS;
-                mapUIController.SetMiniMapVisible(show);
-            }
-            else
-            {
-                mapUIController.SetMiniMapVisible(false);
             }
         }
 
@@ -382,7 +435,9 @@ public class UIManager : MonoBehaviour
             bool shouldShowSettingUI = isGameplayScene && _isPaused && _isSettingUIVisible;
             settingManager.gameObject.SetActive(shouldShowSettingUI);
             if (shouldShowSettingUI)
+            {
                 settingManager.transform.SetAsLastSibling();
+            }
         }
 
         if (tankStatsUIController != null)
@@ -396,6 +451,18 @@ public class UIManager : MonoBehaviour
             bool shouldShowSightUI = isGameplayScene && !IsGameplayControlLocked && _isSightUIVisible;
             sightUIPanel.gameObject.SetActive(shouldShowSightUI);
         }
+    }
+
+    private void RefreshCursorLockState()
+    {
+        bool shouldUnlockCursor = _overlayStack.HasAnyOverlay || _isCgPlaying;
+        SetCursorLocked(!shouldUnlockCursor);
+    }
+
+    private void SetCursorLocked(bool locked)
+    {
+        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !locked;
     }
 
     private bool IsGameplayScene()

@@ -1,14 +1,6 @@
-using UnityEngine;
 using Unity.Cinemachine;
+using UnityEngine;
 
-/// <summary>
-/// 地图俯拍摄像机控制器。
-/// 使用正交投影，从玩家上方俯拍，将画面输出到 RenderTexture 供 UGUI 的 RawImage 显示。
-/// 激活时通过提高 Priority 切换到该摄像机，关闭时恢复低优先级。
-/// 
-/// 用法：场景中挂在一个带 CinemachineCamera 组件的空物体上，Inspector 中拖入 Camera。
-/// 该 Camera 的 TargetTexture 由 MapUIController 在 Start 时分配。
-/// </summary>
 public class MapCameraPosition : MonoBehaviour
 {
     [Header("俯拍参数")]
@@ -21,12 +13,11 @@ public class MapCameraPosition : MonoBehaviour
     [SerializeField] private Camera _mapCamera;
 
     private CinemachineCamera _cinemachineCamera;
+    private Transform _followTarget;
 
-    public bool HasCameraReference => _cinemachineCamera != null;
-    public string CameraName => _cinemachineCamera != null ? _cinemachineCamera.Name : string.Empty;
+    public bool HasCameraReference => _cinemachineCamera != null || _mapCamera != null;
+    public string CameraName => _cinemachineCamera != null ? _cinemachineCamera.Name : (_mapCamera != null ? _mapCamera.name : string.Empty);
     public Camera MapCamera => _mapCamera;
-
-    /// <summary>当前相机正交半高度（世界单位），供 MapRenderingEngine 坐标映射使用。</summary>
     public float OrthoSize => _orthoSize;
 
     private void Awake()
@@ -37,71 +28,104 @@ public class MapCameraPosition : MonoBehaviour
         SetInactive();
     }
 
+    private void LateUpdate()
+    {
+        SyncPhysicalCameraToTarget();
+    }
+
     private void ResolveCameraReference()
     {
         _cinemachineCamera = GetComponent<CinemachineCamera>();
         if (_cinemachineCamera == null)
+        {
             _cinemachineCamera = GetComponentInChildren<CinemachineCamera>(true);
+        }
     }
 
     private void ResolveMapCamera()
     {
-        if (_mapCamera != null) return;
+        if (_mapCamera != null)
+        {
+            return;
+        }
 
-        if (_cinemachineCamera != null)
-            _mapCamera = _cinemachineCamera.GetComponent<Camera>();
-
+        _mapCamera = GetComponent<Camera>();
         if (_mapCamera == null)
+        {
             _mapCamera = GetComponentInChildren<Camera>(true);
+        }
     }
 
-    /// <summary>
-    /// 配置正交投影（俯拍地图专用）。
-    /// </summary>
     private void SetupOrthoCamera()
     {
-        if (_cinemachineCamera == null) return;
+        if (_cinemachineCamera != null)
+        {
+            _cinemachineCamera.Lens.ModeOverride = LensSettings.OverrideModes.Orthographic;
+            _cinemachineCamera.Lens.OrthographicSize = _orthoSize;
+            _cinemachineCamera.Target.TrackingTarget = null;
+        }
 
-        _cinemachineCamera.Lens.ModeOverride = LensSettings.OverrideModes.Orthographic;
-        _cinemachineCamera.Lens.OrthographicSize = _orthoSize;
-        _cinemachineCamera.Target.TrackingTarget = null;
+        if (_mapCamera != null)
+        {
+            _mapCamera.orthographic = true;
+            _mapCamera.orthographicSize = _orthoSize;
+        }
     }
 
-    /// <summary>
-    /// 绑定俯拍跟随目标（通常是玩家坦克根节点）。
-    /// </summary>
     public void BindTarget(Transform followTarget)
     {
-        if (_cinemachineCamera == null || followTarget == null) return;
+        if (followTarget == null)
+        {
+            return;
+        }
 
-        _cinemachineCamera.Follow = followTarget;
-        _cinemachineCamera.LookAt = null;
+        _followTarget = followTarget;
+
+        if (_cinemachineCamera != null)
+        {
+            _cinemachineCamera.Follow = followTarget;
+            _cinemachineCamera.LookAt = null;
+        }
+
+        SyncPhysicalCameraToTarget();
     }
 
-    /// <summary>
-    /// 设置相机的 TargetTexture（由 MapUIController 调用）。
-    /// </summary>
     public void SetTargetTexture(RenderTexture rt)
     {
         if (_mapCamera != null)
+        {
             _mapCamera.targetTexture = rt;
+        }
     }
 
-    /// <summary>
-    /// 切换到地图俯拍视角。
-    /// </summary>
     public void SetActive()
     {
-        if (_cinemachineCamera == null) return;
-        _cinemachineCamera.Priority = _activePriority;
+        if (_cinemachineCamera != null)
+        {
+            _cinemachineCamera.Priority = _activePriority;
+        }
     }
 
-    /// <summary>
-    /// 恢复非激活状态（第三人称相机接管）。
-    /// </summary>
     public void SetInactive()
     {
-        if (_cinemachineCamera == null) return;
-        _cinemachineCamera.Priority = _inactivePriority;
+        if (_cinemachineCamera != null)
+        {
+            _cinemachineCamera.Priority = _inactivePriority;
+        }
+    }
+
+    private void SyncPhysicalCameraToTarget()
+    {
+        if (_mapCamera == null || _followTarget == null)
+        {
+            return;
+        }
+
+        Vector3 followPosition = _followTarget.position;
+        Transform cameraTransform = _mapCamera.transform;
+        cameraTransform.position = new Vector3(followPosition.x, followPosition.y + _overheadHeight, followPosition.z);
+        cameraTransform.rotation = Quaternion.Euler(90f, 0f, 0f);
+        _mapCamera.orthographic = true;
+        _mapCamera.orthographicSize = _orthoSize;
     }
 }

@@ -1,21 +1,6 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 
-/// <summary>
-/// 地图 UI 控制器 — UIToolkit 方案（UGUI-Free）。
-/// 
-/// 职责：
-/// - 管理 UIDocument（创建/设置）。
-/// - 托管 MapRenderingEngine（VisualElement，Painter2D 地图渲染）。
-/// - 处理小地图/大地图模式切换。
-/// - 由 UIManager 调用，实现地图显隐和模式控制。
-/// 
-/// 架构：
-/// - MapRenderingEngine 继承 VisualElement，按时间间隔刷新（非帧驱动）。
-/// - 此控制器持有配置资产 MapConfigSO，并传递给 Engine。
-/// - 玩家 Transform 从此控制器传递到 Engine。
-/// - MapCameraPosition 从此控制器传递到 Engine 以获取俯拍相机状态。
-/// </summary>
 public class MapUIController : MonoBehaviour
 {
     public static MapUIController Instance { get; private set; }
@@ -29,9 +14,20 @@ public class MapUIController : MonoBehaviour
     [Header("俯拍相机引用")]
     [SerializeField] private MapCameraPosition _mapCamera;
 
+    [Header("任务字幕样式")]
+    [SerializeField] private Font _missionLabelFont;
+    [SerializeField] private float _missionLabelFontSize = 24f;
+    [SerializeField] private Color _missionLabelColor = Color.white;
+
     private MapRenderingEngine _engine;
     private Transform _playerTransform;
     private bool _isInitialized;
+
+    private Label _missionOverlayLabel;
+    private VisualElement _missionOverlayContainer;
+
+    private const string MISSION_OVERLAY_CONTAINER_NAME = "mission-subtitle-overlay";
+    private const string MISSION_OVERLAY_LABEL_NAME = "mission-subtitle-text";
 
     public bool IsFullMapShown => _engine != null && _engine.IsFullMapOpen;
 
@@ -44,17 +40,39 @@ public class MapUIController : MonoBehaviour
         }
 
         Instance = this;
+        ResolveSceneReferences();
+    }
+
+    private void OnEnable()
+    {
+        ResolveSceneReferences();
+        InitializeEngine();
     }
 
     private void Start()
     {
+        ResolveSceneReferences();
         InitializeEngine();
+    }
+
+    private void Update()
+    {
+        ResolveSceneReferences();
+
+        if (!_isInitialized || _engine == null)
+        {
+            return;
+        }
+
+        _engine.Tick();
     }
 
     private void OnDestroy()
     {
         if (Instance == this)
+        {
             Instance = null;
+        }
 
         if (_engine != null && _uiDocument != null)
         {
@@ -62,81 +80,188 @@ public class MapUIController : MonoBehaviour
         }
     }
 
-    #region Initialization
-
-    private void InitializeEngine()
+    private void ResolveSceneReferences()
     {
         if (_uiDocument == null)
         {
-            Debug.LogError("[MapUIController] UIDocument 未赋值！请在 Inspector 中拖入。");
+            _uiDocument = GetComponent<UIDocument>();
+            if (_uiDocument == null)
+            {
+                _uiDocument = GetComponentInChildren<UIDocument>(true);
+            }
+        }
+
+        if (_mapCamera == null)
+        {
+            _mapCamera = FindFirstObjectByType<MapCameraPosition>(FindObjectsInactive.Include);
+        }
+
+        GameObject playerTank = GameManager.Instance != null ? GameManager.Instance.PlayerTank : null;
+        Transform nextPlayerTransform = playerTank != null ? playerTank.transform : null;
+        if (_playerTransform != nextPlayerTransform)
+        {
+            _playerTransform = nextPlayerTransform;
+            _engine?.SetPlayer(_playerTransform);
+            if (_mapCamera != null && _playerTransform != null)
+            {
+                _mapCamera.BindTarget(_playerTransform);
+            }
+        }
+
+        if (_engine != null)
+        {
+            _engine.SetCamera(_mapCamera);
+        }
+    }
+
+    private void InitializeEngine()
+    {
+        if (_isInitialized)
+        {
+            if (_engine != null)
+            {
+                _engine.SetCamera(_mapCamera);
+                _engine.SetPlayer(_playerTransform);
+            }
+
+            return;
+        }
+
+        if (_uiDocument == null)
+        {
+            Debug.LogError("[MapUIController] UIDocument 未赋值，请检查 UI 预制体。", this);
             return;
         }
 
         if (_config == null)
         {
-            Debug.LogError("[MapUIController] MapConfigSO 未赋值！请在 Inspector 中拖入。");
+            Debug.LogError("[MapUIController] MapConfigSO 未赋值，请在 Inspector 中配置。", this);
             return;
         }
 
-        // 创建并添加 MapRenderingEngine 到根 VisualElement
         _engine = new MapRenderingEngine(_config);
         _engine.SetCamera(_mapCamera);
-        _engine.SetVisible(false); // 默认隐藏，由 UIManager 控制显隐
+        _engine.SetPlayer(_playerTransform);
+        _engine.SetVisible(false);
 
         _uiDocument.rootVisualElement.Add(_engine);
+
+        CreateMissionOverlay();
+
         _isInitialized = true;
     }
 
-    #endregion
-
-    #region Update
-
-    private void Update()
+    private void CreateMissionOverlay()
     {
-        if (!_isInitialized || _engine == null) return;
-        _engine.Tick();
+        if (_uiDocument == null)
+        {
+            return;
+        }
+
+        _missionOverlayContainer = new VisualElement
+        {
+            name = MISSION_OVERLAY_CONTAINER_NAME,
+            style =
+            {
+                position = Position.Absolute,
+                left = 0f,
+                right = 0f,
+                bottom = 80f,
+                height = 60f,
+                flexDirection = FlexDirection.Row,
+                justifyContent = Justify.Center,
+                alignItems = Align.Center,
+                backgroundColor = new Color(0f, 0f, 0f, 0.6f)
+            }
+        };
+
+        _missionOverlayLabel = new Label
+        {
+            name = MISSION_OVERLAY_LABEL_NAME,
+            text = string.Empty,
+            style =
+            {
+                color = _missionLabelColor,
+                fontSize = _missionLabelFontSize,
+                unityTextAlign = TextAnchor.MiddleCenter,
+                whiteSpace = WhiteSpace.Normal
+            }
+        };
+
+        _missionOverlayContainer.Add(_missionOverlayLabel);
+        _missionOverlayContainer.style.display = DisplayStyle.None;
+
+        _uiDocument.rootVisualElement.Add(_missionOverlayContainer);
     }
 
-    #endregion
+    /// <summary>
+    /// Tab 叠加层显示/隐藏字幕底部栏
+    /// </summary>
+    public void SetMissionOverlayVisible(bool visible)
+    {
+        if (_missionOverlayContainer == null)
+        {
+            return;
+        }
 
-    #region Public API (called by UIManager)
+        _missionOverlayContainer.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
+    }
 
     /// <summary>
-    /// 由 UIManager 设置当前玩家 Transform。
+    /// 更新任务字幕文本（由 MissionPannelUIController 驱动）
     /// </summary>
+    public void SetMissionText(string text)
+    {
+        if (_missionOverlayLabel != null)
+        {
+            _missionOverlayLabel.text = text ?? string.Empty;
+        }
+    }
+
     public void SetPlayerTransform(Transform playerTransform)
     {
         _playerTransform = playerTransform;
         _engine?.SetPlayer(playerTransform);
+        if (_mapCamera != null && playerTransform != null)
+        {
+            _mapCamera.BindTarget(playerTransform);
+        }
     }
 
-    /// <summary>
-    /// 打开大地图：切换引擎为全屏模式（Painter2D 全屏覆盖）。
-    /// </summary>
     public void OpenFullMap()
     {
-        if (_engine == null) return;
+        if (_engine == null)
+        {
+            return;
+        }
+
+        _engine.SetVisible(true);
         _engine.OpenFullMap();
     }
 
-    /// <summary>
-    /// 关闭大地图：引擎恢复小地图模式。
-    /// </summary>
     public void CloseFullMap()
     {
-        if (_engine == null) return;
+        if (_engine == null)
+        {
+            return;
+        }
+
         _engine.CloseFullMap();
     }
 
-    /// <summary>
-    /// 控制小地图常驻的显隐。
-    /// TPS 时显示，AIM / 暂停 / Tab / 大地图时隐藏。
-    /// </summary>
     public void SetMiniMapVisible(bool visible)
     {
-        if (_engine == null) return;
+        if (_engine == null)
+        {
+            return;
+        }
+
+        if (_engine.IsFullMapOpen)
+        {
+            _engine.SetVisible(true);
+            return;
+        }
+
         _engine.SetVisible(visible);
     }
-
-    #endregion
 }
