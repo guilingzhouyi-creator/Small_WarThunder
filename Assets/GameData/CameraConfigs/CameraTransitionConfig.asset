@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7356ae199e73d48459acd60b907d0623, type: 3}
+  m_Name: CameraTransitionConfig
+  m_EditorClassIdentifier: Assembly-CSharp::CameraTransitionConfig
+  BlendRules:
+  - FromCamera: 0
+    ToCamera: 3
+    BlendStyle: 0
+    BlendDuration: 0
+  - FromCamera: 3
+    ToCamera: 0
+    BlendStyle: 0
+    BlendDuration: 0
+  AimActivePriority: 15
+  AimInactivePriority: 0
+  ZoomActivePriority: 20
+  ZoomInactivePriority: 0
+  ResetZoomOnAim: 0
+  AutoResetFovOnTps: 1

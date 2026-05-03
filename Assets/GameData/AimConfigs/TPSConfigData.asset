@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ff8968136ea8964593b5866cb03e3b5, type: 3}
+  m_Name: TPSConfigData
+  m_EditorClassIdentifier: Assembly-CSharp::NewAimConfigData
+  MaxDetectionRange: 4000
+  AimLayerMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  HudLayout: 0
+  HudElements: []
+  ZoomFovLevels:
+  - 60
+  - 20
+  - 10
+  ZoomSmoothSpeed: 4.325
+  BaseSensitivity: 1.8545
+  AutoResetZoom: 1
+  EnableVignetteMask: 0
+  CornerShadowLongSideRange: 0.55
+  CornerShadowShortSideRange: 0.55
+  CenterViewLongSideSize: 0.72
+  CenterViewShortSideSize: 0.62
+  ShadowColor: {r: 0, g: 0, b: 0, a: 0.9}
+  HudScale: 1
+  HudFovReference: 60
+  HudFovScaleExponent: 0.35
+  HudFovScaleMin: 0.85
+  HudFovScaleMax: 1.9
+  CrosshairLength: 15
+  CrosshairGap: 3
+  TpsRingRadius: 18
+  TpsRingThickness: 2
+  HudThemeColor: {r: 0, g: 1, b: 0, a: 1}
+  GraticuleSpacingMil: 18
+  GraticuleLineHalfWidth: 12
+  GraticuleStartOffsetMil: 0
+  LineThickness: 2
+  GraticuleCount: 10

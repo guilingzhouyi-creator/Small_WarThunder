@@ -186,8 +186,8 @@ MonoBehaviour:
   barrelLengthInner: 14.5
   barrelRadiusInner: 0.35
   turretData: {fileID: 11400000, guid: dc2f261a8d1be734696081de1891a0f3, type: 2}
-  aimConfigData: {fileID: 0}
-  tpsConfigData: {fileID: 0}
+  aimConfigData: {fileID: 11400000, guid: 1ce11ee1f291dee42a67295a6ce75ce1, type: 2}
+  tpsConfigData: {fileID: 11400000, guid: 01aa8ee39a1d9e64aa4c2210ea5e1051, type: 2}
   snapSmoothTime: 0.15
   maxRecoverDuration: 0.5
   aimYawMouseSensitivity: 0.18
