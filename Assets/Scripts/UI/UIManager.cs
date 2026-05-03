@@ -32,9 +32,33 @@ public class UIManager : MonoBehaviour
     private bool _isCgPlaying;
     private readonly UIOverlayStack _overlayStack = new UIOverlayStack();
 
+    [Header("跨 UI 层级（UGUI vs UI Toolkit）处理")]
+    [Tooltip("Pause 打开时：把 Map 的 UIDocument.sortingOrder 降到这个值，以确保 Pause Canvas 在其上方。")]
+    [SerializeField] private float _pauseMapUIDocumentLowering = -1000f;
+
+    [Tooltip("Pause 打开时：把 Pause 所在 Canvas.sortingOrder 提到这个值。")]
+    [SerializeField] private int _pauseCanvasRaise = 1000;
+
+    [Tooltip("Setting 打开时（Pause 期间）：在 Pause Canvas Raise 基础上额外抬高 Setting Canvas。")]
+    [SerializeField] private int _settingCanvasRaiseAdditional = 10;
+
+    private bool _hasCachedLayering;
+    private float _originMapUIDocumentSortingOrder;
+    private int _originPauseCanvasSortingOrder;
+    private int _originSettingCanvasSortingOrder;
+
+    private Canvas _pauseCanvas;
+    private Canvas _settingCanvas;
+
+    private bool _isLayeringApplied;
+
     public bool IsPaused => _isPaused;
     public bool IsGameplayControlLocked => _overlayStack.HasAnyOverlay || _isCgPlaying;
     public bool IsAimMode => _isAimMode;
+    public bool IsMapShown => _isMapShown;
+    public bool IsTabed => _isTabed;
+    public bool IsSettingUIVisible => _isSettingUIVisible;
+    public bool IsCgPlaying => _isCgPlaying;
 
     private void Awake()
     {
@@ -96,6 +120,11 @@ public class UIManager : MonoBehaviour
         _isMapShown = false;
         _isSettingUIVisible = false;
         _isAimMode = false;
+
+        // 避免跨场景残留排序层级
+        RestoreCrossLayering();
+        _hasCachedLayering = false;
+        _isLayeringApplied = false;
 
         RefreshCursorLockState();
         RefreshUIState();
@@ -179,6 +208,12 @@ public class UIManager : MonoBehaviour
     {
         if (_isPaused || _isSettingUIVisible)
         {
+            return;
+        }
+
+        if (_isMapShown)
+        {
+            SubtitleOverlayController.Instance?.ToggleManualVisibility();
             return;
         }
 
@@ -320,6 +355,8 @@ public class UIManager : MonoBehaviour
                     OnGamePaused?.Invoke(this, EventArgs.Empty);
                 }
 
+                CacheCrossLayeringIfNeeded();
+                ApplyCrossLayeringForPause();
                 _overlayStack.Open(UIOverlayId.Pause);
                 break;
 
@@ -331,6 +368,12 @@ public class UIManager : MonoBehaviour
 
                 _isSettingUIVisible = true;
                 _overlayStack.Open(UIOverlayId.Setting);
+
+                CacheCrossLayeringIfNeeded();
+                if (_isPaused)
+                {
+                    ApplyCrossLayeringForSetting();
+                }
                 break;
         }
 
@@ -355,6 +398,12 @@ public class UIManager : MonoBehaviour
             case UIOverlayId.Setting:
                 _isSettingUIVisible = false;
                 _overlayStack.Close(UIOverlayId.Setting);
+
+                // Pause 仍在时：只恢复 Setting Canvas 的排序，继续保持 Pause 覆盖 Map
+                if (_isPaused)
+                {
+                    RestoreSettingCanvasSortingOrder();
+                }
                 break;
 
             case UIOverlayId.Pause:
@@ -368,11 +417,118 @@ public class UIManager : MonoBehaviour
                     Time.timeScale = 1f;
                     OnGameUnPaused?.Invoke(this, EventArgs.Empty);
                 }
+
+                // Pause 退出：恢复 Map / Pause / Setting 的原始层级
+                RestoreCrossLayering();
                 break;
         }
 
         RefreshCursorLockState();
         RefreshUIState();
+    }
+
+    private void CacheCrossLayeringIfNeeded()
+    {
+        if (_hasCachedLayering)
+        {
+            return;
+        }
+
+        if (mapUIController == null || pauseUIController == null || settingManager == null)
+        {
+            return;
+        }
+
+        _pauseCanvas = pauseUIController.GetComponentInParent<Canvas>(true);
+        _settingCanvas = settingManager.GetComponentInParent<Canvas>(true);
+
+        _originMapUIDocumentSortingOrder = mapUIController.GetUIDocumentSortingOrder();
+        _originPauseCanvasSortingOrder = _pauseCanvas != null ? _pauseCanvas.sortingOrder : 0;
+        _originSettingCanvasSortingOrder = _settingCanvas != null ? _settingCanvas.sortingOrder : 0;
+
+        _hasCachedLayering = true;
+    }
+
+    private void ApplyCrossLayeringForPause()
+    {
+        if (!_hasCachedLayering)
+        {
+            return;
+        }
+
+        // Map 下调
+        mapUIController?.SetUIDocumentSortingOrder(_pauseMapUIDocumentLowering);
+
+        // Pause 上调
+        if (_pauseCanvas != null)
+        {
+            _pauseCanvas.sortingOrder = _originPauseCanvasSortingOrder + _pauseCanvasRaise;
+        }
+
+        // 如果 Setting 之前已抬过，至少保证它不覆盖 Pause（一般 Setting 会在 Pause 内显示）
+        if (_settingCanvas != null && _isSettingUIVisible)
+        {
+            _settingCanvas.sortingOrder = _originSettingCanvasSortingOrder + _pauseCanvasRaise + _settingCanvasRaiseAdditional;
+        }
+
+        _isLayeringApplied = true;
+    }
+
+    private void ApplyCrossLayeringForSetting()
+    {
+        if (!_hasCachedLayering)
+        {
+            return;
+        }
+
+        if (!_isPaused)
+        {
+            return;
+        }
+
+        if (_settingCanvas != null)
+        {
+            _settingCanvas.sortingOrder = _originSettingCanvasSortingOrder + _pauseCanvasRaise + _settingCanvasRaiseAdditional;
+        }
+
+        _isLayeringApplied = true;
+    }
+
+    private void RestoreSettingCanvasSortingOrder()
+    {
+        if (!_hasCachedLayering)
+        {
+            return;
+        }
+
+        if (_settingCanvas != null)
+        {
+            _settingCanvas.sortingOrder = _originSettingCanvasSortingOrder;
+        }
+    }
+
+    private void RestoreCrossLayering()
+    {
+        if (!_hasCachedLayering)
+        {
+            return;
+        }
+
+        // Map 恢复
+        mapUIController?.SetUIDocumentSortingOrder(_originMapUIDocumentSortingOrder);
+
+        // Canvas 恢复
+        if (_pauseCanvas != null)
+        {
+            _pauseCanvas.sortingOrder = _originPauseCanvasSortingOrder;
+        }
+
+        if (_settingCanvas != null)
+        {
+            _settingCanvas.sortingOrder = _originSettingCanvasSortingOrder;
+        }
+
+        _isLayeringApplied = false;
     }
 
     private void RefreshUIState()
@@ -415,10 +571,11 @@ public class UIManager : MonoBehaviour
 
         if (missionPannelUIController != null)
         {
-            bool shouldShowMissionDisplay = isGameplayScene && _isTabed && _overlayStack.Top == UIOverlayId.Tab;
-            missionPannelUIController.gameObject.SetActive(shouldShowMissionDisplay);
-            missionPannelUIController.SetDisplayActive(shouldShowMissionDisplay);
+            bool shouldActivateMissionPanel = isGameplayScene && _isTabed && _overlayStack.Top == UIOverlayId.Tab;
+            missionPannelUIController.gameObject.SetActive(shouldActivateMissionPanel);
         }
+
+        SubtitleOverlayController.Instance?.ApplyVisibility();
 
         if (pauseUIController != null)
         {

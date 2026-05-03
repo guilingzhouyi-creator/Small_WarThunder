@@ -1,0 +1,53 @@
+/* ============================================
+ *  HUD 风格字幕叠层 — 无黑底悬浮文字
+ *  Used by: SubtitleOverlayController.cs
+ * ============================================ */
+
+.subtitle-root {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 80px;
+    height: auto;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    transition-property: opacity;
+    transition-duration: 0.25s;
+    transition-timing-function: ease-in-out;
+    pointer-events: none;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    background-color: rgba(0, 0, 0, 0);
+}
+
+.subtitle-root--visible {
+    /* display 和 opacity 由 C# SubtitleOverlayController.SetUITVisibility 统一控制，
+       不在 USS 中重复声明，避免 USS 与 C# inline style 互相覆盖。 */
+}
+
+.subtitle-text {
+    color: rgb(255, 255, 255);
+    font-size: 20px;
+    -unity-font-style: normal;
+    -unity-text-align: middle-center;
+    white-space: normal;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    -unity-text-outline-width: 1;
+    -unity-text-outline-color: rgba(0, 0, 0, 0.85);
+    text-shadow-color: rgba(0, 0, 0, 0.9);
+    text-shadow-offset: 1px 1px;
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}

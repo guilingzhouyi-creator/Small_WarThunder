@@ -14,20 +14,9 @@ public class MapUIController : MonoBehaviour
     [Header("俯拍相机引用")]
     [SerializeField] private MapCameraPosition _mapCamera;
 
-    [Header("任务字幕样式")]
-    [SerializeField] private Font _missionLabelFont;
-    [SerializeField] private float _missionLabelFontSize = 24f;
-    [SerializeField] private Color _missionLabelColor = Color.white;
-
     private MapRenderingEngine _engine;
     private Transform _playerTransform;
     private bool _isInitialized;
-
-    private Label _missionOverlayLabel;
-    private VisualElement _missionOverlayContainer;
-
-    private const string MISSION_OVERLAY_CONTAINER_NAME = "mission-subtitle-overlay";
-    private const string MISSION_OVERLAY_LABEL_NAME = "mission-subtitle-text";
 
     public bool IsFullMapShown => _engine != null && _engine.IsFullMapOpen;
 
@@ -146,76 +135,7 @@ public class MapUIController : MonoBehaviour
 
         _uiDocument.rootVisualElement.Add(_engine);
 
-        CreateMissionOverlay();
-
         _isInitialized = true;
-    }
-
-    private void CreateMissionOverlay()
-    {
-        if (_uiDocument == null)
-        {
-            return;
-        }
-
-        _missionOverlayContainer = new VisualElement
-        {
-            name = MISSION_OVERLAY_CONTAINER_NAME,
-            style =
-            {
-                position = Position.Absolute,
-                left = 0f,
-                right = 0f,
-                bottom = 80f,
-                height = 60f,
-                flexDirection = FlexDirection.Row,
-                justifyContent = Justify.Center,
-                alignItems = Align.Center,
-                backgroundColor = new Color(0f, 0f, 0f, 0.6f)
-            }
-        };
-
-        _missionOverlayLabel = new Label
-        {
-            name = MISSION_OVERLAY_LABEL_NAME,
-            text = string.Empty,
-            style =
-            {
-                color = _missionLabelColor,
-                fontSize = _missionLabelFontSize,
-                unityTextAlign = TextAnchor.MiddleCenter,
-                whiteSpace = WhiteSpace.Normal
-            }
-        };
-
-        _missionOverlayContainer.Add(_missionOverlayLabel);
-        _missionOverlayContainer.style.display = DisplayStyle.None;
-
-        _uiDocument.rootVisualElement.Add(_missionOverlayContainer);
-    }
-
-    /// <summary>
-    /// Tab 叠加层显示/隐藏字幕底部栏
-    /// </summary>
-    public void SetMissionOverlayVisible(bool visible)
-    {
-        if (_missionOverlayContainer == null)
-        {
-            return;
-        }
-
-        _missionOverlayContainer.style.display = visible ? DisplayStyle.Flex : DisplayStyle.None;
-    }
-
-    /// <summary>
-    /// 更新任务字幕文本（由 MissionPannelUIController 驱动）
-    /// </summary>
-    public void SetMissionText(string text)
-    {
-        if (_missionOverlayLabel != null)
-        {
-            _missionOverlayLabel.text = text ?? string.Empty;
-        }
     }
 
     public void SetPlayerTransform(Transform playerTransform)
@@ -249,6 +169,7 @@ public class MapUIController : MonoBehaviour
         _engine.CloseFullMap();
     }
 
+
     public void SetMiniMapVisible(bool visible)
     {
         if (_engine == null)
@@ -263,5 +184,20 @@ public class MapUIController : MonoBehaviour
         }
 
         _engine.SetVisible(visible);
+    }
+
+    public float GetUIDocumentSortingOrder()
+    {
+        return _uiDocument != null ? _uiDocument.sortingOrder : 0f;
+    }
+
+    public void SetUIDocumentSortingOrder(float sortingOrder)
+    {
+        if (_uiDocument == null)
+        {
+            return;
+        }
+
+        _uiDocument.sortingOrder = sortingOrder;
     }
 }
