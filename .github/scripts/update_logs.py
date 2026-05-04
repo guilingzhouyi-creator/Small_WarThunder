@@ -3,6 +3,13 @@
 自动化仓管 Agent：解析《东七三》开发日志格式 commit，更新 DEVLOG.md 和 CHANGELOG.md。
 
 触发：GitHub Actions push 事件 → 本脚本遍历所有新 commit → 生成/追加日志。
+
+逻辑：
+  1. 读取 .last_processed 状态文件，确定上次处理到的 commit
+  2. 扫描 .last_processed..HEAD 范围的全部 commit
+  3. 检查是否有 ⚡重大改动 commit：
+     - 有 → 处理范围内全部 commit → 写入 DEVLOG + CHANGELOG → 更新状态 → commit & push
+     - 无 → 静默退出（不处理，等下次重大改动时补上）
 """
 
 import os
@@ -15,9 +22,10 @@ from datetime import datetime
 # ========== 配置 ==========
 DEVLOG_PATH = "DEVLOG.md"
 CHANGELOG_PATH = "CHANGELOG.md"
+STATE_FILE = ".github/scripts/.last_processed"  # 持久化状态文件：上次处理到的 commit hash
 
 # DEVLOG 插入位置标记：在此行之后追加新条目
-DEVLOG_INSERT_MARKER = "按时间倒序记录每次提交的开发变更。\n"
+DEVLOG_INSERT_MARKER = "<!-- DEVLOG_ENTRIES_START -->\n"
 DEVLOG_ENTRY_TEMPLATE = """### {timestamp} {title}
 
 **新增内容：**
@@ -38,6 +46,39 @@ TIMESTAMP_RE = re.compile(r'^《东七三》开发日志<(.+)>$')
 ADDITIONS_RE = re.compile(r'^新增内容：(.*)$')
 # 改动及优化描述行
 CHANGES_RE = re.compile(r'^改动及优化描述：(.*)$')
+
+
+# ========== 状态管理 ==========
+def get_last_processed():
+    """读取持久化状态文件，获取上次处理到的 commit hash。不存在则返回 None"""
+    if os.path.exists(STATE_FILE):
+        with open(STATE_FILE, "r") as f:
+            commit_hash = f.read().strip()
+            if commit_hash:
+                print(f"[STATE] 上次处理到: {commit_hash[:8]}")
+                return commit_hash
+    print("[STATE] 无状态文件，将从头开始扫描")
+    return None
+
+
+def save_last_processed(commit_hash):
+    """将当前处理到的 commit hash 写入状态文件"""
+    os.makedirs(os.path.dirname(STATE_FILE), exist_ok=True)
+    with open(STATE_FILE, "w") as f:
+        f.write(commit_hash + "\n")
+    print(f"[STATE] 已更新状态: {commit_hash[:8]}")
+
+
+def get_head_commit():
+    """获取当前 HEAD commit hash"""
+    result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        print(f"[ERROR] git rev-parse HEAD failed: {result.stderr}")
+        sys.exit(1)
+    return result.stdout.strip()
 
 
 # ========== 工具函数 ==========
@@ -233,22 +274,25 @@ def get_repo_name():
 
 
 def commit_and_push():
-    """提交对 DEVLOG.md 和 CHANGELOG.md 的修改并推送"""
+    """提交对 DEVLOG.md、CHANGELOG.md 和状态文件的修改并推送"""
     has_changes_devlog = subprocess.run(
         ["git", "diff", "--quiet", DEVLOG_PATH]
     ).returncode != 0
     has_changes_changelog = subprocess.run(
         ["git", "diff", "--quiet", CHANGELOG_PATH]
     ).returncode != 0
+    has_changes_state = subprocess.run(
+        ["git", "diff", "--quiet", STATE_FILE]
+    ).returncode != 0
 
-    if not has_changes_devlog and not has_changes_changelog:
+    if not has_changes_devlog and not has_changes_changelog and not has_changes_state:
         print("[INFO] 文件无变化，无需提交")
         return
 
     subprocess.run(["git", "config", "user.name", "DevLog Auto Agent"])
     subprocess.run(["git", "config", "user.email", "agent@small-warthunder.dev"])
 
-    subprocess.run(["git", "add", DEVLOG_PATH, CHANGELOG_PATH])
+    subprocess.run(["git", "add", DEVLOG_PATH, CHANGELOG_PATH, STATE_FILE])
     subprocess.run([
         "git", "commit",
         "-m", f"《东七三》开发日志<{datetime.now().strftime('%Y-%m-%d %H:%M')}>",
@@ -261,38 +305,51 @@ def commit_and_push():
 
 # ========== 主流程 ==========
 def main():
-    prev_commit = os.environ.get("GITHUB_EVENT_BEFORE")
-    current_commit = os.environ.get("GITHUB_EVENT_AFTER")
+    # ── 1. 确定扫描范围 ──
+    # 从状态文件读取"上次处理到"的 commit，没有则用 push 前 HEAD
+    last_processed = get_last_processed()
 
-    if not prev_commit or not current_commit:
-        print("[ERROR] 缺少 GITHUB_EVENT_BEFORE / GITHUB_EVENT_AFTER 环境变量")
-        # 尝试从 push event payload 获取
+    if last_processed is None:
+        # 首次运行：用 push event 的 before 作为起点
+        prev_commit = os.environ.get("GITHUB_EVENT_BEFORE")
         event_path = os.environ.get("GITHUB_EVENT_PATH")
-        if event_path and os.path.exists(event_path):
+        if (not prev_commit or prev_commit == "0000000000000000000000000000000000000000") and event_path:
             import json
-            with open(event_path, "r") as f:
-                event = json.load(f)
-            prev_commit = event.get("before", "")
-            current_commit = event.get("after", "")
+            if os.path.exists(event_path):
+                with open(event_path, "r") as f:
+                    event = json.load(f)
+                prev_commit = event.get("before", "")
 
-    if not prev_commit or not current_commit:
-        print("[ERROR] 无法获取提交范围，退出")
-        sys.exit(1)
+        if not prev_commit or prev_commit == "0000000000000000000000000000000000000000":
+            print("[INFO] 首次推送或无法确定起点，使用 HEAD~1 作为起点")
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD~1"],
+                capture_output=True, text=True
+            )
+            if result.returncode == 0:
+                prev_commit = result.stdout.strip()
+            else:
+                print("[ERROR] 无法确定扫描起点，退出")
+                sys.exit(1)
+    else:
+        prev_commit = last_processed
 
-    if prev_commit == "0000000000000000000000000000000000000000":
-        print("[INFO] 首次推送，跳过")
+    head_commit = get_head_commit()
+
+    if prev_commit == head_commit:
+        print("[INFO] 没有新提交（.last_processed == HEAD），退出")
         sys.exit(0)
 
-    print(f"[INFO] 扫描提交范围：{prev_commit[:8]}..{current_commit[:8]}")
+    print(f"[INFO] 扫描提交范围：{prev_commit[:8]}..{head_commit[:8]}")
 
-    commits = get_new_commits(prev_commit, current_commit)
+    commits = get_new_commits(prev_commit, head_commit)
     if not commits:
         print("[INFO] 没有新提交可处理")
         sys.exit(0)
 
     print(f"[INFO] 发现 {len(commits)} 个新提交")
 
-    # 解析并分类
+    # ── 2. 解析并分类 ──
     devlog_entries = []
     major_entries = []
 
@@ -310,18 +367,33 @@ def main():
 
         print(f"[OK] {commit_hash[:8]} — {parsed['timestamp']}")
 
+    # ── 3. 决策：是否有重大改动？ ──
     if not devlog_entries:
         print("[INFO] 没有符合格式的提交")
         sys.exit(0)
 
-    # 更新文件
+    if not major_entries:
+        # 没有重大改动 → 不处理，不更新状态文件，等下次
+        print(f"[INFO] 没有重大改动，跳过日志自动提交")
+        print(f"[INFO] ({len(devlog_entries)} 条普通提交将在下次重大改动时批量写入)")
+        sys.exit(0)
+
+    # ── 4. 处理：更新 DEVLOG + CHANGELOG → 更新状态 → 提交推送 ──
+    print(f"[ACTION] 检测到 {len(major_entries)} 条重大改动，开始处理范围内全部 {len(devlog_entries)} 条提交")
+
     devlog_updated = update_devlog(devlog_entries)
     changelog_updated = update_changelog(major_entries)
+
+    # 更新持久化状态到 HEAD
+    save_last_processed(head_commit)
 
     if devlog_updated or changelog_updated:
         commit_and_push()
 
-    print("[DONE] 自动化仓管任务完成")
+    print(f"[DONE] 自动化仓管任务完成")
+    print(f"  - 写入 DEVLOG：{len(devlog_entries)} 条")
+    print(f"  - 写入 CHANGELOG：{len(major_entries)} 条版本")
+    print(f"  - 状态已更新到：{head_commit[:8]}")
 
 
 if __name__ == "__main__":

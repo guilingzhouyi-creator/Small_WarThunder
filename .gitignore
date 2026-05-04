@@ -52,6 +52,12 @@ Thumbs.db
 # Agent conversation rules
 Md库/
 
+# Unity recovery cache
+Assets/_Recovery/
+
+# Local tools / configs
+.sixth/
+
 # Keep Unity meta files and project data tracked
 !Assets/**/*.meta
 !Packages/**
