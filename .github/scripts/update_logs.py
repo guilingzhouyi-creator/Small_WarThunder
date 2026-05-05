@@ -26,7 +26,8 @@ STATE_FILE = ".github/scripts/.last_processed"  # 持久化状态文件：上次
 
 # DEVLOG 插入位置标记：在此行之后追加新条目
 DEVLOG_INSERT_MARKER = "<!-- DEVLOG_ENTRIES_START -->\n"
-DEVLOG_ENTRY_TEMPLATE = """### {timestamp} {title}
+# 标题使用 summary（从新增内容第一项提取的简短摘要），避免"时间戳 — 时间戳" 纯日期重复
+DEVLOG_ENTRY_TEMPLATE = """### {timestamp} — {summary}
 
 **新增内容：**
 {additions}
@@ -46,6 +47,9 @@ TIMESTAMP_RE = re.compile(r'^《东七三》开发日志<(.+)>$')
 ADDITIONS_RE = re.compile(r'^新增内容：(.*)$')
 # 改动及优化描述行
 CHANGES_RE = re.compile(r'^改动及优化描述：(.*)$')
+
+# git log 分隔符：使用独特标记避免与提交内容冲突
+COMMIT_SEPARATOR = "<<<COMMIT_SEPARATOR>>>"
 
 
 # ========== 状态管理 ==========
@@ -87,7 +91,7 @@ def get_new_commits(prev_commit, current_commit):
     cmd = [
         "git", "log",
         f"{prev_commit}..{current_commit}",
-        "--pretty=format:%H%n%B%n---END---",
+        f"--pretty=format:%H%n%B%n{COMMIT_SEPARATOR}",
         "--reverse"
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -100,16 +104,31 @@ def get_new_commits(prev_commit, current_commit):
         return []
 
     commits = []
-    blocks = raw.split("---END---\n")
+    blocks = raw.split(f"{COMMIT_SEPARATOR}\n")
     for block in blocks:
         block = block.strip()
         if not block:
             continue
-        lines = block.split("\n")
+        # 跳过可能由分隔符引入的空行
+        lines = [l for l in block.split("\n") if l.strip() != COMMIT_SEPARATOR]
+        if not lines:
+            continue
         commit_hash = lines[0].strip()
         commit_msg = "\n".join(lines[1:]).strip()
         commits.append((commit_hash, commit_msg))
     return commits
+
+
+def extract_summary(additions_text):
+    """从新增内容第一项提取简短摘要（≤50字符），避免 DEVLOG 标题出现纯日期重复"""
+    first_item = additions_text.split("、")[0].split("\n")[0].strip()
+    if not first_item or first_item == "（无）":
+        return "更新"
+    # 去掉常见的引号/标记前缀
+    first_item = first_item.lstrip("- ").lstrip("`").rstrip("`")
+    if len(first_item) > 50:
+        first_item = first_item[:47] + "..."
+    return first_item
 
 
 def parse_commit_message(commit_hash, msg):
@@ -146,8 +165,8 @@ def parse_commit_message(commit_hash, msg):
         if m:
             parsed["major_change"] = m.group(1).strip()
 
-    # 第1行时间戳用作标题日期
-    parsed["title"] = parsed["timestamp"]
+    # 摘要：从新增内容第一项提取
+    parsed["summary"] = extract_summary(parsed["additions"])
 
     return parsed
 
@@ -165,7 +184,7 @@ def update_devlog(entries):
     for entry in reversed(entries):
         new_entries_text += DEVLOG_ENTRY_TEMPLATE.format(
             timestamp=entry["timestamp"],
-            title=entry["title"],
+            summary=entry.get("summary", entry.get("title", "更新")),
             additions=entry["additions"],
             changes=entry["changes"]
         )

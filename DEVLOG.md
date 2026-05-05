@@ -10,174 +10,139 @@
 
 - 场景内运行时组件负责具体玩法执行，包括玩家生成、相机绑定、任务触发、CG 播放、UI 刷新与战斗交互等职责。
 - 常驻单例服务负责跨场景基础能力支撑，包括全局管理、音频、设置、字幕以及部分运行时会话状态维护。
-- 配置层使用 ScriptableObject 承载可复用数据资源，例如地图、CG 与任务相关配置，以减少硬编码依赖并提升可维护性。
-- 多地图系统采用 MapEntry → RegionEntry 的双层注册结构，由 LevelRegistrySystem 与 LevelStreamingEngine 协同完成流式加载、区域扫描与可见性管理。
+- 配置层使用数据资产承载可复用配置，例如地图、CG 与任务相关配置，以减少硬编码依赖并提升可维护性。
+- 多地图系统采用双层注册结构，由注册中心与流式加载引擎协同完成区域扫描与可见性管理。
 - 任务叙事采用事件与回调驱动的运行时会话模式，将 CG、字幕、任务面板和输入锁定串联为统一流程，保证播放顺序与状态同步。
 
 ---
 
 <!-- DEVLOG_ENTRIES_START -->
 
-### 2026-05-05 CursorEngine — 修复退出到主菜单后光标仍被锁定
-
-**问题：** GameScene 按 Quit 回到 MainMenuScene 后，鼠标依然锁定（Cursor.lockState = Locked, Cursor.visible = false），用户无法正常操作菜单。
-
-**根因：** `UIManager.HandleSceneLoaded` 中的调用顺序导致：
-1. 进入 MainMenuScene 时先 `SetCursorLocked(false)` 解锁
-2. 然后 `_overlayStack.Clear()` 清空栈
-3. `RefreshCursorLockState()` 基于空栈 (`HasAnyOverlay = false`) 调用 `SetCursorLocked(true)`，重新锁死光标
-
-**修复：**
-- `UIManager.HandleSceneLoaded` 末尾新增：非 GameScene 强制 `SetCursorLocked(false)`，覆盖 `RefreshCursorLockState` 的清栈锁定
-
----
-
-### 2026-05-05 CursorEngine — 全局鼠标锁定引擎集中化
+### 2026-05-05 — 全局光标锁定集中化 + 退出菜单光标残留修复
 
 **新增内容：**
-- `Assets/Scripts/Core/Engine/CursorEngine.cs` — 全局鼠标锁定引擎，纯静态类，无需挂载 GameObject
+- 全局光标锁定引擎 — 纯静态服务，统一所有模块的光标锁定/解锁操作
 
 **改动及优化描述：**
-- **CursorEngine**（新增）：
-  - `Lock()` / `Unlock()` — 锁定/解锁光标接口，同时控制 `Cursor.lockState` 和 `Cursor.visible`
-  - `SetLocked(bool)` — 便捷设置光标状态
-  - 事件系统：`OnLockStateChanged`
-  - `[RuntimeInitializeOnLoadMethod]` 自动初始化，监听 `SceneManager.sceneLoaded`
-  - 自动检测：切换到 MainMenuScene 时强制解锁光标（防御性保底）
-
-- **UIManager.cs**（重构）：
-  - `SetCursorLocked()` 中原直接操作 `Cursor.lockState` / `Cursor.visible` → 改为调用 `CursorEngine.SetLocked()`
-
-- **PauseUIController.cs**（重构）：
-  - QuitButton 回调中原 `Cursor.lockState = None; Cursor.visible = true` → 改为 `CursorEngine.Unlock()`
+- 新建纯静态光标锁定模块：
+  - `Lock()` / `Unlock()` — 同时控制光标锁定状态与可见性
+  - 自动监听场景切换：非游戏场景强制解锁（防御性保底）
+  - 事件系统：光标状态变更通知
+- UI 管理层重构：原直接操作 Unity 光标 API 处改为调用集中化接口
+- 暂停菜单重构：退出按钮回调改为调用集中化解锁接口
 
 **设计细节：**
-- 解决"退出到主菜单后鼠标仍被锁定"的 bug
-- 将分散在 UIManager / PauseUIController 中的光标操作统一收归 CursorEngine
-- 纯静态类，无需单例、无需挂载，任何系统任何时机可直接调用
-- 后续若需在其他场景/UI 中加解锁鼠标，直接调 `CursorEngine.Lock()` / `Unlock()` 即可
+- 根除了"游戏场景退出到主菜单后光标仍被锁定、用户无法操作"的长期 bug
+- 所有模块对光标状态的修改统一收敛到一处，后续添加新场景无需重复处理光标
+- 纯静态，无需挂载实例，任意模块任意时机可直接调用
 
 ---
 
-### 2026-05-05 TimeManager — 全局时间管理器集中化
+### 2026-05-05 — 全局时间流速集中化
 
 **新增内容：**
-- `Assets/Scripts/Core/Engine/TimeManager.cs` — 全局时间管理器，统一 `Time.timeScale` 操作
+- 全局时间管理器 — 单例持久化服务，统一所有时间缩放操作
 
 **改动及优化描述：**
-- **TimeManager**（新增）：
-  - `Pause()` / `Resume()` — 暂停/恢复接口，记录暂停前的 timeScale
-  - `EnsureNormalTime()` — 防御性恢复时间流速为 1f，供 LoadingScene / MainMenu 保底
-  - `SetTimeScale(float)` — 自定义时间缩放
-  - 事件系统：`OnPaused` / `OnResumed` / `OnTimeScaleChanged`
-  - `[RuntimeInitializeOnLoadMethod]` 自动创建，DontDestroyOnLoad，无需手动挂载
-  - 场景切换时自动检测：非 GameScene 强制恢复正常时间
-
-- **UIManager.cs**（重构）：
-  - `OpenOverlay(Pause)` 中原 `Time.timeScale = 0f` → `TimeManager.Instance.Pause()`
-  - `CloseOverlay(Pause)` 中原 `Time.timeScale = 1f` → `TimeManager.Instance.Resume()`
-  - 保留原有 `OnGamePaused` / `OnGameUnPaused` 事件不变
-
-- **MainMenuUIController.cs**（重构）：
-  - `Awake()` 中原 `Time.timeScale = 1f` → `TimeManager.Instance.EnsureNormalTime()`
-
-- **LoadingManager**（增强）：
-  - `Awake()` 中新增 `TimeManager.Instance.EnsureNormalTime()` 防御性调用
+- 新建全局时间管理模块：
+  - `Pause()` / `Resume()` — 带状态记忆的暂停/恢复接口
+  - 自动场景检测：非游戏场景强制恢复正常时间
+  - 事件系统：暂停/恢复/缩放变更通知
+- UI 管理层重构：打开/关闭暂停菜单的原时间冻结操作改为调用集中化接口
+- 主菜单重构：激活时防御性恢复时间流速
+- 加载场景增强：启动时防御性恢复正常时间
 
 **设计细节：**
-- 解决"游戏暂停状态跨场景跳转（Pause→LoadingScene→GameScene）导致 timeScale 残留为 0"的问题
-- TimeManager 自动监听 SceneLoaded 事件，非 GameScene 强制恢复
-- 暂停期间若调用 `SetTimeScale()`，会记录期望值，待 Resume() 后生效
+- 根除了"暂停→加载→游戏场景"跨场景跳转后时间冻结残留的核心问题
+- 暂停期间若外部修改时间缩放，会记录期望值，恢复后自动生效
+- DontDestroyOnLoad 常驻，无需手动挂载
 
 ---
 
-### 2026-05-03 20:59 2026-05-03 20:59
+### 2026-05-03 — 自动化仓库管理部署
 
 **新增内容：**
-GitHub Actions 工作流
+- GitHub Actions 自动化工作流：推送提交后自动生成并更新开发日志与变更日志
 
 **改动及优化描述：**
-解除 .github/ 目录的 gitignore 限制，使工作流可正常追踪
+- 解除自动化配置目录的版本忽略限制，使工作流可正常追踪
+- 实现状态持久化：记录上次处理到的提交，避免重复扫描
+- 仅当提交包含"重大改动"标记时触发日志更新，普通提交累积至下次重大改动时批量写入
 
 ---
 
-### 2026-05-02 CG 播放系统 + 字幕重播间隔修复
+### 2026-05-02 — CG 播放系统 + 字幕重播间隔修复
 
 **新增内容：**
-- `CgSystem/CgClip.cs` — ScriptableObject 数据资产，配置 VideoClip/AudioClip/可跳过/淡入淡出
-- `CgSystem/CgPlaybackSystem.cs` — 单例 CG 播放器，DontDestroyOnLoad，支持全屏播放 + 任意键跳过 + 完成回调
+- CG 播放器 — 单例常驻服务，支持全屏视频播放、任意键跳过、淡入淡出与完成回调
+- CG 数据配置资产 — 绑定视频/音频/可跳过/过渡效果等参数
 
-**改动及优化：**
-- `GameLevelManager.cs`：
-  - 新增 `TriggerPolicy` 枚举（OnceOnly / Repeatable），拆分字幕和 CG 的触发策略
-  - 新增 `_cgClip` / `_cgPolicy` 字段，支持 CG → 字幕的顺序播放管线
-  - CG 播完后通过回调链触发字幕，不阻塞后续逻辑
-  - **修复字幕重播间隔**：包播完（HasFinished）后才重置 `_lastDispatchTime`，确保 `_repeatInterval` 从播完时刻开始等待
-- `UIManager.cs`：新增 `SetCgPlaying(bool)` 和 `IsGameplayControlLocked` 包含 CG 状态，CG 播放时锁定输入并隐藏 HUD
-- `MissionPannelUIController.cs` / `GlobalSubtitleEngine.cs`：配合 CG 播放暂停/恢复字幕渲染
+**改动及优化描述：**
+- 区域管理器：
+  - 新增触发策略枚举（一次性/可重复），拆分字幕与 CG 的触发策略
+  - 支持 CG → 字幕的顺序播放管线，CG 完成后通过回调启动字幕
+  - 修复字幕重播间隔：数据包完整播放后才重置调度计时器
+- UI 管理层：新增 CG 播放中状态，CG 播放时锁定输入并隐藏 HUD
+- 任务面板与字幕引擎：配合 CG 播放状态暂停/恢复字幕渲染
 
 **设计细节：**
-- CgPlaybackSystem 预制体放 MainMenuScene，常驻 Hierarchy，播放时显示 RawImage，播完后隐藏
-- CG 固定 OnceOnly（一次性），字幕策略可选 Repeatable / OnceOnly
+- CG 播放器预制体置于主菜单场景常驻，播放时显示全屏画面
+- CG 固定为一次性触发，字幕策略可选一次性或可重复
 - 退出区域时 CG 标记不重置，字幕根据策略决定是否重置
 
 ---
 
-### 2026-05-01 教程关卡敌人脚本确定
+### 2026-05-01 — 教程关卡敌人组件方案确定
 
 **新增内容：**
+- 巡逻靶标移动脚本 — 沿固定路径点循环移动，带场景编辑可视化
 
-- `PatrolTarget.cs` — 教程关卡巡逻靶标车移动脚本，沿固定路径点循环移动，带 Editor Gizmos 可视化
+**审查结论（敌人坦克所需组件清单）：**
 
-**审查结论（敌人坦克组件清单）：**
-
-| 组件 | 用途 | 固定靶 | 巡逻靶 |
-|------|------|--------|--------|
-| `EnemyMaker` | 空标记组件，替代 Tag | ✓ | ✓ |
-| `GeneralHitTopLevel` | 命中顶层接收器 | ✓ | ✓ |
-| `TargetDamageResolver` | 伤害计算（扣血/摧毁） | ✓ | ✓ |
-| `GeneralHitPosition` (子物体) | 各部位命中检测 + Collider | ✓ | ✓ |
-| `PatrolTarget` (新建) | 沿路径点移动 | ✗ | ✓ |
+| 组件功能 | 用途 | 固定靶 | 巡逻靶 |
+|----------|------|--------|--------|
+| 敌人标记 | 空标记组件，替代 Tag | ✓ | ✓ |
+| 命中顶层接收 | 统一接收各部位命中事件 | ✓ | ✓ |
+| 伤害计算 | 扣血/摧毁处理 | ✓ | ✓ |
+| 部位命中检测（子节点） | 各部位碰撞体 + 命中判定 | ✓ | ✓ |
+| 巡逻移动（新建） | 沿路径点循环移动 | ✗ | ✓ |
 
 **关键发现：**
-- 敌人坦克**不能**挂 `Tank`（玩家单例，会冲突）
-- 敌人坦克**不需要**挂 `TankMoveController` / `TankFireController` / `TankWeaponController` 等玩家专用脚本
-- 命中链路（CannonBall→GeneralHitPosition→GeneralHitTopLevel→TargetDamageResolver）已存在，敌人只需挂这组组件即可正常受击扣血
+- 敌人不可挂载玩家单例组件（会冲突）
+- 敌人不需要移动/射击/武器控制等玩家专用脚本
+- 命中链路（炮弹→部位命中→顶层接收→伤害计算）已存在，敌人只需挂载命中组件组即可正常受击扣血
 
 ---
 
-### 2026-05-01 修复场景切换后对象池丢失
+### 2026-05-01 — 修复场景切换后对象池丢失
 
-**问题：** 从 GameScene 退出到 MainMenu 再进入 GameScene 时，`TankAmmoPoolGroup` 和 `TerrainObjectPoolGroup` 随旧场景被销毁，对象池（弹药/地形）丢失。
+**问题：** 从游戏场景退出到主菜单再返回游戏时，弹药对象池和地形对象池随旧场景被销毁。
 
-**根因：** `ObjectPool` 层级下的两个容器节点均未做跨场景保护：
-- `TankAmmoPoolGroup` — 未调用 `DontDestroyOnLoad`
-- `TerrainObjectPoolGroup` — 纯空节点，无任何脚本保护
-
-场景卸载时两者及其子物体一并销毁。
+**根因：** 对象池的两个容器节点均未做跨场景持久化保护，场景卸载时一并销毁。
 
 **修复：**
-1. `TankAmmoPoolGroup.Awake()` — 在 `Instance = this` 后添加 `DontDestroyOnLoad(gameObject)`
-2. 新建 `DontDestroyOnLoadMarker.cs` — 极简标记组件，挂载后自动跨场景保持，拖到 `TerrainObjectPoolGroup` 上
+- 弹药池初始化时添加跨场景持久化标记
+- 新建极简跨场景标记组件，挂载到地形池容器节点
 
-**影响范围：** 
-- `TankAmmoPoolGroup.cs` — Awake 增加一行
-- `Assets/Scripts/ObjectSystem/DontDestroyOnLoadMarker.cs` — 新建
-- 需在 Unity Editor 中为 `TerrainObjectPoolGroup` 挂载 `DontDestroyOnLoadMarker` 组件
+**影响范围：**
+- 弹药池初始化逻辑新增一行标记
+- 新增跨场景标记组件（挂载到地形池容器）
 
 ---
 
-### 2026-05-01 多地图架构重构
+### 2026-05-01 — 多地图架构重构
 
 **新增内容：**
-- `LevelRegistrySystem` — MapEntry 双层结构，支持多张地图 + 子区域注册
-- `LevelStreamingEngine` — 启动时一次性 Instantiate 所有地图，自动扫描子物体注册区域，SetActive 控制可见性
-- `PlayerMaker` / `EnemyMaker` — 空 Marker 组件，替代 Tag 字符串检测
-- 预留 `LoadMap(mapId)` / `UnloadMap(mapId)` 接口，未来按需加载
+- 地图注册中心 — 支持多张地图 + 子区域的双层注册结构
+- 地图流式加载引擎 — 启动时批量实例化所有地图预制体，按需 SetActive 控制可见性
+- 玩家/敌人标记组件 — 空组件标记，替代字符串 Tag 检测
+- 预留按需加载/卸载接口，支持未来动态切换地图
 
 **改动及优化描述：**
-- `LevelRegistrySystem` 从单层 RegionEntry 扩展到 MapEntry → RegionEntry 双层
-- `LevelStreamingEngine.LoadAllMaps()` 遍历 allMaps，Instantiate 父级预制体后扫描直接子物体
-- 每个子物体自动挂载 `GameLevelMaker`（如果缺失），regionId 格式为 `"mapId_childName"`
-- `GameLevelMaker.IsTank()` 从 `CompareTag` 改为 `TryGetComponent<PlayerMaker/EnemyMaker>`，不再依赖 Tag 字符串
-- `ShowNearbyRegions()` 优先用 Collider.bounds 计算区域中心，regionSize 兜底
+- 注册中心从单层区域注册扩展到地图→区域双层结构
+- 加载引擎遍历地图列表，实例化父预制体后自动扫描子物体注册区域
+- 每个子物体自动挂载区域标记（缺失时补挂），区域 ID 采用"地图ID_子物体名"格式
+- 区域检测从字符串 Tag 比较改为组件标记查找，不再依赖 Tag 命名
+- 附近区域计算优先使用碰撞体边界，区域尺寸作为兜底
+
+---
