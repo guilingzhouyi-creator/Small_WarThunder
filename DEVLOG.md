@@ -18,6 +18,27 @@
 
 <!-- DEVLOG_ENTRIES_START -->
 
+### 2026-05-05 17:15 — 自动化仓管系统规范——hook 放宽第4行校验
+
+**新增内容：**
+自动化仓管系统规范——hook 放宽第4行校验、脚本只递增 patch 版本号
+
+**改动及优化描述：**
+清除上次误插入的重复 CHANGELOG 条目；commit-msg hook 改 vX.Y.Z 为任意文本校验；update_logs.py bump_version 改为 patch+1（保留 major.minor 人工控制）
+
+---
+
+### 2026-05-05 09:02 — DEVLOG / CHANGELOG 自动更新
+
+**新增内容：**
+DEVLOG / CHANGELOG 自动更新
+
+**改动及优化描述：**
+自动化仓管 Agent 根据提交生成日志
+
+---
+
+
 ### 2026-05-05 16:55 — DEVLOG 重写（去代码暴露
 
 **新增内容：**

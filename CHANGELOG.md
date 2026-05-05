@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 # 更新日志
 
+## [v0.1.001-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.001-beta) — 2026-05-05
+
+### ⚡ 重大改动 — 2026-05-05 17:15
+
+**新增内容：**
+自动化仓管系统规范——hook 放宽第4行校验、脚本只递增 patch 版本号
+
+**改动及优化描述：**
+清除上次误插入的重复 CHANGELOG 条目；commit-msg hook 改 vX.Y.Z 为任意文本校验；update_logs.py bump_version 改为 patch+1（保留 major.minor 人工控制）
+
 ## [v0.1.000-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-04-30
 
 ### Baseline — Core Gameplay Loop
