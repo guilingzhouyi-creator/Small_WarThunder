@@ -6,16 +6,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 # 更新日志
 
-## [v0.1.000-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-05-05
-
-### ⚡ 重大改动 — 2026-05-05 16:55
-
-**新增内容：**
-DEVLOG 重写（去代码暴露、倒序排列）、update_logs.py 健壮性优化
-
-**改动及优化描述：**
-日志条目不再暴露文件路径/类名，仅保留功能级描述；自动化脚本引入摘要标题与分隔符改进
-
 ## [v0.1.000-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-04-30
 
 ### Baseline — Core Gameplay Loop

@@ -223,9 +223,11 @@ def get_latest_version():
 
 
 def bump_version(version_tuple):
-    """递增版本号中间位 (minor)，reset patch"""
+    """递增版本号最后位 (patch)，major.minor 由人工在 commit 中指定"""
     major, minor, patch = version_tuple
-    return (major, minor + 1, 0), f"v{major}.{minor + 1}.000-beta"
+    patch += 1
+    patch_str = f"{patch:03d}"
+    return (major, minor, patch), f"v{major}.{minor}.{patch_str}-beta"
 
 
 def parse_manual_version(version_str, current_version_tuple):
