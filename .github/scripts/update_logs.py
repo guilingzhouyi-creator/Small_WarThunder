@@ -230,6 +230,93 @@ def bump_version(version_tuple):
     return (major, minor, patch), f"v{major}.{minor}.{patch_str}-beta"
 
 
+def summarize_with_deepseek(entries):
+    """
+    调用 Deepseek V4 Flash API 生成 CHANGELOG 发布说明。
+    传入 entries 是本次重大改动相关的 commit 解析列表，
+    返回一段简短总结（中文，1-2句话）。失败返回空字符串，由调用方回退。
+    """
+    api_key = os.environ.get("DEEPSEEK_API_KEY", "").strip()
+    if not api_key:
+        print("[AI] 未设置 DEEPSEEK_API_KEY，跳过 AI 总结")
+        return ""
+
+    # 构建 prompt 内容：合并所有重大改动条目的关键信息
+    commits_text = ""
+    for entry in entries:
+        title = entry.get("major_change", entry.get("summary", ""))
+        additions = entry.get("additions", "")
+        changes = entry.get("changes", "")
+        commits_text += f"- 标题：{title}\\n  新增：{additions}\\n  改动：{changes}\\n\\n"
+
+    if not commits_text.strip():
+        print("[AI] 没有有效内容可总结")
+        return ""
+
+    prompt = (
+        "以下是本次版本涉及的开发日志内容，请将其润色为正式发布说明。\\n\\n"
+        f"{commits_text}"
+    )
+
+    # 用 curl 调用 Deepseek API，零 Python 依赖
+    api_url = os.environ.get("DEEPSEEK_API_URL", "https://api.deepseek.com")
+    chat_url = f"{api_url.rstrip('/')}/v1/chat/completions"
+    model = os.environ.get("DEEPSEEK_MODEL", "deepseek-v4-flash")
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "你是一个游戏版本发布编辑。请用正式、专业的发布说明语气，将以下开发日志内容润色为面向玩家的版本更新公告。语言简洁有力，不罗列条目，用自然语言概括核心变化。"},
+            {"role": "user", "content": prompt}
+        ],
+        "max_tokens": 200,
+        "temperature": 0.7
+    }
+
+    try:
+        import json
+        result = subprocess.run(
+            [
+                "curl", "-s", "-S",
+                "-H", f"Authorization: Bearer {api_key}",
+                "-H", "Content-Type: application/json",
+                "-d", json.dumps(payload, ensure_ascii=False),
+                "--connect-timeout", "10",
+                "--max-time", "15",
+                chat_url
+            ],
+            capture_output=True, text=True, timeout=20
+        )
+
+        if result.returncode != 0:
+            print(f"[AI] curl 调用失败 (code={result.returncode}): {result.stderr[:200]}")
+            return ""
+
+        response = json.loads(result.stdout)
+        summary = response.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+
+        if summary:
+            print(f"[AI] Deepseek 总结成功: {summary[:80]}...")
+            return summary
+        else:
+            print("[AI] 响应为空，可能被内容过滤或 API 限制")
+            return ""
+
+    except subprocess.TimeoutExpired:
+        print("[AI] curl 超时（超过20秒），跳过 AI 总结")
+        return ""
+    except json.JSONDecodeError as e:
+        print(f"[AI] JSON 解析失败: {e}")
+        # 打印部分 raw 输出帮助调试
+        raw_preview = result.stdout[:300] if 'result' in dir() else ""
+        if raw_preview:
+            print(f"[AI] Raw response preview: {raw_preview}")
+        return ""
+    except Exception as e:
+        print(f"[AI] 未知错误: {e}")
+        return ""
+
+
 def parse_manual_version(version_str, current_version_tuple):
     """尝试从重大改动行中解析手动版本号，失败则自动递增"""
     manual_re = re.compile(r'v(\d+)\.(\d+)\.(\d+)-(\w+)')
@@ -240,9 +327,9 @@ def parse_manual_version(version_str, current_version_tuple):
     return bump_version(current_version_tuple)
 
 
-def update_changelog(major_entries):
-    """为所有重大改动条目更新 CHANGELOG.md"""
-    if not major_entries:
+def update_changelog(batches):
+    """为每个批次（普通提交 + 1个重大改动）生成独立版本条目，优先 AI 发布说明"""
+    if not batches:
         return False
 
     current_version_tuple, current_version_str = get_latest_version()
@@ -253,38 +340,49 @@ def update_changelog(major_entries):
     # 找到第一个 ## [vX.Y.Z-beta] 的位置，在此前插入
     first_version_match = CHANGELOG_VERSION_RE.search(content)
 
-    for entry in major_entries:
+    today = datetime.now().strftime("%Y-%m-%d")
+    new_entries = ""
+
+    for batch in batches:
+        # 找本批次中的重大改动提交
+        major_entry = next((e for e in batch if "major_change" in e), None)
+        if not major_entry:
+            continue
+
+        timestamp = major_entry["timestamp"]
         version_tuple, version_str = parse_manual_version(
-            entry.get("major_change", ""), current_version_tuple
+            major_entry.get("major_change", ""), current_version_tuple
         )
+        current_version_tuple = version_tuple
 
-        # 构建新版本条目
-        today = datetime.now().strftime("%Y-%m-%d")
-        new_entry = f"""## [{version_str}](https://github.com/{get_repo_name()}/releases/tag/{version_str}) — {today}
+        # 对本批次所有提交调用 AI 总结
+        ai_summary = summarize_with_deepseek(batch)
 
-### ⚡ 重大改动 — {entry['timestamp']}
+        if ai_summary:
+            description = ai_summary
+        else:
+            # 回退：用重大改动标题
+            description = major_entry.get("major_change", major_entry.get("summary", "更新"))
 
-**新增内容：**
-{entry['additions']}
+        new_entries += f"""## [{version_str}](https://github.com/{get_repo_name()}/releases/tag/{version_str}) — {today}
 
-**改动及优化描述：**
-{entry['changes']}
+### ⚡ 重大改动 — {timestamp}
+
+{description}
 
 """
-        # 插入到第一个版本条目之前
-        if first_version_match:
-            insert_pos = first_version_match.start()
-            content = content[:insert_pos] + new_entry + content[insert_pos:]
-        else:
-            # 没有现有版本条目，追加到末尾
-            content = content.rstrip() + "\n\n" + new_entry
 
-        current_version_tuple = version_tuple  # 多次重大改动时避免版本号冲突
+    # 插入到第一个版本条目之前
+    if first_version_match:
+        insert_pos = first_version_match.start()
+        content = content[:insert_pos] + new_entries + content[insert_pos:]
+    else:
+        content = content.rstrip() + "\n\n" + new_entries
 
     with open(CHANGELOG_PATH, "w", encoding="utf-8") as f:
         f.write(content)
 
-    print(f"[OK] CHANGELOG.md 已更新（追加 {len(major_entries)} 个版本条目）")
+    print(f"[OK] CHANGELOG.md 已更新（追加 {len(batches)} 个版本条目）")
     return True
 
 
@@ -370,9 +468,11 @@ def main():
 
     print(f"[INFO] 发现 {len(commits)} 个新提交")
 
-    # ── 2. 解析并分类 ──
+    # ── 2. 解析并切割批次 ──
     devlog_entries = []
-    major_entries = []
+    batches = []          # 每个批次 = [普通提交...] + [1个重大改动提交]
+    current_batch = []    # 当前正在收集的批次
+    has_major = False
 
     for commit_hash, msg in commits:
         parsed = parse_commit_message(commit_hash, msg)
@@ -381,29 +481,37 @@ def main():
             continue
 
         devlog_entries.append(parsed)
+        current_batch.append(parsed)
 
         if "major_change" in parsed:
-            major_entries.append(parsed)
+            # 碰到重大改动 → 当前批次结束
+            batches.append(current_batch)
+            current_batch = []
+            has_major = True
             print(f"[MAJOR] {commit_hash[:8]} — ⚡重大改动：{parsed['major_change']}")
 
         print(f"[OK] {commit_hash[:8]} — {parsed['timestamp']}")
+
+    # 剩余普通提交没有重大改动跟随 → 丢弃批次（已写入 DEVLOG，不触发 CHANGELOG）
+    if current_batch:
+        print(f"[INFO] 末尾 {len(current_batch)} 条普通提交无后续重大改动，仅写入 DEVLOG，不产生版本条目")
 
     # ── 3. 决策：是否有重大改动？ ──
     if not devlog_entries:
         print("[INFO] 没有符合格式的提交")
         sys.exit(0)
 
-    if not major_entries:
+    if not has_major:
         # 没有重大改动 → 不处理，不更新状态文件，等下次
         print(f"[INFO] 没有重大改动，跳过日志自动提交")
         print(f"[INFO] ({len(devlog_entries)} 条普通提交将在下次重大改动时批量写入)")
         sys.exit(0)
 
     # ── 4. 处理：更新 DEVLOG + CHANGELOG → 更新状态 → 提交推送 ──
-    print(f"[ACTION] 检测到 {len(major_entries)} 条重大改动，开始处理范围内全部 {len(devlog_entries)} 条提交")
+    print(f"[ACTION] 检测到 {len(batches)} 个重大改动批次，开始处理范围内全部 {len(devlog_entries)} 条提交")
 
     devlog_updated = update_devlog(devlog_entries)
-    changelog_updated = update_changelog(major_entries)
+    changelog_updated = update_changelog(batches)
 
     # 更新持久化状态到 HEAD
     save_last_processed(head_commit)
@@ -413,7 +521,7 @@ def main():
 
     print(f"[DONE] 自动化仓管任务完成")
     print(f"  - 写入 DEVLOG：{len(devlog_entries)} 条")
-    print(f"  - 写入 CHANGELOG：{len(major_entries)} 条版本")
+    print(f"  - 写入 CHANGELOG：{len(batches)} 个版本条目")
     print(f"  - 状态已更新到：{head_commit[:8]}")
 
 

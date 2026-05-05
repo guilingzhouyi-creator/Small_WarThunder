@@ -40,3 +40,4 @@ jobs:
           GITHUB_EVENT_AFTER: ${{ github.event.after }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_PATH: ${{ github.event_path }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY_PERSONAL_WORKSPACE }}
