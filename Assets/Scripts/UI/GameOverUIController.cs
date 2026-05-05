@@ -9,6 +9,9 @@ public class GameOverUIController : MonoBehaviour
     {
         mainMenuButton.onClick.AddListener(() =>
         {
+            MissionNarrativeRuntime.ResetAll(false);
+            GlobalSubtitleEngine.Instance?.ClearCurrentOutput();
+            SubtitleOverlayController.Instance?.ClearOverlay();
             SceneLoader.LoadScene(SceneLoader.Scene.MainMenuScene);
         });
     }

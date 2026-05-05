@@ -18,7 +18,88 @@
 
 <!-- DEVLOG_ENTRIES_START -->
 
-## 2026-05
+### 2026-05-05 CursorEngine — 修复退出到主菜单后光标仍被锁定
+
+**问题：** GameScene 按 Quit 回到 MainMenuScene 后，鼠标依然锁定（Cursor.lockState = Locked, Cursor.visible = false），用户无法正常操作菜单。
+
+**根因：** `UIManager.HandleSceneLoaded` 中的调用顺序导致：
+1. 进入 MainMenuScene 时先 `SetCursorLocked(false)` 解锁
+2. 然后 `_overlayStack.Clear()` 清空栈
+3. `RefreshCursorLockState()` 基于空栈 (`HasAnyOverlay = false`) 调用 `SetCursorLocked(true)`，重新锁死光标
+
+**修复：**
+- `UIManager.HandleSceneLoaded` 末尾新增：非 GameScene 强制 `SetCursorLocked(false)`，覆盖 `RefreshCursorLockState` 的清栈锁定
+
+---
+
+### 2026-05-05 CursorEngine — 全局鼠标锁定引擎集中化
+
+**新增内容：**
+- `Assets/Scripts/Core/Engine/CursorEngine.cs` — 全局鼠标锁定引擎，纯静态类，无需挂载 GameObject
+
+**改动及优化描述：**
+- **CursorEngine**（新增）：
+  - `Lock()` / `Unlock()` — 锁定/解锁光标接口，同时控制 `Cursor.lockState` 和 `Cursor.visible`
+  - `SetLocked(bool)` — 便捷设置光标状态
+  - 事件系统：`OnLockStateChanged`
+  - `[RuntimeInitializeOnLoadMethod]` 自动初始化，监听 `SceneManager.sceneLoaded`
+  - 自动检测：切换到 MainMenuScene 时强制解锁光标（防御性保底）
+
+- **UIManager.cs**（重构）：
+  - `SetCursorLocked()` 中原直接操作 `Cursor.lockState` / `Cursor.visible` → 改为调用 `CursorEngine.SetLocked()`
+
+- **PauseUIController.cs**（重构）：
+  - QuitButton 回调中原 `Cursor.lockState = None; Cursor.visible = true` → 改为 `CursorEngine.Unlock()`
+
+**设计细节：**
+- 解决"退出到主菜单后鼠标仍被锁定"的 bug
+- 将分散在 UIManager / PauseUIController 中的光标操作统一收归 CursorEngine
+- 纯静态类，无需单例、无需挂载，任何系统任何时机可直接调用
+- 后续若需在其他场景/UI 中加解锁鼠标，直接调 `CursorEngine.Lock()` / `Unlock()` 即可
+
+---
+
+### 2026-05-05 TimeManager — 全局时间管理器集中化
+
+**新增内容：**
+- `Assets/Scripts/Core/Engine/TimeManager.cs` — 全局时间管理器，统一 `Time.timeScale` 操作
+
+**改动及优化描述：**
+- **TimeManager**（新增）：
+  - `Pause()` / `Resume()` — 暂停/恢复接口，记录暂停前的 timeScale
+  - `EnsureNormalTime()` — 防御性恢复时间流速为 1f，供 LoadingScene / MainMenu 保底
+  - `SetTimeScale(float)` — 自定义时间缩放
+  - 事件系统：`OnPaused` / `OnResumed` / `OnTimeScaleChanged`
+  - `[RuntimeInitializeOnLoadMethod]` 自动创建，DontDestroyOnLoad，无需手动挂载
+  - 场景切换时自动检测：非 GameScene 强制恢复正常时间
+
+- **UIManager.cs**（重构）：
+  - `OpenOverlay(Pause)` 中原 `Time.timeScale = 0f` → `TimeManager.Instance.Pause()`
+  - `CloseOverlay(Pause)` 中原 `Time.timeScale = 1f` → `TimeManager.Instance.Resume()`
+  - 保留原有 `OnGamePaused` / `OnGameUnPaused` 事件不变
+
+- **MainMenuUIController.cs**（重构）：
+  - `Awake()` 中原 `Time.timeScale = 1f` → `TimeManager.Instance.EnsureNormalTime()`
+
+- **LoadingManager**（增强）：
+  - `Awake()` 中新增 `TimeManager.Instance.EnsureNormalTime()` 防御性调用
+
+**设计细节：**
+- 解决"游戏暂停状态跨场景跳转（Pause→LoadingScene→GameScene）导致 timeScale 残留为 0"的问题
+- TimeManager 自动监听 SceneLoaded 事件，非 GameScene 强制恢复
+- 暂停期间若调用 `SetTimeScale()`，会记录期望值，待 Resume() 后生效
+
+---
+
+### 2026-05-03 20:59 2026-05-03 20:59
+
+**新增内容：**
+GitHub Actions 工作流
+
+**改动及优化描述：**
+解除 .github/ 目录的 gitignore 限制，使工作流可正常追踪
+
+---
 
 ### 2026-05-02 CG 播放系统 + 字幕重播间隔修复
 

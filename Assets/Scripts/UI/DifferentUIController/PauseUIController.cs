@@ -44,6 +44,11 @@ public class PauseUIController : MonoBehaviour
                 UIManager.Instance.CloseOverlay(UIOverlayId.Pause);
             }
 
+            MissionNarrativeRuntime.ResetAll(false);
+            GlobalSubtitleEngine.Instance?.ClearCurrentOutput();
+            SubtitleOverlayController.Instance?.ClearOverlay();
+
+            CursorEngine.Unlock();
             SceneLoader.LoadScene(SceneLoader.Scene.MainMenuScene);
         });
     }

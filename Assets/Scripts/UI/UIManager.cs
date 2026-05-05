@@ -128,6 +128,10 @@ public class UIManager : MonoBehaviour
 
         RefreshCursorLockState();
         RefreshUIState();
+
+        // 非 GameScene 强制解锁光标，覆盖 RefreshCursorLockState 的清栈锁定
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+            SetCursorLocked(false);
     }
 
     private void Update()
@@ -351,7 +355,7 @@ public class UIManager : MonoBehaviour
                 if (!_isPaused)
                 {
                     _isPaused = true;
-                    Time.timeScale = 0f;
+                    TimeManager.Instance.Pause();
                     OnGamePaused?.Invoke(this, EventArgs.Empty);
                 }
 
@@ -414,7 +418,7 @@ public class UIManager : MonoBehaviour
                 if (_isPaused)
                 {
                     _isPaused = false;
-                    Time.timeScale = 1f;
+                    TimeManager.Instance.Resume();
                     OnGameUnPaused?.Invoke(this, EventArgs.Empty);
                 }
 
@@ -618,8 +622,7 @@ public class UIManager : MonoBehaviour
 
     private void SetCursorLocked(bool locked)
     {
-        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !locked;
+        CursorEngine.SetLocked(locked);
     }
 
     private bool IsGameplayScene()

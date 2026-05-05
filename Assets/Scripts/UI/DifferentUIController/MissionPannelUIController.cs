@@ -4,7 +4,8 @@ using UnityEngine;
 /// <summary>
 /// 任务面板 UIController。
 /// 控制 GlobalSubtitleEngine 的字幕播放生命周期。
-/// 将字幕文本桥接到独立的 SubtitleOverlayController UI Toolkit 叠加层。
+/// 覆盖层字幕文本由 SubtitleOverlayController 直接监听 GlobalSubtitleEngine.OnOverlayTextChanged，
+/// 无需本类桥接；本类仅负责叙事包管理和 SubtitleOverlayController 的叙事活跃状态控制。
 /// </summary>
 public class MissionPannelUIController : MonoBehaviour
 {
@@ -12,7 +13,6 @@ public class MissionPannelUIController : MonoBehaviour
 
     private SubtitlePackage _requestedNarrative;
     private bool _displayActive;
-    private bool _textBridgeBound;
 
     private void Awake()
     {
@@ -27,8 +27,6 @@ public class MissionPannelUIController : MonoBehaviour
 
     private void OnDestroy()
     {
-        UnbindTextBridge();
-
         if (Instance == this)
         {
             Instance = null;
@@ -38,11 +36,6 @@ public class MissionPannelUIController : MonoBehaviour
     private void OnEnable()
     {
         MissionNarrativeRuntime.RebindMissionPanel();
-
-        if (_displayActive)
-        {
-            BindTextBridge();
-        }
 
         if (_displayActive && _requestedNarrative != null)
         {
@@ -63,13 +56,8 @@ public class MissionPannelUIController : MonoBehaviour
 
     private void OnDisable()
     {
-        // 仅解绑事件转发，不清除文本、不暂停引擎。
-        // 叙事包应独立于 Tab 面板继续运行，显示/隐藏由 SubtitleOverlayController.ApplyVisibility 门禁决定。
-        if (_textBridgeBound && GlobalSubtitleEngine.Instance != null)
-        {
-            GlobalSubtitleEngine.Instance.OnSubtitleTextChanged -= HandleSubtitleTextChanged;
-            _textBridgeBound = false;
-        }
+        // 覆盖层字幕文本由 SubtitleOverlayController 直接绑定 OnOverlayTextChanged，
+        // 本类无需解绑任何事件。显示/隐藏由 SubtitleOverlayController.ApplyVisibility 门禁决定。
     }
 
     /// <summary>
@@ -87,8 +75,6 @@ public class MissionPannelUIController : MonoBehaviour
 
         if (active)
         {
-            BindTextBridge();
-
             if (_requestedNarrative != null)
             {
                 SyncRequestedNarrative();
@@ -100,62 +86,15 @@ public class MissionPannelUIController : MonoBehaviour
                 GlobalSubtitleEngine.Instance.ResumePlayback();
             }
         }
-        else
-        {
-            // Tab 关闭：仅解绑事件转发，不清除文本、不暂停引擎。
-            // 叙事包独立运行，显示由 ApplyVisibility 门禁控制。
-            if (_textBridgeBound && GlobalSubtitleEngine.Instance != null)
-            {
-                GlobalSubtitleEngine.Instance.OnSubtitleTextChanged -= HandleSubtitleTextChanged;
-                _textBridgeBound = false;
-            }
-        }
 
         SubtitleOverlayController.Instance?.SetNarrativeActive(active);
-    }
-
-    private void BindTextBridge()
-    {
-        if (_textBridgeBound)
-        {
-            return;
-        }
-
-        if (GlobalSubtitleEngine.Instance == null || SubtitleOverlayController.Instance == null)
-        {
-            return;
-        }
-
-        GlobalSubtitleEngine.Instance.OnSubtitleTextChanged += HandleSubtitleTextChanged;
-        _textBridgeBound = true;
-    }
-
-    private void UnbindTextBridge()
-    {
-        if (!_textBridgeBound)
-        {
-            return;
-        }
-
-        if (GlobalSubtitleEngine.Instance != null)
-        {
-            GlobalSubtitleEngine.Instance.OnSubtitleTextChanged -= HandleSubtitleTextChanged;
-        }
-
-        // 不清除字幕文本：SubtitleOverlayController 有自己的直接绑定，
-        // 清空文本会导致 Tab 关闭后字幕消失。
-        _textBridgeBound = false;
-    }
-
-    private void HandleSubtitleTextChanged(string text)
-    {
-        SubtitleOverlayController.Instance?.SetText(text);
     }
 
     /// <summary>
     /// 接收 GameLevelManager 传来的 SubtitlePackage，立即播放。
     /// 不再依赖 isActiveAndEnabled / _displayActive 状态 —— Tab 面板 inactive 时叙事包仍可驱动字幕。
     /// 字幕的最终显示/隐藏由 SubtitleOverlayController 的门禁引擎（ApplyVisibility）决定。
+    /// 覆盖层字幕文本由 SubtitleOverlayController 直接监听 GlobalSubtitleEngine.OnOverlayTextChanged 获取。
     /// </summary>
     public void PresentNarrative(SubtitlePackage package)
     {
@@ -167,8 +106,6 @@ public class MissionPannelUIController : MonoBehaviour
         _requestedNarrative = package;
         _displayActive = true;
 
-        // BindTextBridge 是幂等的，GameObject inactive 时也能安全绑定事件
-        BindTextBridge();
         SubtitleOverlayController.Instance?.SetNarrativeActive(true);
 
         if (GlobalSubtitleEngine.Instance != null)

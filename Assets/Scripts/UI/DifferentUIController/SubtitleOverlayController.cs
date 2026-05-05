@@ -1,11 +1,12 @@
 using System.Collections;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 
 /// <summary>
 /// 独立的 UI Toolkit 字幕叠加层控制器（HUD 风格）。
 /// 完全解耦于 MapUIController 和任何 UGUI 系统。
-/// 通过 GlobalSubtitleEngine.OnSubtitleTextChanged 接收字幕文本。
+/// 通过 GlobalSubtitleEngine.OnOverlayTextChanged 接收覆盖层字幕文本。
 /// 实现门禁规则：Tab/ESC/Setting/CG 绝对隐藏，Map 下手动切换，TPS/AIM 下叙事包驱动。
 /// 
 /// 使用方式：
@@ -44,17 +45,7 @@ public class SubtitleOverlayController : MonoBehaviour
 
         Instance = this;
 
-        // DontDestroyOnLoad 要求 GameObject 是场景根对象。
-        // 如果挂载在子物体上，先提升到根再标记。
-        if (transform.parent != null)
-        {
-            Debug.LogWarning(
-                $"[SubtitleOverlayController] GameObject \"{gameObject.name}\" 不是场景根对象，父级为 \"{transform.parent.name}\"。将自动提升到根层级以确保 DontDestroyOnLoad 生效。",
-                this);
-            transform.SetParent(null);
-        }
-
-        DontDestroyOnLoad(gameObject);
+        SceneManager.sceneLoaded += HandleSceneLoaded;
     }
 
     private void Start()
@@ -64,6 +55,7 @@ public class SubtitleOverlayController : MonoBehaviour
 
     private void OnDestroy()
     {
+        SceneManager.sceneLoaded -= HandleSceneLoaded;
         UnbindTextBridge();
 
         if (Instance == this)
@@ -121,6 +113,25 @@ public class SubtitleOverlayController : MonoBehaviour
         BindTextBridge();
     }
 
+    private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            InitializeUI();
+            ApplyVisibility();
+            return;
+        }
+
+        ResetForSceneExit();
+    }
+
+    private void ResetForSceneExit()
+    {
+        UnbindTextBridge();
+
+        ClearOverlay();
+    }
+
     private void ResolveUIDocument()
     {
         // 优先使用 Inspector 拖入的引用
@@ -164,6 +175,25 @@ public class SubtitleOverlayController : MonoBehaviour
         ApplyVisibility();
     }
 
+    public void ClearOverlay()
+    {
+        _isManuallyVisible = false;
+        _isNarrativeActive = false;
+        _cachedText = string.Empty;
+
+        if (_subtitleText != null)
+        {
+            _subtitleText.text = string.Empty;
+        }
+
+        if (_subtitleRoot != null)
+        {
+            _subtitleRoot.style.display = DisplayStyle.None;
+            _subtitleRoot.style.opacity = 0f;
+            _subtitleRoot.RemoveFromClassList(VISIBLE_CLASS);
+        }
+    }
+
     /// <summary>
     /// Map 模式下 Tab 按键切换手动显示状态
     /// 由 UIManager.HandleTabInput() 调用（仅当 _isMapShown == true 时）
@@ -186,6 +216,11 @@ public class SubtitleOverlayController : MonoBehaviour
     /// </summary>
     public void ApplyVisibility()
     {
+        if (!SceneLoader.IsScene(SceneManager.GetActiveScene(), SceneLoader.Scene.GameScene))
+        {
+            return;
+        }
+
         if (_subtitleRoot == null)
         {
             Debug.LogWarning("[SubtitleOverlayController] ApplyVisibility 被调用但 _subtitleRoot 为 null（UI 尚未初始化完成）。", this);
@@ -252,7 +287,7 @@ public class SubtitleOverlayController : MonoBehaviour
 
         if (GlobalSubtitleEngine.Instance != null)
         {
-            GlobalSubtitleEngine.Instance.OnSubtitleTextChanged += HandleSubtitleTextChanged;
+            GlobalSubtitleEngine.Instance.OnOverlayTextChanged += HandleSubtitleTextChanged;
             _textBridgeBound = true;
             return;
         }
@@ -275,7 +310,7 @@ public class SubtitleOverlayController : MonoBehaviour
 
             if (GlobalSubtitleEngine.Instance != null)
             {
-                GlobalSubtitleEngine.Instance.OnSubtitleTextChanged += HandleSubtitleTextChanged;
+                GlobalSubtitleEngine.Instance.OnOverlayTextChanged += HandleSubtitleTextChanged;
                 _textBridgeBound = true;
                 Debug.Log("[SubtitleOverlayController] 延迟绑定成功。", this);
                 yield break;
@@ -294,7 +329,7 @@ public class SubtitleOverlayController : MonoBehaviour
 
         if (GlobalSubtitleEngine.Instance != null)
         {
-            GlobalSubtitleEngine.Instance.OnSubtitleTextChanged -= HandleSubtitleTextChanged;
+            GlobalSubtitleEngine.Instance.OnOverlayTextChanged -= HandleSubtitleTextChanged;
         }
 
         _textBridgeBound = false;

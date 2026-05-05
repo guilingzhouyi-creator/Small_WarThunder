@@ -74,6 +74,9 @@ public class LoadingManager : MonoBehaviour
 
     private void Awake()
     {
+        // 防御性确保 Loading 场景时间流速正常（避免从 Pause 状态跳转进入）
+        TimeManager.Instance.EnsureNormalTime();
+
         // 确保初始宽度为 0
         if (progressFill != null)
         {

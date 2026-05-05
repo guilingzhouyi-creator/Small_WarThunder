@@ -141,7 +141,7 @@ GameObject:
   - component: {fileID: 662211514921817289}
   m_Layer: 0
   m_Name: "\u57CE\u5E02\u5730\u5F62"
-  m_TagString: Untagged
+  m_TagString: Area
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -175,8 +175,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8979094a4c031a4ab9faf000d1bdbfc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameLevelManager
-  levelIndex: 1
-  playerSpawnPositionTransform: {fileID: 5874729058068772467}
+  _levelIndex: 0
+  _missionRegistry: {fileID: 0}
+  _narrativeCategory: 0
+  _narrativeStartId: 100
+  _narrativeEndId: 105
+  _narrativeChannel: 1
+  _triggerMode: 1
+  _repeatInterval: 6
+  _repeatAfterFinishDelay: 2
+  _narrativePolicy: 1
+  _cgClip: {fileID: 0}
+  _cgPolicy: 0
 --- !u!114 &2122528647518302185
 MonoBehaviour:
   m_ObjectHideFlags: 0

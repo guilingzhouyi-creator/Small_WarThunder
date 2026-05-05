@@ -1,70 +1,31 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using TMPro;
-using System;
 using System.Collections;
 using System.Collections.Generic;
 
-
-
-
-
-public enum SubtitleChannel { System = 0, Dialogue = 1, Mission = 2, Ambient = 3 }
-
-
-
-
 /// <summary>
-/// 字幕包：包含一个字幕频道和一个字符串列表，表示一系列要显示的字幕文本。
-/// 还包含当前显示的行索引和字符索引，以支持断点续显功能。
+/// 字幕引擎（主文件 / 核心调度模块）。
+/// 采用 partial class 架构，将不同渲染职责拆分到同名 partial 文件：
+///   - GlobalSubtitleEngine.TaskText.cs     → 任务文本渲染模块
+///   - GlobalSubtitleEngine.Intelligence.cs → 情报栏整片推送模块
+///   - GlobalSubtitleEngine.Overlay.cs      → 跨层级字幕打字机模块
+/// 本文件负责：单例、优先级调度池、生命周期、公共 API 入口、打字机协程分发。
 /// </summary>
-public class SubtitlePackage
-{
-    public SubtitleChannel Channel;
-    public List<string> ContentList;
-    public int CurrentLineIndex = 0;   // 断点行索引
-    public int CurrentCharIndex = 0;   // 断点字符索引
-    public Action OnFinished;
-
-    public bool HasContent => ContentList != null && ContentList.Count > 0;
-    public bool HasFinished => !HasContent || CurrentLineIndex >= ContentList.Count;
-
-    public SubtitlePackage(SubtitleChannel channel, List<string> contents)
-    {
-        Channel = channel;
-        ContentList = contents;
-    }
-
-    public void ResetProgress()
-    {
-        CurrentLineIndex = 0;
-        CurrentCharIndex = 0;
-    }
-}
-
-
-
-
-/// <summary>
-/// 字幕引擎：负责在屏幕上显示临时的字幕信息，如提示、警告等。提供静态接口，允许其他系统调用来显示字幕。
-/// 字幕会在一定时间后自动消失，或者当新的字幕出现时替换旧的字幕。
-/// </summary>
-public class GlobalSubtitleEngine : MonoBehaviour
+public partial class GlobalSubtitleEngine : MonoBehaviour
 {
     private const string IdleText = "暂无";
 
+    private static WaitForSeconds WaitForSeconds_Two = new WaitForSeconds(2.0f);
+    private static WaitForSeconds WaitForSeconds_LinePause = new WaitForSeconds(1.5f);
+
     public static GlobalSubtitleEngine Instance { get; private set; }
-    [SerializeField] private TextMeshProUGUI targetLabel;
+
+    private TextMeshProUGUI targetLabel;
+
     [SerializeField] private float typingSpeed = 0.05f;
 
-    /// <summary>
-    /// 每次字幕文本更新时触发（支持 UI Toolkit 层镜像显示）
-    /// </summary>
-    public event Action<string> OnSubtitleTextChanged;
-
     private static SubtitlePackage _activePackage;
-
-
-    //将字幕包添加到优先级池中，按照频道优先级进行排序，确保高优先级的字幕能够及时显示
     private List<SubtitlePackage> _priorityPool = new List<SubtitlePackage>();
     private Coroutine _typeRoutine;
 
@@ -72,7 +33,6 @@ public class GlobalSubtitleEngine : MonoBehaviour
     public bool IsPlaying => _typeRoutine != null;
     public bool IsPaused => _activePackage != null && _typeRoutine == null;
     public SubtitlePackage CurrentPackage => _activePackage;
-
 
     private void Awake()
     {
@@ -83,11 +43,19 @@ public class GlobalSubtitleEngine : MonoBehaviour
         }
 
         Instance = this;
+        SceneManager.sceneLoaded += OnSceneLoaded;
         ShowIdleState();
     }
 
     private void OnDestroy()
     {
+        SceneManager.sceneLoaded -= OnSceneLoaded;
+
+        if (TaskDistributionSystem.Instance != null)
+        {
+            TaskDistributionSystem.Instance.OnTaskTextChanged -= OnTaskTextReceived;
+        }
+
         if (Instance == this)
         {
             Instance = null;
@@ -95,11 +63,38 @@ public class GlobalSubtitleEngine : MonoBehaviour
         }
     }
 
-
-
+    // ──────────────────────── 场景加载回调 ────────────────────────
 
     /// <summary>
-    /// 请求显示一个新的字幕包。如果当前有正在显示的字幕包，根据新包的频道优先级决定是立即替换还是加入优先级池等待显示。
+    /// 当加载到 GameScene 时，通过 Tag + 组件校验自动绑定 targetLabel；
+    /// 离开 GameScene 时置空 targetLabel 并重置播放状态。
+    /// </summary>
+    private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+    {
+        if (SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            GameObject go = GameObject.FindGameObjectWithTag("MissionUI");
+            if (go != null && go.GetComponent<MissionPannelUIController>() != null)
+            {
+                targetLabel = go.GetComponent<TextMeshProUGUI>();
+            }
+            else
+            {
+                targetLabel = null;
+                Debug.LogWarning("[GlobalSubtitleEngine] 未找到 Tag=MissionUI 且含 MissionPannelUIController 的 GameObject，targetLabel 置空。");
+            }
+        }
+        else
+        {
+            targetLabel = null;
+            ResetPlayback();
+        }
+    }
+
+    // ──────────────────────── 公开 API ────────────────────────
+
+    /// <summary>
+    /// 请求显示一个新的字幕包。根据新包的频道优先级决定是立即替换还是加入优先级池等待显示。
     /// </summary>
     public void RequestSubtitle(SubtitlePackage newPackage)
     {
@@ -114,22 +109,20 @@ public class GlobalSubtitleEngine : MonoBehaviour
             {
                 ResumePlayback();
             }
-
             return;
         }
 
         if (_activePackage != null)
         {
-            // 如果新包的频道优先级高于当前正在显示的包，则立即切换到新包；否则将新包加入优先级池等待显示
             if ((int)newPackage.Channel < (int)_activePackage.Channel)
             {
                 StopCurrentAndSave();
-                _priorityPool.Add(_activePackage); // 旧包带进度回池
+                _priorityPool.Add(_activePackage);
                 PlayPackage(newPackage);
             }
             else
             {
-                _priorityPool.Add(newPackage); // 新包进池等待
+                _priorityPool.Add(newPackage);
                 SortPool();
             }
         }
@@ -154,7 +147,6 @@ public class GlobalSubtitleEngine : MonoBehaviour
                 {
                     return;
                 }
-
                 package.ResetProgress();
                 ReplaceActivePackage(package);
                 return;
@@ -164,7 +156,6 @@ public class GlobalSubtitleEngine : MonoBehaviour
             {
                 ResumePlayback();
             }
-
             return;
         }
 
@@ -174,70 +165,26 @@ public class GlobalSubtitleEngine : MonoBehaviour
             {
                 return;
             }
-
             package.ResetProgress();
         }
 
         ReplaceActivePackage(package);
     }
 
-
-    private void PlayPackage(SubtitlePackage package)
+    public void ShowIdleState()
     {
-        _activePackage = package;
-        _typeRoutine = StartCoroutine(SubtitleRoutine(package));
-    }
-
-    private void ReplaceActivePackage(SubtitlePackage package)
-    {
-        StopActiveRoutine();
-        _priorityPool.Clear();
-        PlayPackage(package);
-    }
-
-    private IEnumerator SubtitleRoutine(SubtitlePackage package)
-    {
-        while (package.CurrentLineIndex < package.ContentList.Count)
-        {
-            string text = package.ContentList[package.CurrentLineIndex];
-
-            for (int i = package.CurrentCharIndex; i <= text.Length; i++)
-            {
-                package.CurrentCharIndex = i; // 更新当前字符索引，支持断点续显
-                string currentText = text.Substring(0, i);
-                targetLabel.text = currentText;
-                OnSubtitleTextChanged?.Invoke(currentText);
-
-                yield return new WaitForSeconds(typingSpeed);
-            }
-
-            package.CurrentCharIndex = 0; // 行索引重置，准备显示下一行
-            package.CurrentLineIndex++;
-
-            yield return new WaitForSeconds(1.5f); // 行间停顿
-        }
-
-        _activePackage = null; // 当前包显示完毕，清空引用
-        package.OnFinished?.Invoke(); // 触发完成回调
-        TryPlayNext(); // 尝试播放优先级池中的下一个包
-    }
-
-    private void StopCurrentAndSave()
-    {
-        StopActiveRoutine();
-
-    }
-
-    private void StopActiveRoutine()
-    {
-        if (_typeRoutine == null)
+        if (targetLabel == null)
         {
             return;
         }
 
-        StopCoroutine(_typeRoutine);
-        _typeRoutine = null;
+        if (_activePackage != null || MissionNarrativeRuntime.HasCurrentPackage)
+        {
+            return;
+        }
 
+        targetLabel.text = IdleText;
+        OnOverlayTextChanged?.Invoke(IdleText);
     }
 
     public void ResetPlayback()
@@ -254,24 +201,27 @@ public class GlobalSubtitleEngine : MonoBehaviour
         if (targetLabel != null)
         {
             targetLabel.text = IdleText;
-            OnSubtitleTextChanged?.Invoke(IdleText);
+            OnOverlayTextChanged?.Invoke(IdleText);
         }
     }
 
-    public void ShowIdleState()
+    public void ClearCurrentOutput()
     {
-        if (targetLabel == null)
+        if (_typeRoutine != null)
         {
-            return;
+            StopCoroutine(_typeRoutine);
+            _typeRoutine = null;
         }
 
-        if (_activePackage != null || MissionNarrativeRuntime.HasCurrentPackage)
+        _priorityPool.Clear();
+        _activePackage = null;
+
+        if (targetLabel != null)
         {
-            return;
+            targetLabel.text = string.Empty;
         }
 
-        targetLabel.text = IdleText;
-        OnSubtitleTextChanged?.Invoke(IdleText);
+        OnOverlayTextChanged?.Invoke(string.Empty);
     }
 
     public void PausePlayback()
@@ -295,6 +245,37 @@ public class GlobalSubtitleEngine : MonoBehaviour
         _typeRoutine = StartCoroutine(SubtitleRoutine(_activePackage));
     }
 
+    // ──────────────────────── 内部调度 ────────────────────────
+
+    private void PlayPackage(SubtitlePackage package)
+    {
+        _activePackage = package;
+        _typeRoutine = StartCoroutine(SubtitleRoutine(package));
+    }
+
+    private void ReplaceActivePackage(SubtitlePackage package)
+    {
+        StopActiveRoutine();
+        _priorityPool.Clear();
+        PlayPackage(package);
+    }
+
+    private void StopCurrentAndSave()
+    {
+        StopActiveRoutine();
+    }
+
+    private void StopActiveRoutine()
+    {
+        if (_typeRoutine == null)
+        {
+            return;
+        }
+
+        StopCoroutine(_typeRoutine);
+        _typeRoutine = null;
+    }
+
     private void TryPlayNext()
     {
         if (_priorityPool.Count > 0)
@@ -307,8 +288,53 @@ public class GlobalSubtitleEngine : MonoBehaviour
         }
     }
 
-    private void SortPool() => _priorityPool.Sort((a, b) => ((int)a.Channel).CompareTo((int)b.Channel)); // 按频道优先级排序，数值越小优先级越高
+    private void SortPool() =>
+        _priorityPool.Sort((a, b) => ((int)a.Channel).CompareTo((int)b.Channel));
 
+    // ──────────────────────── 核心分发协程 ────────────────────────
 
+    /// <summary>
+    /// 字幕主协程。根据 SubtitleChannel 分发到 IntelligenceRoutine（Mission）或
+    /// 覆盖层打字机逻辑（System/Dialogue/Ambient）。
+    /// </summary>
+    private IEnumerator SubtitleRoutine(SubtitlePackage package)
+    {
+        // Mission 频道 → 情报栏整片推送（定义在 GlobalSubtitleEngine.Intelligence.cs）
+        if (package.Channel == SubtitleChannel.Mission)
+        {
+            yield return IntelligenceRoutine(package);
+            yield break;
+        }
 
+        // ─── 覆盖层打字机（System / Dialogue / Ambient）───
+
+        while (package.CurrentLineIndex < package.ContentList.Count)
+        {
+            string text = package.ContentList[package.CurrentLineIndex];
+
+            for (int i = package.CurrentCharIndex; i <= text.Length; i++)
+            {
+                package.CurrentCharIndex = i;
+                string currentText = text.Substring(0, i);
+
+                if (targetLabel != null)
+                {
+                    targetLabel.text = currentText;
+                }
+
+                OnOverlayTextChanged?.Invoke(currentText);
+
+                yield return new WaitForSeconds(typingSpeed);
+            }
+
+            package.CurrentCharIndex = 0;
+            package.CurrentLineIndex++;
+
+            yield return WaitForSeconds_LinePause;
+        }
+
+        _activePackage = null;
+        package.OnFinished?.Invoke();
+        TryPlayNext();
+    }
 }

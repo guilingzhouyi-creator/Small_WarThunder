@@ -15,7 +15,7 @@ public class MainMenuUIController : MonoBehaviour
 
     private void Awake()
     {
-        Time.timeScale = 1f;
+        TimeManager.Instance.EnsureNormalTime();
         StartGameButton.onClick.AddListener(() =>
         {
             GameManager.ResetStaticData(); // 在进入游戏场景前重置所有静态数据，确保游戏状态干净且一致。
