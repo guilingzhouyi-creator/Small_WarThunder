@@ -6,6 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 # 更新日志
 
+## [v0.1.002-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.002-beta) — 2026-05-07
+
+### ⚡ 重大改动 — 2026-05-07 14:28
+
+# 版本更新公告
+
+我们很高兴地向大家发布 **v0.1.002-beta** 版本。本次更新聚焦于自动化日志系统的稳定性与可靠性，从根本上解决了仓管工具因循环触发导致的重复提交和文案虚假问题，并优化了变更日志的生成与管理流程。
+
+新版本引入了**DEVLOG / CHANGEL
+
 ## [v0.1.001-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.001-beta) — 2026-05-05
 
 ### ⚡ 重大改动 — 2026-05-05 17:15

@@ -18,6 +18,37 @@
 
 <!-- DEVLOG_ENTRIES_START -->
 
+### 2026-05-07 14:28 — 修复重大改动双写与 CHANGELOG 重复条目
+
+**新增内容：**
+修复重大改动双写与 CHANGELOG 重复条目
+
+**改动及优化描述：**
+1. workflow paths-ignore 增加 .last_processed 阻止仓管自身递归触发；2. 清理 CHANGELOG.md 中重复的 v0.1.000-beta 条目
+
+---
+
+### 2026-05-07 14:21 — 修复仓管自动化自引用循环与 commit 文案虚假问题
+
+**新增内容：**
+修复仓管自动化自引用循环与 commit 文案虚假问题
+
+**改动及优化描述：**
+1. parse_commit_message 增加内部操作标记检测跳过仓管自身提交；2. commit_and_push 动态接收 AI 总结填充新增内容行，末尾追加内部操作标记；3. main 中调用 commit_and_push 时传入 AI 总结文本
+
+---
+
+### 2026-05-07 06:14 — DEVLOG / CHANGELOG 自动更新
+
+**新增内容：**
+DEVLOG / CHANGELOG 自动更新
+
+**改动及优化描述：**
+自动化仓管 Agent 根据提交生成日志
+
+---
+
+
 ### 26.5.7 — 指示系统和任务管理系统（已有基本雏形）
 
 **新增内容：**
