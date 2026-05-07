@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 # 更新日志
 
+## [v0.1.000-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-05-07
+
+### ⚡ 重大改动 — 26.5.7
+
+v0.1.000-beta
+
 ## [v0.1.001-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.001-beta) — 2026-05-05
 
 ### ⚡ 重大改动 — 2026-05-05 17:15
