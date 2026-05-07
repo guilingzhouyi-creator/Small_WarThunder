@@ -1,6 +1,8 @@
 using UnityEngine;
 using System.Collections;
 using TMPro;
+
+
 public class TankStatsUIController : MonoBehaviour
 {
     //状态UI控制器，负责显示坦克的当前状态信息，例如生命值、装填状态等
@@ -12,8 +14,7 @@ public class TankStatsUIController : MonoBehaviour
     [SerializeField] private TextMeshProUGUI CurrentConnonBallTextLab;
     [SerializeField] private TextMeshProUGUI NextConnonBallTextLab;
     [SerializeField] private TextMeshProUGUI TargetDistanceTextLab;
-    [SerializeField] private TextMeshProUGUI ReplayStatusTextLab;//代发弹药数显示文本，准备迁移到这里
-
+    [SerializeField] private TextMeshProUGUI ReplayStatusTextLab;
     private Tank _tank;
     private TankFireController _fireController;
     private TankMoveController _moveController;
@@ -209,13 +210,13 @@ public class TankStatsUIController : MonoBehaviour
             //全部弹药打完后，显示Exhausted状态
             if (_tank != null && _tank.GetAmmoCount(_tank.CurrentAmmoType) == 0)
             {
-                ReLoadstatusLTextLab.text = "弹药耗尽!";
+                ReLoadstatusLTextLab.text = UIStandardTexts.AmmoExhausted;
                 ReLoadstatusLTextLab.color = Color.red;
                 return;
             }
             else
             {
-                ReLoadstatusLTextLab.text = "Up!";
+                ReLoadstatusLTextLab.text = UIStandardTexts.Up;
                 ReLoadstatusLTextLab.color = Color.green;
             }
 
@@ -249,7 +250,7 @@ public class TankStatsUIController : MonoBehaviour
         }
         else
         {
-            TargetDistanceTextLab.text = "N/A";
+            TargetDistanceTextLab.text = UIStandardTexts.NotAvailable;
             TargetDistanceTextLab.color = Color.gray;
         }
     }

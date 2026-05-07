@@ -6,6 +6,7 @@ using SmallWar.Data;
 /// <summary>
 /// GlobalSubtitleEngine 的任务文本渲染模块（partial）。
 /// 负责监听 TaskDistributionSystem 并将任务进度文本写入多个 TMP 组件。
+/// 输出前通过 SubtitleColorRenderEngine 进行 TMP 富文本着色。
 /// </summary>
 partial class GlobalSubtitleEngine
 {
@@ -22,6 +23,7 @@ partial class GlobalSubtitleEngine
 
     /// <summary>
     /// 将任务文本写入所有任务栏 TMP 组件。由 TaskDistributionSystem.OnTaskTextChanged 驱动。
+    /// 最终写入前通过 SubtitleColorRenderEngine 进行 TMP 富文本着色。
     /// </summary>
     public void SetTaskText(string text)
     {
@@ -30,11 +32,13 @@ partial class GlobalSubtitleEngine
             return;
         }
 
+        string colored = SubtitleColorRenderEngine.Process(text, SubtitleRenderScope.TaskText, SubtitleChannel.Mission);
+
         foreach (var label in taskRenderLabels)
         {
             if (label != null)
             {
-                label.text = text;
+                label.text = colored;
             }
         }
     }

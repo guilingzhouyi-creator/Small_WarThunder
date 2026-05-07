@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 教程关卡巡逻靶标车：沿固定路径点循环移动。
-/// 挂载在敌人坦克根对象上，配合 EnemyMaker + GeneralHitPosition + TargetDamageResolver 使用。
+/// 挂载在敌人坦克根对象上，配合 EnemyMarker + GeneralHitPosition + TargetDamageResolver 使用。
 /// 
 /// 路径配置方式（二选一）：
 /// 1. 拖入 _waypointParent → 自动扫描所有直接子物体，按 sibling index 排序

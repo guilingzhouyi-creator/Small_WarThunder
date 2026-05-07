@@ -3,11 +3,11 @@ using UnityEngine;
 
 /// <summary>
 /// 区域触发器：挂载在区域 Prefab 中的触发碰撞体上。
-/// 检测进入区域的玩家/敌人坦克（通过 PlayerMaker/EnemyMaker 组件），
+/// 检测进入区域的玩家/敌人坦克（通过 PlayerMarker/EnemyMarker 组件），
 /// 通知 LevelStreamingEngine 刷新附近区域可见性。
 /// </summary>
 [RequireComponent(typeof(Collider))]
-public class GameLevelMaker : MonoBehaviour
+public class GameLevelMarker : MonoBehaviour
 {
     private static bool _hasLoggedNonConvexFallbackInfo;
 
@@ -47,7 +47,7 @@ public class GameLevelMaker : MonoBehaviour
             if (!_hasLoggedNonConvexFallbackInfo)
             {
                 _hasLoggedNonConvexFallbackInfo = true;
-                Debug.Log("[GameLevelMaker] 检测到任务区域使用非凸 MeshCollider，已自动切换为轮询检测模式；后续同类区域不再重复提示。", this);
+                Debug.Log("[GameLevelMarker] 检测到任务区域使用非凸 MeshCollider，已自动切换为轮询检测模式；后续同类区域不再重复提示。", this);
             }
 
             return;
@@ -195,15 +195,15 @@ public class GameLevelMaker : MonoBehaviour
             return false;
         }
 
-        if (other.TryGetComponent<PlayerMaker>(out _))
+        if (other.TryGetComponent<PlayerMarker>(out _))
             return true;
-        if (other.TryGetComponent<EnemyMaker>(out _))
+        if (other.TryGetComponent<EnemyMarker>(out _))
             return true;
 
         Transform root = other.transform.root;
-        if (root.TryGetComponent<PlayerMaker>(out _))
+        if (root.TryGetComponent<PlayerMarker>(out _))
             return true;
-        if (root.TryGetComponent<EnemyMaker>(out _))
+        if (root.TryGetComponent<EnemyMarker>(out _))
             return true;
 
         return false;
@@ -217,14 +217,14 @@ public class GameLevelMaker : MonoBehaviour
             return false;
         }
 
-        if (other.TryGetComponent<PlayerMaker>(out _))
+        if (other.TryGetComponent<PlayerMarker>(out _))
         {
             playerTank = other.gameObject;
             return true;
         }
 
         Transform root = other.transform.root;
-        if (root != null && root.TryGetComponent<PlayerMaker>(out _))
+        if (root != null && root.TryGetComponent<PlayerMarker>(out _))
         {
             playerTank = root.gameObject;
             return true;

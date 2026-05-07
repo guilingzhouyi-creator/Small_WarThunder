@@ -30,11 +30,6 @@ public class SubtitleOverlayController : MonoBehaviour
     // 缓存最近一次接收到的文本，用于切换显示时立即恢复
     private string _cachedText = string.Empty;
 
-    private const string ROOT_CLASS = "subtitle-root";
-    private const string TEXT_CLASS = "subtitle-text";
-    private const string VISIBLE_CLASS = "subtitle-root--visible";
-    private const string USS_PATH = "UI/SubtitleHUD";  // Resources.Load 路径（不含扩展名）
-
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -88,22 +83,22 @@ public class SubtitleOverlayController : MonoBehaviour
         root.Clear();
 
         // 加载 USS 样式（从 Resources 文件夹）
-        StyleSheet styleSheet = Resources.Load<StyleSheet>(USS_PATH);
+        StyleSheet styleSheet = Resources.Load<StyleSheet>(SceneAssetPaths.UI.SubtitleHUD);
         if (styleSheet != null)
         {
             root.styleSheets.Add(styleSheet);
         }
         else
         {
-            Debug.LogWarning($"[SubtitleOverlayController] 未能在 Resources 中找到 USS: {USS_PATH}", this);
+            Debug.LogWarning($"[SubtitleOverlayController] 未能在 Resources 中找到 USS: {SceneAssetPaths.UI.SubtitleHUD}", this);
         }
 
         // 动态构建 UI 层级
         _subtitleRoot = new VisualElement();
-        _subtitleRoot.AddToClassList(ROOT_CLASS);
+        _subtitleRoot.AddToClassList(UIStyleClassNames.SubtitleRoot);
 
         _subtitleText = new Label();
-        _subtitleText.AddToClassList(TEXT_CLASS);
+        _subtitleText.AddToClassList(UIStyleClassNames.SubtitleText);
 
         _subtitleRoot.Add(_subtitleText);
         root.Add(_subtitleRoot);
@@ -149,7 +144,8 @@ public class SubtitleOverlayController : MonoBehaviour
     }
 
     /// <summary>
-    /// 设置字幕文本（由叙事系统调用）
+    /// 设置字幕文本（由叙事系统或 GlobalSubtitleEngine 打字机事件调用）。
+    /// 如果文本已包含颜色标签（来自引擎打字机缓存），直接使用；否则通过 SubtitleColorRenderEngine 着色。
     /// </summary>
     public void SetText(string text)
     {
@@ -157,7 +153,17 @@ public class SubtitleOverlayController : MonoBehaviour
 
         if (_subtitleText != null)
         {
-            _subtitleText.text = _cachedText;
+            // 已包含颜色标签（来自 GlobalSubtitleEngine 打字机缓存的 GetVisibleSubstring 输出），跳过重复着色
+            if (_cachedText.Contains("<color="))
+            {
+                _subtitleText.text = _cachedText;
+            }
+            else
+            {
+                SubtitleChannel channel = GlobalSubtitleEngine.Instance?.CurrentPackage?.Channel ?? SubtitleChannel.System;
+                string colored = SubtitleColorRenderEngine.Process(_cachedText, SubtitleRenderScope.Overlay, channel);
+                _subtitleText.text = colored;
+            }
         }
     }
 
@@ -190,7 +196,7 @@ public class SubtitleOverlayController : MonoBehaviour
         {
             _subtitleRoot.style.display = DisplayStyle.None;
             _subtitleRoot.style.opacity = 0f;
-            _subtitleRoot.RemoveFromClassList(VISIBLE_CLASS);
+            _subtitleRoot.RemoveFromClassList(UIStyleClassNames.SubtitleVisible);
         }
     }
 
@@ -268,13 +274,13 @@ public class SubtitleOverlayController : MonoBehaviour
         {
             _subtitleRoot.style.display = DisplayStyle.Flex;
             _subtitleRoot.style.opacity = 1f;
-            _subtitleRoot.AddToClassList(VISIBLE_CLASS);
+            _subtitleRoot.AddToClassList(UIStyleClassNames.SubtitleVisible);
         }
         else
         {
             _subtitleRoot.style.display = DisplayStyle.None;
             _subtitleRoot.style.opacity = 0f;
-            _subtitleRoot.RemoveFromClassList(VISIBLE_CLASS);
+            _subtitleRoot.RemoveFromClassList(UIStyleClassNames.SubtitleVisible);
         }
     }
 

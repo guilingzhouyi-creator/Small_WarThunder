@@ -18,6 +18,16 @@
 
 <!-- DEVLOG_ENTRIES_START -->
 
+### 2026-05-05 23:36 — 标记组件重命名统一化
+
+**改动及优化描述：**
+- PlayerMaker → PlayerMarker：全部文件及引用已统一重命名
+- EnemyMaker → EnemyMarker：全部文件及引用已统一重命名
+- GameLevelMaker → GameLevelMarker：全部文件及引用已统一重命名
+- 所有文件从旧分散目录集中迁移到 Core/Marker/ 下统一管理
+
+---
+
 ### 2026-05-05 17:15 — 自动化仓管系统规范——hook 放宽第4行校验
 
 **新增内容：**

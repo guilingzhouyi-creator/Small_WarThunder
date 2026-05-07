@@ -14,6 +14,7 @@ partial class GlobalSubtitleEngine
 
     /// <summary>
     /// 情报渲染协程：Mission 频道专用，整片文本一次性推送到 targetLabel 和 OnIntelligenceTextChanged。
+    /// 输出前通过 SubtitleColorRenderEngine 进行 TMP 富文本着色。
     /// </summary>
     private IEnumerator IntelligenceRoutine(SubtitlePackage package)
     {
@@ -21,12 +22,14 @@ partial class GlobalSubtitleEngine
         {
             string fullText = package.ContentList[package.CurrentLineIndex];
 
+            string colored = SubtitleColorRenderEngine.Process(fullText, SubtitleRenderScope.Intelligence, package.Channel);
+
             if (targetLabel != null)
             {
-                targetLabel.text = fullText;
+                targetLabel.text = colored;
             }
 
-            OnIntelligenceTextChanged?.Invoke(fullText);
+            OnIntelligenceTextChanged?.Invoke(colored);
 
             package.CurrentLineIndex++;
 

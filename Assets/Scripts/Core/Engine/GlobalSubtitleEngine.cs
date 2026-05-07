@@ -14,8 +14,6 @@ using System.Collections.Generic;
 /// </summary>
 public partial class GlobalSubtitleEngine : MonoBehaviour
 {
-    private const string IdleText = "暂无";
-
     private static WaitForSeconds WaitForSeconds_Two = new WaitForSeconds(2.0f);
     private static WaitForSeconds WaitForSeconds_LinePause = new WaitForSeconds(1.5f);
 
@@ -183,8 +181,8 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
             return;
         }
 
-        targetLabel.text = IdleText;
-        OnOverlayTextChanged?.Invoke(IdleText);
+        targetLabel.text = UIStandardTexts.Idle;
+        OnOverlayTextChanged?.Invoke(UIStandardTexts.Idle);
     }
 
     public void ResetPlayback()
@@ -200,8 +198,8 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
         if (targetLabel != null)
         {
-            targetLabel.text = IdleText;
-            OnOverlayTextChanged?.Invoke(IdleText);
+            targetLabel.text = UIStandardTexts.Idle;
+            OnOverlayTextChanged?.Invoke(UIStandardTexts.Idle);
         }
     }
 
@@ -312,17 +310,21 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
         {
             string text = package.ContentList[package.CurrentLineIndex];
 
+            // ★ 缓存复用：只调用一次 Process 对整个文本着色，打字机循环中用 GetVisibleSubstring 截取
+            string richCached = SubtitleColorRenderEngine.Process(text, SubtitleRenderScope.Overlay, package.Channel);
+
             for (int i = package.CurrentCharIndex; i <= text.Length; i++)
             {
                 package.CurrentCharIndex = i;
-                string currentText = text.Substring(0, i);
+
+                string colored = SubtitleColorRenderEngine.GetVisibleSubstring(richCached, i);
 
                 if (targetLabel != null)
                 {
-                    targetLabel.text = currentText;
+                    targetLabel.text = colored;
                 }
 
-                OnOverlayTextChanged?.Invoke(currentText);
+                OnOverlayTextChanged?.Invoke(colored);
 
                 yield return new WaitForSeconds(typingSpeed);
             }

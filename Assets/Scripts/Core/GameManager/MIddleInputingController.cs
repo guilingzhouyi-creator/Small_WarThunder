@@ -133,6 +133,7 @@ public class MIddleInputingController : MonoBehaviour
     /// </summary>
     public bool IsMapPressed() => _inputActions.TankerDriver.MapShow.triggered;
 
+    public bool IsDebugPressed() => _inputActions.TankerDriver.DebugButton.triggered;
 
     public Vector2 GetMouseScrollDelta() => Mouse.current != null ? Mouse.current.scroll.ReadValue() : Vector2.zero;// 获取鼠标滚轮输入，返回一个 Vector2，x 轴表示水平滚动，y 轴表示垂直滚动
 

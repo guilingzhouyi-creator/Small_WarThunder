@@ -13,6 +13,8 @@ public class ZoomCameraPosition : MonoBehaviour
 
     private float targetFOV;
     private bool isZooming = false;
+    private bool _cachedAimMode;
+    private bool _targetsInitialized;
 
     public bool HasCameraReference => ZoomCamera != null;
     public string CameraName => ZoomCamera != null ? ZoomCamera.Name : string.Empty;
@@ -81,9 +83,14 @@ public class ZoomCameraPosition : MonoBehaviour
             return;
         }
 
-        ApplyActiveTargets();
-
         bool isAimMode = UIManager.Instance != null && UIManager.Instance.IsAimMode;
+
+        if (!_targetsInitialized || _cachedAimMode != isAimMode)
+        {
+            ApplyActiveTargets();
+            _cachedAimMode = isAimMode;
+            _targetsInitialized = true;
+        }
 
         // 检测缩放输入（右键切换ZoomCamera）
         MIddleInputingController inputController = MIddleInputingController.Instance;

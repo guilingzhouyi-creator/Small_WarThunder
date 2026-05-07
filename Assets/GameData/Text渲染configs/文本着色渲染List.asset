@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 830f5d5b17d40814f9b28dce3351c7e4, type: 3}
+  m_Name: "\u6587\u672C\u7740\u8272\u6E32\u67D3List"
+  m_EditorClassIdentifier: Assembly-CSharp::ColorThemeSO
+  ThemeName: Default
+  TargetType: 0
+  DefaultColorHex: '#FFFFFF'
+  ChannelOverrides:
+  - ChannelTag: 2
+    ColorHex: 
+    ApplyBold: 0
+    ApplyItalic: 0
+  KeywordRules: []

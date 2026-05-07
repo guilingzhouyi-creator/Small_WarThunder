@@ -235,6 +235,15 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""DebugButton"",
+                    ""type"": ""Button"",
+                    ""id"": ""21bdd3c0-ec31-47a7-913d-e774d63a9553"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -413,6 +422,17 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
                     ""action"": ""MapShow"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""767f26b1-6681-4491-a2db-1a3ee3ad6fd2"",
+                    ""path"": ""<Keyboard>/k"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""DebugButton"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -437,6 +457,7 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
         m_TankerDriver_Rangefinder = m_TankerDriver.FindAction("Rangefinder", throwIfNotFound: true);
         m_TankerDriver_MIssionLabShow = m_TankerDriver.FindAction("MIssionLabShow", throwIfNotFound: true);
         m_TankerDriver_MapShow = m_TankerDriver.FindAction("MapShow", throwIfNotFound: true);
+        m_TankerDriver_DebugButton = m_TankerDriver.FindAction("DebugButton", throwIfNotFound: true);
     }
 
     ~@GameInputingSystem()
@@ -533,6 +554,7 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
     private readonly InputAction m_TankerDriver_Rangefinder;
     private readonly InputAction m_TankerDriver_MIssionLabShow;
     private readonly InputAction m_TankerDriver_MapShow;
+    private readonly InputAction m_TankerDriver_DebugButton;
     /// <summary>
     /// Provides access to input actions defined in input action map "TankerDriver".
     /// </summary>
@@ -609,6 +631,10 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
         /// </summary>
         public InputAction @MapShow => m_Wrapper.m_TankerDriver_MapShow;
         /// <summary>
+        /// Provides access to the underlying input action "TankerDriver/DebugButton".
+        /// </summary>
+        public InputAction @DebugButton => m_Wrapper.m_TankerDriver_DebugButton;
+        /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
         public InputActionMap Get() { return m_Wrapper.m_TankerDriver; }
@@ -682,6 +708,9 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
             @MapShow.started += instance.OnMapShow;
             @MapShow.performed += instance.OnMapShow;
             @MapShow.canceled += instance.OnMapShow;
+            @DebugButton.started += instance.OnDebugButton;
+            @DebugButton.performed += instance.OnDebugButton;
+            @DebugButton.canceled += instance.OnDebugButton;
         }
 
         /// <summary>
@@ -741,6 +770,9 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
             @MapShow.started -= instance.OnMapShow;
             @MapShow.performed -= instance.OnMapShow;
             @MapShow.canceled -= instance.OnMapShow;
+            @DebugButton.started -= instance.OnDebugButton;
+            @DebugButton.performed -= instance.OnDebugButton;
+            @DebugButton.canceled -= instance.OnDebugButton;
         }
 
         /// <summary>
@@ -893,5 +925,12 @@ public partial class @GameInputingSystem: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnMapShow(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "DebugButton" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnDebugButton(InputAction.CallbackContext context);
     }
 }

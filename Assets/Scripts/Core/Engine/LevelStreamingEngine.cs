@@ -4,11 +4,11 @@ using UnityEngine;
 /// <summary>
 /// 关卡区域流式加载引擎：对齐 GlobalSubtitleEngine 的单例风格。
 /// 启动时一次性 Instantiate 所有地图（父级预制体），自动扫描子物体注册为区域。
-/// 玩家移动时通过 GameLevelMaker 触发 ShowNearbyRegions，控制区域可见性。
+/// 玩家移动时通过 GameLevelMarker 触发 ShowNearbyRegions，控制区域可见性。
 ///
 /// 未来扩展预留接口：LoadMap(string mapId) / UnloadMap(string mapId)
 ///
-/// Mission 区域仍然作为普通区域参与流式加载；任务字幕的触发改由区域上的 GameLevelMaker + GameLevelManager 在玩家进入时处理。
+/// Mission 区域仍然作为普通区域参与流式加载；任务字幕的触发改由区域上的 GameLevelMarker + GameLevelManager 在玩家进入时处理。
 /// </summary>
 public class LevelStreamingEngine : MonoBehaviour
 {

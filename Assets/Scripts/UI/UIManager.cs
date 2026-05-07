@@ -64,7 +64,7 @@ public class UIManager : MonoBehaviour
     {
         if (Instance != null && Instance != this)
         {
-            Debug.LogWarning("UIManager: duplicate instance detected, destroying the new one.", this);
+            Debug.LogWarning("UIManager: 已存在实例，正在销毁新的实例。", this);
             Destroy(gameObject);
             return;
         }
@@ -359,6 +359,9 @@ public class UIManager : MonoBehaviour
                     OnGamePaused?.Invoke(this, EventArgs.Empty);
                 }
 
+                // 暂停是模式边界：清理所有临时玩法覆盖层，避免退出暂停时把脏状态带回游戏。
+                ClearTransientGameplayOverlays();
+
                 CacheCrossLayeringIfNeeded();
                 ApplyCrossLayeringForPause();
                 _overlayStack.Open(UIOverlayId.Pause);
@@ -385,6 +388,13 @@ public class UIManager : MonoBehaviour
         RefreshUIState();
     }
 
+    /// <summary>
+    /// 堆栈设计，遵循先进后出原则：只有最上层的界面会被关闭，且只能关闭最上层界面。
+    /// 比如在 Pause 状态下打开 Setting，再调用 CloseOverlay(UIOverlayId.Pause) 不会直接关闭 Pause，
+    /// 因为 Setting 在 Pause 之上；必须先 CloseOverlay(UIOverlayId.Setting)，才能 CloseOverlay(UIOverlayId.Pause)。
+    /// 同样，如果直接调用 CloseOverlay(UIOverlayId.Setting)，也不会生效，除非 Setting 正好在最上层。
+    /// </summary>
+    /// <param name="overlay"></param>
     public void CloseOverlay(UIOverlayId overlay)
     {
         switch (overlay)
@@ -414,6 +424,9 @@ public class UIManager : MonoBehaviour
                 _isSettingUIVisible = false;
                 _overlayStack.Close(UIOverlayId.Setting);
                 _overlayStack.Close(UIOverlayId.Pause);
+
+                // 退出暂停后再次清理一次，防止输入切换在暂停边界上留下脏状态。
+                ClearTransientGameplayOverlays();
 
                 if (_isPaused)
                 {
@@ -533,6 +546,20 @@ public class UIManager : MonoBehaviour
         }
 
         _isLayeringApplied = false;
+    }
+
+    private void ClearTransientGameplayOverlays()
+    {
+        _isMapShown = false;
+        _isTabed = false;
+        _overlayStack.Close(UIOverlayId.Map);
+        _overlayStack.Close(UIOverlayId.Tab);
+
+        if (mapUIController != null)
+        {
+            mapUIController.CloseFullMap();
+            mapUIController.SetMiniMapVisible(false);
+        }
     }
 
     private void RefreshUIState()

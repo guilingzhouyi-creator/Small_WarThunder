@@ -6,12 +6,13 @@ public class PauseUIController : MonoBehaviour
     [SerializeField] private Button OptionsButton;
     [SerializeField] private Button QuitButton;
     [SerializeField] private Button ResumeButton;
+    [SerializeField] private Button SaveButton;
 
     private void Awake()
     {
-        if (OptionsButton == null || QuitButton == null || ResumeButton == null)
+        if (OptionsButton == null || QuitButton == null || ResumeButton == null || SaveButton == null)
         {
-            Debug.LogError("PauseUIController: buttons are not assigned in the inspector.", this);
+            Debug.LogError("PauseUIController: 按钮组尚有按钮组件没有分配，请检查。", this);
             return;
         }
 
@@ -19,7 +20,7 @@ public class PauseUIController : MonoBehaviour
         {
             if (UIManager.Instance == null)
             {
-                Debug.LogError("PauseUIController: UIManager instance not found.", this);
+                Debug.LogError("PauseUIController: UIManager的实例未找到。", this);
                 return;
             }
 
@@ -50,6 +51,18 @@ public class PauseUIController : MonoBehaviour
 
             CursorEngine.Unlock();
             SceneLoader.LoadScene(SceneLoader.Scene.MainMenuScene);
+        });
+
+        SaveButton.onClick.AddListener(() =>
+        {
+            if (SaveManager.Instance != null)
+            {
+                SaveManager.Instance.TestSave();
+            }
+            else
+            {
+                Debug.LogError("PauseUIController: SaveManager 实例未找到，请确保场景中存在 SaveManager GameObject。", this);
+            }
         });
     }
 }
