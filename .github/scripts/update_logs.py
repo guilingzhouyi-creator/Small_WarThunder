@@ -133,6 +133,11 @@ def extract_summary(additions_text):
 
 def parse_commit_message(commit_hash, msg):
     """解析 commit message，返回 dict 或 None（格式不符则跳过）"""
+    # 跳过仓管自身的提交
+    if "⚡内部操作：" in msg:
+        print(f"[SKIP] {commit_hash[:8]} — 仓管自动提交，跳过")
+        return None
+
     # 跳过 # 注释行和空行
     lines = [l for l in msg.split("\n") if l.strip() and not l.strip().startswith("#")]
 
@@ -392,7 +397,7 @@ def get_repo_name():
     return repo
 
 
-def commit_and_push():
+def commit_and_push(summary_text="DEVLOG / CHANGELOG 自动更新"):
     """提交对 DEVLOG.md、CHANGELOG.md 和状态文件的修改并推送"""
     has_changes_devlog = subprocess.run(
         ["git", "diff", "--quiet", DEVLOG_PATH]
@@ -415,8 +420,9 @@ def commit_and_push():
     subprocess.run([
         "git", "commit",
         "-m", f"《东七三》开发日志<{datetime.now().strftime('%Y-%m-%d %H:%M')}>",
-        "-m", "新增内容：DEVLOG / CHANGELOG 自动更新",
-        "-m", "改动及优化描述：自动化仓管 Agent 根据提交生成日志"
+        "-m", f"新增内容：{summary_text}",
+        "-m", "改动及优化描述：自动化仓管 Agent 根据提交生成日志",
+        "-m", "⚡内部操作：仓管自动提交"
     ])
     subprocess.run(["git", "push"])
     print("[OK] 日志变更已提交并推送")
@@ -517,7 +523,8 @@ def main():
     save_last_processed(head_commit)
 
     if devlog_updated or changelog_updated:
-        commit_and_push()
+        ai_summary = summarize_with_deepseek(devlog_entries[:1]) or "DEVLOG / CHANGELOG 自动更新"
+        commit_and_push(summary_text=ai_summary)
 
     print(f"[DONE] 自动化仓管任务完成")
     print(f"  - 写入 DEVLOG：{len(devlog_entries)} 条")
