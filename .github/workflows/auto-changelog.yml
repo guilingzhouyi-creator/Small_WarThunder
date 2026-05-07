@@ -10,6 +10,7 @@ on:
     paths-ignore:
       - 'DEVLOG.md'
       - 'CHANGELOG.md'
+      - '.github/scripts/.last_processed'
       - '.github/workflows/auto-changelog.yml'
 
 permissions:
