@@ -19,7 +19,7 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
     public static GlobalSubtitleEngine Instance { get; private set; }
 
-    private TextMeshProUGUI targetLabel;
+    [SerializeField] private TextMeshProUGUI targetLabel;
 
     [SerializeField] private float typingSpeed = 0.05f;
 
@@ -64,22 +64,27 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
     // ──────────────────────── 场景加载回调 ────────────────────────
 
     /// <summary>
-    /// 当加载到 GameScene 时，通过 Tag + 组件校验自动绑定 targetLabel；
+    /// 当加载到 GameScene 时，通过 MissionPannelUIController.Instance 绑定 targetLabel；
     /// 离开 GameScene 时置空 targetLabel 并重置播放状态。
+    /// 注意：MissionPannelUIController 是 DontDestroyOnLoad，不能用 FindGameObjectWithTag（会因 inactive 而失败）。
     /// </summary>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
         {
-            GameObject go = GameObject.FindGameObjectWithTag("MissionUI");
-            if (go != null && go.GetComponent<MissionPannelUIController>() != null)
+            // 使用 Instance 绑定（始终可用，不受 SetActive 状态影响）
+            if (MissionPannelUIController.Instance != null)
             {
-                targetLabel = go.GetComponent<TextMeshProUGUI>();
+                targetLabel = MissionPannelUIController.Instance.SubtitleLabel;
+                if (targetLabel == null)
+                {
+                    Debug.LogWarning("[GlobalSubtitleEngine] MissionPannelUIController.SubtitleLabel 为 null，请在 Inspector 中为 MissionPannelUIController 的 _subtitleLabel 字段赋值。");
+                }
             }
             else
             {
                 targetLabel = null;
-                Debug.LogWarning("[GlobalSubtitleEngine] 未找到 Tag=MissionUI 且含 MissionPannelUIController 的 GameObject，targetLabel 置空。");
+                Debug.LogWarning("[GlobalSubtitleEngine] MissionPannelUIController.Instance 为 null，无法绑定 targetLabel。");
             }
         }
         else
@@ -272,6 +277,12 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
         StopCoroutine(_typeRoutine);
         _typeRoutine = null;
+
+        // 中断打字机协程时，清理 UIToolkit overlay 可见性
+        if (_activePackage != null && _activePackage.Channel != SubtitleChannel.Mission)
+        {
+            SubtitleOverlayController.Instance?.SetNarrativeActive(false);
+        }
     }
 
     private void TryPlayNext()
@@ -306,33 +317,44 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
         // ─── 覆盖层打字机（System / Dialogue / Ambient）───
 
-        while (package.CurrentLineIndex < package.ContentList.Count)
+        // 激活 UIToolkit 字幕 overlay 可见性（SubtitleOverlayController）
+        SubtitleOverlayController.Instance?.SetNarrativeActive(true);
+
+        try
         {
-            string text = package.ContentList[package.CurrentLineIndex];
-
-            // ★ 缓存复用：只调用一次 Process 对整个文本着色，打字机循环中用 GetVisibleSubstring 截取
-            string richCached = SubtitleColorRenderEngine.Process(text, SubtitleRenderScope.Overlay, package.Channel);
-
-            for (int i = package.CurrentCharIndex; i <= text.Length; i++)
+            while (package.CurrentLineIndex < package.ContentList.Count)
             {
-                package.CurrentCharIndex = i;
+                string text = package.ContentList[package.CurrentLineIndex];
 
-                string colored = SubtitleColorRenderEngine.GetVisibleSubstring(richCached, i);
+                // ★ 缓存复用：只调用一次 Process 对整个文本着色，打字机循环中用 GetVisibleSubstring 截取
+                string richCached = SubtitleColorRenderEngine.Process(text, SubtitleRenderScope.Overlay, package.Channel);
 
-                if (targetLabel != null)
+                for (int i = package.CurrentCharIndex; i <= text.Length; i++)
                 {
-                    targetLabel.text = colored;
+                    package.CurrentCharIndex = i;
+
+                    string colored = SubtitleColorRenderEngine.GetVisibleSubstring(richCached, i);
+
+                    if (targetLabel != null)
+                    {
+                        targetLabel.text = colored;
+                    }
+
+                    OnOverlayTextChanged?.Invoke(colored);
+
+                    yield return new WaitForSeconds(typingSpeed);
                 }
 
-                OnOverlayTextChanged?.Invoke(colored);
+                package.CurrentCharIndex = 0;
+                package.CurrentLineIndex++;
 
-                yield return new WaitForSeconds(typingSpeed);
+                yield return WaitForSeconds_LinePause;
             }
-
-            package.CurrentCharIndex = 0;
-            package.CurrentLineIndex++;
-
-            yield return WaitForSeconds_LinePause;
+        }
+        finally
+        {
+            // 打字机结束：隐藏 UIToolkit 字幕 overlay
+            SubtitleOverlayController.Instance?.SetNarrativeActive(false);
         }
 
         _activePackage = null;

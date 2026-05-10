@@ -1,7 +1,8 @@
 using System;
 using UnityEngine;
+using NNewUIFramework;
 
-public partial class SettingManager : MonoBehaviour
+public partial class SettingManager : UGUIViewAdapter
 {
     private const string AudioSettingsPrefsKey = "SmallWarThunder.AudioSettings";//用于在PlayerPrefs中存储和检索音频设置的键，确保数据的一致性和可维护性
     private const int AudioSettingsPrefsVersion = 1;

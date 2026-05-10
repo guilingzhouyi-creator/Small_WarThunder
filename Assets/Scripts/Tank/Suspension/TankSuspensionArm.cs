@@ -8,7 +8,8 @@ public class TankSuspensionArm : MonoBehaviour
     public Transform groundCheckPoint;
 
     [Header("悬挂参数")]
-    public float restHeight = 0.45f;
+    [Tooltip("静止预压量，必须 < maxCompression，推荐 0.6~0.7 倍 maxCompression")]
+    public float restHeight = 0.25f;
     public float springStrength = 8500f;
     public float damperStrength = 900f;
     public float maxCompression = 0.38f;
@@ -148,6 +149,21 @@ public class TankSuspensionArm : MonoBehaviour
         _restCenterDistance = ResolveRestCenterDistance();
         _currentVisualAngle = 0f;
         _visualAngularVelocity = 0f;
+
+        // 提前探测初始压缩量，让 _lastCompression 有正确初值
+        // 否则第一帧 compressionVelocity = (real - 0) / dt 产生尖峰，导致起跳
+        Vector3 origin = GetProbeOrigin();
+        Vector3 direction = -GetSuspensionUpDirection();
+        if (TryProbeGround(origin, direction, out RaycastHit hit))
+        {
+            float compression = TargetWheelCenterDistance - hit.distance;
+            _currentCompression = Mathf.Clamp(compression, -maxExtension, maxCompression);
+        }
+        else
+        {
+            _currentCompression = -maxExtension;
+        }
+        _lastCompression = _currentCompression;
     }
 
     private void EnsureRuntimeReferences()
@@ -172,16 +188,19 @@ public class TankSuspensionArm : MonoBehaviour
             float compression = TargetWheelCenterDistance - hit.distance;
             _currentCompression = Mathf.Clamp(compression, -maxExtension, maxCompression);
 
-            float compressionVelocity = (Time.fixedDeltaTime > 0f)
-                ? (_currentCompression - _lastCompression) / Time.fixedDeltaTime
+            // 用刚体实际速度在悬挂方向的分量计算阻尼，完全绕开压缩量有限差分法的钳制失真问题
+            // dot > 0 = 向上运动（拉伸）；dot < 0 = 向下运动（压缩）
+            float suspensionVelocity = (_rb != null)
+                ? Vector3.Dot(_rb.GetPointVelocity(transform.position), upDirection)
                 : 0f;
 
-            float springForce = _currentCompression * springStrength;
-            float damperForce = -compressionVelocity * damperStrength;
-            float totalForce = Mathf.Clamp(
-                springForce + damperForce,
+            // 弹簧力单独钳制；阻尼力独立叠加，不受 springStrength 区间限制
+            float springForce = Mathf.Clamp(
+                _currentCompression * springStrength,
                 -springStrength * maxExtension,
                 springStrength * maxCompression);
+            float damperForce = -suspensionVelocity * damperStrength;
+            float totalForce = springForce + damperForce;
 
             if (_rb != null)
             {

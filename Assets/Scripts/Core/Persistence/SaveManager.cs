@@ -1,3 +1,4 @@
+﻿using NNewUIFramework;
 using System;
 using System.IO;
 using UnityEngine;
@@ -71,9 +72,9 @@ public class SaveManager : MonoBehaviour
         Debug.Log($"[SaveManager] 内容: {json}");
 
         // ─── 关闭 Pause → 回到 TPS ───
-        if (UIManager.Instance != null)
+        if (NewUIManager.instance != null)
         {
-            UIManager.Instance.CloseOverlay(UIOverlayId.Pause);
+            NewUIManager.instance.ClosePauseUI();
         }
     }
 }

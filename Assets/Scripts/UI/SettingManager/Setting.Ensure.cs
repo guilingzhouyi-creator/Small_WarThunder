@@ -1,6 +1,7 @@
 using UnityEngine;
+using NNewUIFramework;
 
-public partial class SettingManager : MonoBehaviour
+public partial class SettingManager : UGUIViewAdapter
 {
 
     private void EnsureInitialized()//确保设置管理器已初始化，如果尚未初始化则执行初始化逻辑

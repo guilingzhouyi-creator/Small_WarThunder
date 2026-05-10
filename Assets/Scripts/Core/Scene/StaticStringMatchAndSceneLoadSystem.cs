@@ -7,6 +7,11 @@ public enum TankType
     T_90,
     Leopard_2,
     Type_99,
+    T_80_UE_1,
+    T_72M,
+    Challenger_2,
+    Leopard_2A7_plus,
+    Type_10,
     Unknown
 }
 

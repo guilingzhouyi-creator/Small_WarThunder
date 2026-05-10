@@ -19,7 +19,14 @@ public static class MissionNarrativeRuntime
         _activeRegionId = string.IsNullOrWhiteSpace(regionId) ? owner.gameObject.name : regionId;
         _currentPackage = package;
 
-        MissionPannelUIController.Instance?.PresentNarrative(package);
+        if (package.Channel == SubtitleChannel.Mission)
+        {
+            MissionPannelUIController.Instance?.PresentNarrative(package);
+        }
+        else
+        {
+            GlobalSubtitleEngine.Instance?.RequestSubtitle(package);
+        }
     }
 
     public static void RebindMissionPanel()

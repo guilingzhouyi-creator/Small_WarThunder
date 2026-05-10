@@ -82,11 +82,8 @@ public class MapRenderingEngine : VisualElement
 
     public void CloseFullMap()
     {
-        if (!_isFullMapOpen)
-        {
-            return;
-        }
-
+        // 始终应用小地图布局，防止 _isFullMapOpen 与实际布局不同步
+        // （例如跨场景持久化时引擎布局状态残留）
         _isFullMapOpen = false;
         ApplyMiniMapLayout();
         _dirty = true;

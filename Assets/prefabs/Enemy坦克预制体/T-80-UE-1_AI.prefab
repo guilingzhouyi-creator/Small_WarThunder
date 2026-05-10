@@ -779,13 +779,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 6983892768419078874}
   groundCheckPoint: {fileID: 6983892768419078874}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -1340,13 +1340,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 1547983679143771359}
   groundCheckPoint: {fileID: 1547983679143771359}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -2988,13 +2988,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 2990148092380694552}
   groundCheckPoint: {fileID: 2990148092380694552}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -3157,13 +3157,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 5133325607704955662}
   groundCheckPoint: {fileID: 5133325607704955662}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -4678,13 +4678,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 3629896961072969107}
   groundCheckPoint: {fileID: 3629896961072969107}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -5153,13 +5153,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 2508427573331282471}
   groundCheckPoint: {fileID: 2508427573331282471}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -5843,13 +5843,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 7142551722613324535}
   groundCheckPoint: {fileID: 7142551722613324535}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -5953,13 +5953,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 3168999093091018045}
   groundCheckPoint: {fileID: 3168999093091018045}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -6450,17 +6450,17 @@ MonoBehaviour:
   autoBindNodes: 1
   nodeBindingExtraDistance: 0.2
   nodeFollowVerticalOffset: 0
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
-  probeExtraLength: 0.2
+  maxCompression: 0.28
+  maxExtension: 0.15
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
   autoTuneSpringDamper: 1
-  targetRideCompressionRatio: 0.4
+  targetRideCompressionRatio: 0.5
   damperRatio: 0.9
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
@@ -6861,13 +6861,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 7298967745677295937}
   groundCheckPoint: {fileID: 7298967745677295937}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -7883,13 +7883,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 4892511561882552757}
   groundCheckPoint: {fileID: 4892511561882552757}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -8111,13 +8111,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 7792496001292019577}
   groundCheckPoint: {fileID: 7792496001292019577}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
@@ -8181,17 +8181,17 @@ MonoBehaviour:
   autoBindNodes: 1
   nodeBindingExtraDistance: 0.2
   nodeFollowVerticalOffset: 0
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
-  probeExtraLength: 0.2
+  maxCompression: 0.28
+  maxExtension: 0.15
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
   autoTuneSpringDamper: 1
-  targetRideCompressionRatio: 0.4
+  targetRideCompressionRatio: 0.5
   damperRatio: 0.9
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
@@ -8425,13 +8425,13 @@ MonoBehaviour:
   authoredRestLocalRotation: {x: -0, y: -0, z: -0, w: 1}
   wheelPivot: {fileID: 5999914913318420083}
   groundCheckPoint: {fileID: 5999914913318420083}
-  restHeight: 0.45
+  restHeight: 0.12
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
-  maxExtension: 0.5
+  maxCompression: 0.28
+  maxExtension: 0.15
   wheelRadius: 0.85
-  probeExtraLength: 0.2
+  probeExtraLength: 0.3
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295

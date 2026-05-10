@@ -28,7 +28,7 @@ public partial class TankMoveController : MonoBehaviour
 
         UpdateEngineAudioTelemetry(hsmState, currentForwardSpeed, normalizedSpeed, availablePower, remainingPower, steeringPowerRequirement);
 
-        ApplyAnisotropicFriction(groundNormal);
+        ApplyAnisotropicFriction(groundNormal, hsmState);
 
         ApplyDynamicSteering(hsmState, desiredYawDegreesPerSecond, turnResponseFactor);
 
@@ -74,13 +74,14 @@ public partial class TankMoveController : MonoBehaviour
     /// <summary>
     /// 各向异性摩擦力求解器。计算侧滑，引发离心力矩平衡，执行瞬态动能损耗。
     /// </summary>
-    private void ApplyAnisotropicFriction(Vector3 groundNormal)
+    private void ApplyAnisotropicFriction(Vector3 groundNormal, MovementHsmState hsmState)
     {
         if (!_groundContact.HasHit) return;
 
-        // 将全局速度投影到载具本地坐标系中，分离出 v_x 和 v_y
+        // 将全局速度投影到载具本地坐标系中，分离出 v_x 和 v_z
         Vector3 localVelocity = tanker.transform.InverseTransformDirection(tankRigidbody.linearVelocity);
-        float lateralVelocity = localVelocity.x; // 横向速度 v_y
+        float lateralVelocity = localVelocity.x;
+        float forwardVelocity = localVelocity.z;
 
         // 法向力 F_n = m * g * cos(theta)
         float gravity = Mathf.Abs(Physics.gravity.y);
@@ -102,6 +103,16 @@ public partial class TankMoveController : MonoBehaviour
         Vector3 groundContactPatch = tanker.transform.position - tanker.transform.up * cogHeight;
 
         tankRigidbody.AddForceAtPosition(tanker.transform.right * appliedLateralForce, groundContactPatch, ForceMode.Force);
+
+        // 纵向静摩擦（仅无油门时生效，mu 取地面摩擦的 0.3 倍防停车过猛）
+        if (!hsmState.HasTravelCommand)
+        {
+            float mu_long = _groundContact.FrictionCoefficient * 0.3f;
+            float maxLongitudinalFriction = mu_long * fn;
+            float reqForwardToStop = (forwardVelocity * tankMoveData.Mass) / Time.fixedDeltaTime;
+            float appliedForwardForce = -Mathf.Clamp(reqForwardToStop, -maxLongitudinalFriction, maxLongitudinalFriction);
+            tankRigidbody.AddForceAtPosition(tanker.transform.forward * appliedForwardForce, groundContactPatch, ForceMode.Force);
+        }
     }
 
     private void ApplyRuntimeDamping(MovementHsmState hsmState, float currentForwardSpeed)
@@ -528,12 +539,8 @@ public partial class TankMoveController : MonoBehaviour
     private void ApplyRollingResistance(Vector3 forwardAxis, float currentForwardSpeed)
     {
         float speedAbs = Mathf.Abs(currentForwardSpeed);
-        // 1. 如果没动，就不产生阻力（防止在斜坡上因为阻力产生奇怪的位移）
-        if (Mathf.Abs(currentForwardSpeed) < 0.01f) return;
 
         // 2. 计算滚阻系数 (取决于地面材质和SO配置)
-        // float rollingCoeff = _groundContact.FrictionCoefficient * rollingResistanceScale;
-
         float rollingCoeff = (_groundContact.HasHit ? _groundContact.FrictionCoefficient : fallbackGroundFrictionCoefficient) * rollingResistanceScale;
         rollingCoeff = Mathf.Min(rollingCoeff, maxRollingResistanceCoefficient);
 
@@ -541,7 +548,16 @@ public partial class TankMoveController : MonoBehaviour
         float gravity = Mathf.Abs(Physics.gravity.y);
         float resistanceMag = rollingCoeff * tankMoveData.Mass * gravity;
 
-        // 4. 施加力：方向与当前前进轴相反 (-forwardAxis)，并乘以上速度的方向
+        // 4. 在极低速区间，使用静摩擦模型：阻力随速度线性衰减至 0，防止悬挂沉降导致的漂移
+        //    同时避免在斜坡上因恒定阻力产生的反向位移
+        float staticFrictionThreshold = 0.05f;
+        if (speedAbs < staticFrictionThreshold)
+        {
+            float blend = speedAbs / staticFrictionThreshold; // 0 → 1
+            resistanceMag *= blend;
+        }
+
+        // 5. 施加力：方向与当前前进轴相反 (-forwardAxis)，并乘上速度的方向
         Vector3 rollingForce = -forwardAxis * resistanceMag * Mathf.Sign(currentForwardSpeed);
 
         tankRigidbody.AddForce(rollingForce, ForceMode.Force);

@@ -26,6 +26,12 @@ public class MapCameraPosition : MonoBehaviour
         ResolveMapCamera();
         SetupOrthoCamera();
         SetInactive();
+
+        // 物理 Camera 默认禁用，防止在没有 RenderTexture 时直接渲染到屏幕（全屏覆盖 Bug）
+        if (_mapCamera != null)
+        {
+            _mapCamera.enabled = false;
+        }
     }
 
     private void LateUpdate()
@@ -95,6 +101,9 @@ public class MapCameraPosition : MonoBehaviour
         if (_mapCamera != null)
         {
             _mapCamera.targetTexture = rt;
+            // 有 RenderTexture 时启用 Camera（渲染到纹理供引擎使用），
+            // 没有时禁用 Camera（防止直接渲染到屏幕造成全屏覆盖）
+            _mapCamera.enabled = rt != null;
         }
     }
 

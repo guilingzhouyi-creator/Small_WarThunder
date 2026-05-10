@@ -1,3 +1,4 @@
+﻿using NNewUIFramework;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -28,13 +29,13 @@ public class MainMenuUIController : MonoBehaviour
         {
             Debug.Log("Options 按钮被点击了！正在尝试打开设置面板...");
 
-            if (UIManager.Instance == null)
+            if (NewUIManager.instance == null)
             {
                 Debug.LogError("找不到 UIManager 实例！");
                 return;
             }
 
-            UIManager.Instance.ShowSettingsUI();
+            NewUIManager.instance.ShowSettingsUI();
         });
 
 

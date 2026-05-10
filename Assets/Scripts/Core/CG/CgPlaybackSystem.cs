@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.Video;
 using UnityEngine.InputSystem;
+using NNewUIFramework;
 
 /// <summary>
 /// CG 播放系统（执行层）。
@@ -127,11 +128,7 @@ public class CgPlaybackSystem : MonoBehaviour
         _currentClip = clip;
         _onFinished = onFinished;
 
-        // 锁定输入 + 隐藏 HUD（通过 UIManager.IsGameplayControlLocked 间接禁用所有输入）
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.SetCgPlaying(true);
-        }
+        NewUIManager.instance?.SetCgPlaying(true);
 
         // 配置 VideoPlayer
         _videoPlayer.clip = clip.videoClip;
@@ -179,7 +176,6 @@ public class CgPlaybackSystem : MonoBehaviour
 
         _isPlaying = false;
 
-        // 隐藏 UI
         if (_renderTarget != null)
         {
             _renderTarget.gameObject.SetActive(false);
@@ -190,13 +186,8 @@ public class CgPlaybackSystem : MonoBehaviour
             _skipPrompt.SetActive(false);
         }
 
-        // 解锁输入 + 恢复 HUD
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.SetCgPlaying(false);
-        }
+        NewUIManager.instance?.SetCgPlaying(false);
 
-        // 触发回调
         CgClip finishedClip = _currentClip;
         Action callback = _onFinished;
 

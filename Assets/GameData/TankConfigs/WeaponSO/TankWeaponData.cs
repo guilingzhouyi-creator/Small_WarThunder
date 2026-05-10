@@ -21,7 +21,6 @@ public class TankWeaponData : ScriptableObject
     public bool IsMachineGun;
     public float BaseSpread;
     public float MaxFCSdistance;
-    public GameObject ShellPrefab;
 
     /*弹药配置*/
     public List<ProjectileData> ProjectileSOList;

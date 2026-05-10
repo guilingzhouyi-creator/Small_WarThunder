@@ -1,0 +1,120 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 051fa6b71dbdbec41bfe1feb23e12f38, type: 3}
+  m_Name: M1A2_SEPv2_AudioData
+  m_EditorClassIdentifier: Assembly-CSharp::TankAudioData
+  TankType: 0
+  EngineLoopSound:
+    Guid:
+      Data1: 621003268
+      Data2: 1250401210
+      Data3: 76315307
+      Data4: 883714044
+    Path: event:/ground/engines/abrams/engine
+  EngineLoopCategory: 1
+  EngineStateAudio:
+    UseHierarchicalEngineStates: 1
+    RpmParameter: rpm
+    SpeedParameter: speed
+    LoadParameter: load
+    LoadSwitchParameter: loadswitch
+    StateParameter: engine_state
+    LoadSwitchOffValue: 0
+    LoadSwitchOnValue: 1
+    LoadSwitchSpeedThresholdKmh: 6
+    LoadSwitchLoadThreshold: 0.12
+    StartupDuration: 3.25
+    ShutdownDuration: 1
+    IdleRpmNormalized: 0.22
+    MaxRpmNormalized: 1
+    StartupLayers:
+    - LayerId: ignition
+      Event:
+        Guid:
+          Data1: 1860714371
+          Data2: 1133397527
+          Data3: 1813285555
+          Data4: -1489722812
+        Path: event:/ground/engines/abrams/engine_start
+      Volume: 1
+      Category: 1
+      DriveRpmParameter: 0
+      DriveSpeedParameter: 0
+      DriveLoadParameter: 0
+      DriveStateParameter: 0
+    IdleLayers: []
+    MoveLayers:
+    - LayerId: engine_runtime
+      Event:
+        Guid:
+          Data1: 621003268
+          Data2: 1250401210
+          Data3: 76315307
+          Data4: 883714044
+        Path: event:/ground/engines/abrams/engine
+      Volume: 0.58
+      Category: 1
+      DriveRpmParameter: 1
+      DriveSpeedParameter: 1
+      DriveLoadParameter: 1
+      DriveStateParameter: 0
+    ShutdownLayers:
+    - LayerId: cooldown
+      Event:
+        Guid:
+          Data1: -2053460644
+          Data2: 1113406378
+          Data3: 562876597
+          Data4: -1666560061
+        Path: event:/ground/engines/abrams/engine_stop
+      Volume: 1
+      Category: 1
+      DriveRpmParameter: 0
+      DriveSpeedParameter: 0
+      DriveLoadParameter: 0
+      DriveStateParameter: 0
+  OneShotCues:
+  - CueId: fire.primary
+    Event:
+      Guid:
+        Data1: -774528879
+        Data2: 1322545631
+        Data3: 1882602163
+        Data4: 790373691
+      Path: event:/ground/weapon/cannons/120mm_Rh120
+    Category: 2
+    VolumeScale: 1
+    Parameters:
+    - Name: on_shot
+      Value: 1
+  - CueId: reload.primary
+    Event:
+      Guid:
+        Data1: -1869476360
+        Data2: 1090406685
+        Data3: -919853435
+        Data4: 1703847056
+      Path: event:/ground/effects/reload_cannon_heavy
+    Category: 3
+    VolumeScale: 1
+    Parameters: []
+  - CueId: hit.generic
+    Event:
+      Guid:
+        Data1: -114348833
+        Data2: 1323199498
+        Data3: 64472232
+        Data4: 1769349865
+      Path: event:/ground/effects/hit_aphe_mid_unpierce
+    Category: 4
+    VolumeScale: 1
+    Parameters: []

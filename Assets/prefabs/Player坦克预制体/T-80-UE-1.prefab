@@ -2569,17 +2569,17 @@ MonoBehaviour:
   autoBindNodes: 1
   nodeBindingExtraDistance: 0.2
   nodeFollowVerticalOffset: 0
-  restHeight: 0.45
+  restHeight: 0.22
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
+  maxCompression: 0.38
   maxExtension: 0.5
   probeExtraLength: 0.2
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
   autoTuneSpringDamper: 1
-  targetRideCompressionRatio: 0.4
+  targetRideCompressionRatio: 0.5
   damperRatio: 0.9
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40
@@ -3234,17 +3234,17 @@ MonoBehaviour:
   autoBindNodes: 1
   nodeBindingExtraDistance: 0.2
   nodeFollowVerticalOffset: 0
-  restHeight: 0.45
+  restHeight: 0.22
   springStrength: 8500
   damperStrength: 900
-  maxCompression: 0.33
+  maxCompression: 0.38
   maxExtension: 0.5
   probeExtraLength: 0.2
   groundMask:
     serializedVersion: 2
     m_Bits: 4294967295
   autoTuneSpringDamper: 1
-  targetRideCompressionRatio: 0.4
+  targetRideCompressionRatio: 0.5
   damperRatio: 0.9
   suspensionRotationAxis: {x: 1, y: 0, z: 0}
   angleMultiplier: 40

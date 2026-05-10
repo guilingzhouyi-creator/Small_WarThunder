@@ -5,7 +5,8 @@ using UnityEngine.Serialization;
 public partial class TankSuspensionManager : MonoBehaviour
 {
     [Header("=== 统一参数（改这里影响所有悬挂） ===")]
-    public float restHeight = 0.45f;
+    [Tooltip("静止预压量，必须 < maxCompression，推荐 0.6~0.7 倍 maxCompression")]
+    public float restHeight = 0.25f;
     public float springStrength = 8500f;
     public float damperStrength = 900f;
     public float maxCompression = 0.38f;
@@ -15,7 +16,7 @@ public partial class TankSuspensionManager : MonoBehaviour
 
     [Header("自动整定")]
     public bool autoTuneSpringDamper = true;
-    [Range(0.1f, 0.9f)] public float targetRideCompressionRatio = 0.4f;
+    [Range(0.3f, 0.8f)] public float targetRideCompressionRatio = 0.5f;
     [Range(0.1f, 2f)] public float damperRatio = 0.9f;
 
     [Header("主悬挂旋转限制")]

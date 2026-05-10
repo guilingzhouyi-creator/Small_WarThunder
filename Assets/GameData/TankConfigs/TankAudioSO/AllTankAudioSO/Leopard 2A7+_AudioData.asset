@@ -1,0 +1,120 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 051fa6b71dbdbec41bfe1feb23e12f38, type: 3}
+  m_Name: Leopard 2A7+_AudioData
+  m_EditorClassIdentifier: Assembly-CSharp::TankAudioData
+  TankType: 7
+  EngineLoopSound:
+    Guid:
+      Data1: 1664638642
+      Data2: 1165291883
+      Data3: 809451671
+      Data4: 1504076937
+    Path: event:/ground/engines/ztz99/engine
+  EngineLoopCategory: 1
+  EngineStateAudio:
+    UseHierarchicalEngineStates: 1
+    RpmParameter: rpm
+    SpeedParameter: speed
+    LoadParameter: load
+    LoadSwitchParameter: loadswitch
+    StateParameter: engine_state
+    LoadSwitchOffValue: 0
+    LoadSwitchOnValue: 1
+    LoadSwitchSpeedThresholdKmh: 6
+    LoadSwitchLoadThreshold: 0.12
+    StartupDuration: 1.25
+    ShutdownDuration: 1
+    IdleRpmNormalized: 0.22
+    MaxRpmNormalized: 1
+    StartupLayers:
+    - LayerId: ignition
+      Event:
+        Guid:
+          Data1: 1166306120
+          Data2: 1228476944
+          Data3: -967837304
+          Data4: 1630184671
+        Path: event:/ground/engines/ztz99/engine_start
+      Volume: 1
+      Category: 1
+      DriveRpmParameter: 0
+      DriveSpeedParameter: 0
+      DriveLoadParameter: 0
+      DriveStateParameter: 0
+    IdleLayers: []
+    MoveLayers:
+    - LayerId: engine_runtime
+      Event:
+        Guid:
+          Data1: 1664638642
+          Data2: 1165291883
+          Data3: 809451671
+          Data4: 1504076937
+        Path: event:/ground/engines/ztz99/engine
+      Volume: 1
+      Category: 1
+      DriveRpmParameter: 1
+      DriveSpeedParameter: 1
+      DriveLoadParameter: 1
+      DriveStateParameter: 0
+    ShutdownLayers:
+    - LayerId: cooldown
+      Event:
+        Guid:
+          Data1: -805996064
+          Data2: 1250582767
+          Data3: -1366973016
+          Data4: -1474953309
+        Path: event:/ground/engines/ztz99/engine_stop
+      Volume: 1
+      Category: 1
+      DriveRpmParameter: 0
+      DriveSpeedParameter: 0
+      DriveLoadParameter: 0
+      DriveStateParameter: 0
+  OneShotCues:
+  - CueId: fire.primary
+    Event:
+      Guid:
+        Data1: -822732374
+        Data2: 1221389593
+        Data3: -1842911312
+        Data4: -1177166517
+      Path: event:/ground/weapon/cannons/125mm_2a46
+    Category: 2
+    VolumeScale: 1
+    Parameters:
+    - Name: on_shot
+      Value: 1
+  - CueId: reload.primary
+    Event:
+      Guid:
+        Data1: 1863260806
+        Data2: 1141139799
+        Data3: -636240470
+        Data4: -2009202261
+      Path: event:/ground/effects/reload_cannon_T72
+    Category: 3
+    VolumeScale: 1
+    Parameters: []
+  - CueId: hit.generic
+    Event:
+      Guid:
+        Data1: -1709710743
+        Data2: 1273711085
+        Data3: 791543469
+        Data4: -1097006719
+      Path: event:/ground/effects/ai/hit_heat_big_unpierce
+    Category: 4
+    VolumeScale: 1
+    Parameters: []

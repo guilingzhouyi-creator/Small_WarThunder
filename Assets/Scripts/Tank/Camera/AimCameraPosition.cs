@@ -1,3 +1,4 @@
+using NNewUIFramework;
 using UnityEngine;
 using Unity.Cinemachine;
 
@@ -24,7 +25,7 @@ public class AimCameraPosition : MonoBehaviour
             return;
         }
 
-        bool isAimMode = UIManager.Instance != null && UIManager.Instance.IsAimMode;
+        bool isAimMode = NewUIManager.instance.IsAimMode;
 
         if (isAimMode != _lastAimState)
         {
@@ -54,13 +55,13 @@ public class AimCameraPosition : MonoBehaviour
             return;
         }
 
-        bool isAimMode = UIManager.Instance != null && UIManager.Instance.IsAimMode;
+        bool isAimMode = NewUIManager.instance.IsAimMode;
         if (!isAimMode)
         {
             return;
         }
 
-        // ç¡¬é”åˆ°ç‚®é•œæŒ‚ç‚¹ï¼Œé¿å… Follow/LookAt æ’å€¼å¯¼è‡´çš„æŠ–åŠ¨ã€‚
+        // Ó²Ëøµ½ÅÚ¾µ¹Òµã£¬±ÜÃâ Follow/LookAt ²åÖµµ¼ÖÂµÄ¶¶¶¯¡£
         Transform cameraTransform = cinemachineCamera.transform;
         cameraTransform.SetPositionAndRotation(hardLockTarget.position, hardLockTarget.rotation);
     }
@@ -89,7 +90,7 @@ public class AimCameraPosition : MonoBehaviour
 
         if (useHardLock)
         {
-            // ä½¿ç”¨ç¡¬é”æ—¶ä¸ä¾èµ– Cinemachine çš„ç›®æ ‡è·Ÿéšï¼Œé¿å…é˜»å°¼/è½¨é“è§£ç®—å¹²æ‰°ã€‚
+            // Ê¹ÓÃÓ²ËøÊ±²»ÒÀÀµ Cinemachine µÄÄ¿±ê¸úËæ£¬±ÜÃâ×èÄá/¹ìµÀ½âËã¸ÉÈÅ¡£
             cinemachineCamera.Follow = null;
             cinemachineCamera.LookAt = null;
             return;

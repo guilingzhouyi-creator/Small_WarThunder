@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cdc7039ca8eb2784fb3f6e7852b7cf7c, type: 3}
+  m_Name: Leopard 2A7+MainData
+  m_EditorClassIdentifier: Assembly-CSharp::TankMainData
+  TankMaxHealth: 0
+  TankMaxAmmo: 0
+  IsAutoReload: 0
+  TankMaxReadyAmmo: 0
+  ReplenishTime: 5
+  TankMaxSmokeAmmo: 0
+  TankMaxEngineSmokeCount: 0
+  TankMaxCrewCount: 0
+  DefaultAmmoType: 0
+  AmmoLoadout: []

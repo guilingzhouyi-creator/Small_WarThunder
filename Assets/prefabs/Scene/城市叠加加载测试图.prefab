@@ -2191,8 +2191,8 @@ MonoBehaviour:
   _triggerMode: 1
   _repeatInterval: 6
   _repeatAfterFinishDelay: 2
-  _narrativePolicy: 1
-  _cgClip: {fileID: 0}
+  _narrativePolicy: 0
+  _cgClip: {fileID: 11400000, guid: 8510c17654ccfa34cbd25119f8a259a0, type: 2}
   _cgPolicy: 0
 --- !u!114 &4759581449817366475
 MonoBehaviour:

@@ -1,3 +1,4 @@
+using NNewUIFramework;
 using UnityEngine;
 using System.Collections.Generic;
 using TMPro;
@@ -5,10 +6,12 @@ using UnityEngine.UI;
 using System;
 
 /// <summary>
-/// 设置管理器，负责管理游戏中的各种设置选项，例如音量、图像质量、控制方式等。提供接口供其他系统调用，以获取和修改当前的设置状态。
+/// ���ù����������������Ϸ�еĸ�������ѡ�����������ͼ�����������Ʒ�ʽ�ȡ��ṩ�ӿڹ�����ϵͳ���ã��Ի�ȡ���޸ĵ�ǰ������״̬��
 /// </summary>
-public partial class SettingManager : MonoBehaviour
+public partial class SettingManager : UGUIViewAdapter
 {
+    public override EUIIdentity identity => EUIIdentity.SettingsPanel;
+
     public static SettingManager Instance { get; private set; }
 
     [Serializable]
@@ -22,7 +25,7 @@ public partial class SettingManager : MonoBehaviour
     public event Action<AudioSettingState> SettingsChanged;
     public event Action<AudioSettingState> SettingsApplied;
 
-    // [SerializeField] private TMP_Dropdown resolutionDropdown;//引用分辨率下拉菜单组件，用于显示和选择可用的屏幕分辨率选项
+    // [SerializeField] private TMP_Dropdown resolutionDropdown;//���÷ֱ��������˵������������ʾ��ѡ����õ���Ļ�ֱ���ѡ��
     // [SerializeField] private TMP_Dropdown qualityDropdown;
     [SerializeField] private Slider musicVolumeSlider;
     [SerializeField] private Slider sfxVolumeSlider;
@@ -33,7 +36,7 @@ public partial class SettingManager : MonoBehaviour
     [SerializeField] private Button cancelButton;
     [SerializeField] private Button applyButton;
 
-    // private Resolution[] _availableResolutions;// 存储可用的屏幕分辨率列表，供分辨率设置选项使用
+    // private Resolution[] _availableResolutions;// �洢���õ���Ļ�ֱ����б������ֱ�������ѡ��ʹ��
     [SerializeField] private AudioSettingState _currentAudioSettings;
     [SerializeField] private AudioSettingState _appliedAudioSettings;
     private readonly List<AudioCategoryVolumeItem> _categoryVolumeItems = new List<AudioCategoryVolumeItem>();
@@ -43,9 +46,11 @@ public partial class SettingManager : MonoBehaviour
     // private int _applyQualityIndex;
     // private int _applyResolutionIndex;
 
-    private void Awake()
+    protected override void Awake()
     {
-        //如果已经存在实例且不是当前对象，则销毁当前对象；否则设置实例并标记为不销毁
+        base.Awake();
+
+        //����Ѿ�����ʵ���Ҳ��ǵ�ǰ���������ٵ�ǰ���󣻷�������ʵ�������Ϊ������
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -72,8 +77,8 @@ public partial class SettingManager : MonoBehaviour
 
 
     /// <summary>
-    /// 这个方法用于初始化设置管理器，接受一个 AudioManager 实例作为参数，以便在设置界面中调整音量时能够直接调用 AudioManager 的接口来应用设置。通过这个方法，可以确保在游戏开始时或者在需要重新初始化设置管理器时，能够正确地设置和绑定相关的组件和事件监听器，并且加载当前的设置状态以供界面显示和调整。
-    /// 例如，在游戏开始时，GameManager 可以调用 SettingManager.Instance.Initialize(audioManager) 来传入当前的 AudioManager 实例，并且确保设置管理器能够正确地应用和同步音量设置。当玩家在设置界面调整音量滑动条时，可以直接调用 AudioManager 的 SetVolume 方法来应用新的音量设置，而不需要在每次调整时都进行额外的查找和获取 AudioManager 实例的操作。
+    /// ����������ڳ�ʼ�����ù�����������һ�� AudioManager ʵ����Ϊ�������Ա������ý����е�������ʱ�ܹ�ֱ�ӵ��� AudioManager �Ľӿ���Ӧ�����á�ͨ���������������ȷ������Ϸ��ʼʱ��������Ҫ���³�ʼ�����ù�����ʱ���ܹ���ȷ�����úͰ���ص�������¼������������Ҽ��ص�ǰ������״̬�Թ�������ʾ�͵�����
+    /// ���磬����Ϸ��ʼʱ��GameManager ���Ե��� SettingManager.Instance.Initialize(audioManager) �����뵱ǰ�� AudioManager ʵ��������ȷ�����ù������ܹ���ȷ��Ӧ�ú�ͬ���������á�����������ý����������������ʱ������ֱ�ӵ��� AudioManager �� SetVolume ������Ӧ���µ��������ã�������Ҫ��ÿ�ε���ʱ�����ж���Ĳ��Һͻ�ȡ AudioManager ʵ���Ĳ�����
     /// </summary>
     public void Initialize(AudioManager audioManager)
     {
@@ -85,24 +90,24 @@ public partial class SettingManager : MonoBehaviour
 
 
     /// <summary>
-    /// 这个方法用于绑定设置界面中 UI 组件的事件监听器，例如滑动条的值改变事件和按钮的点击事件。通过这个方法，可以确保当玩家在设置界面调整选项时，能够正确地更新内部的设置状态，并且在点击应用或取消按钮时能够执行相应的操作。
-    /// 例如，当玩家调整音乐音量滑动条时，可以更新 _applyMusicVolume 变量的值，并且更新界面上显示的音量百分比文本。当玩家点击应用按钮时，可以调用 ApplySettings 方法将当前的设置应用到游戏中，并保存到 PlayerPrefs。当玩家点击取消按钮时，可以调用 CancelSettings 方法恢复到上次应用的设置状态，并刷新界面显示。
+    /// ����������ڰ����ý����� UI ������¼������������绬������ֵ�ı��¼��Ͱ�ť�ĵ���¼���ͨ���������������ȷ������������ý������ѡ��ʱ���ܹ���ȷ�ظ����ڲ�������״̬�������ڵ��Ӧ�û�ȡ����ťʱ�ܹ�ִ����Ӧ�Ĳ�����
+    /// ���磬����ҵ�����������������ʱ�����Ը��� _applyMusicVolume ������ֵ�����Ҹ��½�������ʾ�������ٷֱ��ı�������ҵ��Ӧ�ð�ťʱ�����Ե��� ApplySettings ��������ǰ������Ӧ�õ���Ϸ�У������浽 PlayerPrefs������ҵ��ȡ����ťʱ�����Ե��� CancelSettings �����ָ����ϴ�Ӧ�õ�����״̬����ˢ�½�����ʾ��
     /// </summary>
     private void BindUIListeners()
     {
-        // Debug.Log("【SettingManager】正在绑定滑条事件...");
+        // Debug.Log("��SettingManager�����ڰ󶨻����¼�...");
         if (musicVolumeSlider != null)
         {
             musicVolumeSlider.onValueChanged.RemoveListener(OnMusicVolumeChanged);
             musicVolumeSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
-            // Debug.Log("已绑定音乐音量滑条事件");
+            // Debug.Log("�Ѱ��������������¼�");
         }
 
         if (sfxVolumeSlider != null)
         {
             sfxVolumeSlider.onValueChanged.RemoveListener(OnSfxVolumeChanged);
             sfxVolumeSlider.onValueChanged.AddListener(OnSfxVolumeChanged);
-            // Debug.Log("已绑定SFX音量滑条事件");
+            // Debug.Log("�Ѱ�SFX���������¼�");
         }
 
         if (applyButton != null)
@@ -119,16 +124,16 @@ public partial class SettingManager : MonoBehaviour
 
         if (categoryVolumeContent == null)
         {
-            Debug.LogError("SettingManager: categoryVolumeContent 未设置，请在 Inspector 中分配分类音量 Content 节点。", this);
+            Debug.LogError("SettingManager: categoryVolumeContent δ���ã����� Inspector �з���������� Content �ڵ㡣", this);
         }
 
         if (categoryVolumeItemPrefab == null)
         {
-            Debug.LogError("SettingManager: categoryVolumeItemPrefab 未设置，请在 Inspector 中分配分类音量项预制体。", this);
+            Debug.LogError("SettingManager: categoryVolumeItemPrefab δ���ã����� Inspector �з������������Ԥ���塣", this);
         }
     }
     /// <summary>
-    /// 刷新设置界面的 UI 显示，包括滑条值、分类音量项和音量标签。
+    /// ˢ�����ý���� UI ��ʾ����������ֵ�������������������ǩ��
     /// </summary>
     private void RefreshUI()
     {
@@ -176,12 +181,12 @@ public partial class SettingManager : MonoBehaviour
 
     private void OnMusicVolumeChanged(float value)
     {
-        // Debug.Log($"滑条被拖动: {value}");
+        // Debug.Log($"�������϶�: {value}");
         _currentAudioSettings.MusicVolume = Mathf.Clamp01(value);
         UpdateVolumeLabels();
         NotifySettingsChanged();
 
-        // 【核心修复：实时应用到音频管理器】
+        // �������޸���ʵʱӦ�õ���Ƶ��������
         if (_audioManager != null)
         {
             _audioManager.SetGlobalVolume(_currentAudioSettings.MusicVolume, 1);
@@ -190,13 +195,13 @@ public partial class SettingManager : MonoBehaviour
 
     private void OnSfxVolumeChanged(float value)
     {
-        // Debug.Log($"滑条被拖动: {value}");
+        // Debug.Log($"�������϶�: {value}");
         _currentAudioSettings.SfxVolume = Mathf.Clamp01(value);
         UpdateVolumeLabels();
         NotifySettingsChanged();
 
 
-        // 【核心修复：实时应用到音频管理器】
+        // �������޸���ʵʱӦ�õ���Ƶ��������
         if (_audioManager != null)
         {
             _audioManager.SetGlobalVolume(_currentAudioSettings.SfxVolume, 0);
@@ -226,9 +231,9 @@ public partial class SettingManager : MonoBehaviour
         RefreshUI();
 
 
-        if (UIManager.Instance != null)
+        if (NewUIManager.instance != null)
         {
-            UIManager.Instance.ShowPauseUI();
+            NewUIManager.instance.ShowPauseUI();
         }
     }
 
@@ -304,17 +309,17 @@ public partial class SettingManager : MonoBehaviour
 
     public void ShowSettingsPanel()
     {
-        if (UIManager.Instance != null)
+        if (NewUIManager.instance != null)
         {
-            UIManager.Instance.OpenOverlay(UIOverlayId.Setting);
+            NewUIManager.instance.ShowSettingsUI();
         }
     }
 
     public void HideSettingsPanel()
     {
-        if (UIManager.Instance != null)
+        if (NewUIManager.instance != null)
         {
-            UIManager.Instance.CloseOverlay(UIOverlayId.Setting);
+            NewUIManager.instance.CloseSettingsUI();
         }
     }
 

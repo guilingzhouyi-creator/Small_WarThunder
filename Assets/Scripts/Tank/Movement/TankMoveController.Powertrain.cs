@@ -1,3 +1,4 @@
+using NNewUIFramework;
 using System;
 using UnityEngine;
 
@@ -9,7 +10,7 @@ public partial class TankMoveController : MonoBehaviour
         Electrical
     }
 
-    [Header("åŠ¨åŠ›ç³»ç»Ÿ")]
+    [Header("¶¯Á¦ÏµÍ³")]
     [SerializeField] private bool startWithEngineOn = false;
     [SerializeField] private bool startWithElectricalPower = true;
     [SerializeField] private bool linkElectricalPowerToEngine = true;
@@ -25,7 +26,7 @@ public partial class TankMoveController : MonoBehaviour
     public bool IsEngineOn => _isEngineOn;
     public bool HasPropulsionPower => _isEngineOn;
     public bool HasElectricalPower => _hasElectricalPower;
-    public bool CanAcceptPropulsionInput => HasPropulsionPower && _engineInputLockRemaining <= 0f && (UIManager.Instance == null || !UIManager.Instance.IsGameplayControlLocked);
+    public bool CanAcceptPropulsionInput => HasPropulsionPower && _engineInputLockRemaining <= 0f && (NewUIManager.instance == null || !NewUIManager.instance.IsGameplayControlLocked);
 
     private void Update()
     {
@@ -48,7 +49,7 @@ public partial class TankMoveController : MonoBehaviour
             return;
         }
 
-        if (UIManager.Instance != null && UIManager.Instance.IsGameplayControlLocked)
+        if (NewUIManager.instance.IsGameplayControlLocked)
         {
             return;
         }
@@ -99,14 +100,14 @@ public partial class TankMoveController : MonoBehaviour
             SetElectricalPowerInternal(_isEngineOn);
         }
 
-        Debug.Log($"TankMoveController: å¼•æ“Žå·²{(_isEngineOn ? "å¯åŠ¨" : "å…³é—­")}");
+        Debug.Log($"TankMoveController: ÒýÇæÒÑ{(_isEngineOn ? "Æô¶¯" : "¹Ø±Õ")}");
     }
 
     public void SetElectricalPowerEnabled(bool enabled)
     {
         if (linkElectricalPowerToEngine && !_isEngineOn && enabled)
         {
-            Debug.LogWarning("TankMoveController: å½“å‰ç”µåŠ›ä¸Žå¼•æ“Žè”åŠ¨ï¼Œå‘åŠ¨æœºå…³é—­æ—¶æ— æ³•å•ç‹¬å¼€å¯ç”µåŠ›ã€‚");
+            Debug.LogWarning("TankMoveController: µ±Ç°µçÁ¦ÓëÒýÇæÁª¶¯£¬·¢¶¯»ú¹Ø±ÕÊ±ÎÞ·¨µ¥¶À¿ªÆôµçÁ¦¡£");
             return;
         }
 

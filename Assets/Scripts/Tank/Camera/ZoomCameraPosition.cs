@@ -1,3 +1,4 @@
+using NNewUIFramework;
 using UnityEngine;
 using Unity.Cinemachine;
 public class ZoomCameraPosition : MonoBehaviour
@@ -8,7 +9,7 @@ public class ZoomCameraPosition : MonoBehaviour
     private Transform _aimFollowTarget;
     private Transform _aimLookAtTarget;
 
-    [Header("ç¼©æ”¾å‚æ•°")]
+    [Header("Ëõ·Å²ÎÊı")]
     [SerializeField] private float NormalFOV = 60f;
 
     private float targetFOV;
@@ -83,7 +84,7 @@ public class ZoomCameraPosition : MonoBehaviour
             return;
         }
 
-        bool isAimMode = UIManager.Instance != null && UIManager.Instance.IsAimMode;
+        bool isAimMode = NewUIManager.instance.IsAimMode;
 
         if (!_targetsInitialized || _cachedAimMode != isAimMode)
         {
@@ -92,7 +93,7 @@ public class ZoomCameraPosition : MonoBehaviour
             _targetsInitialized = true;
         }
 
-        // æ£€æµ‹ç¼©æ”¾è¾“å…¥ï¼ˆå³é”®åˆ‡æ¢ZoomCameraï¼‰
+        // ¼ì²âËõ·ÅÊäÈë£¨ÓÒ¼üÇĞ»»ZoomCamera£©
         MIddleInputingController inputController = MIddleInputingController.Instance;
         if (inputController != null)
         {
@@ -136,7 +137,7 @@ public class ZoomCameraPosition : MonoBehaviour
             return;
         }
 
-        bool isAimMode = UIManager.Instance != null && UIManager.Instance.IsAimMode;
+        bool isAimMode = NewUIManager.instance.IsAimMode;
         Transform activeFollowTarget = isAimMode && _aimFollowTarget != null ? _aimFollowTarget : _normalFollowTarget;
         Transform activeLookAtTarget = isAimMode && _aimLookAtTarget != null ? _aimLookAtTarget : _normalLookAtTarget;
 

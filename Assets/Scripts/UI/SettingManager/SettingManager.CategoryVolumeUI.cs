@@ -1,8 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using NNewUIFramework;
 
-public partial class SettingManager : MonoBehaviour
+public partial class SettingManager : UGUIViewAdapter
 {
     private static readonly AudioVolumeCategory[] VisibleAudioCategories =
     {

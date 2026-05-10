@@ -1,3 +1,4 @@
+using NNewUIFramework;
 using System.Collections;
 using UnityEngine;
 
@@ -24,7 +25,7 @@ public partial class TankFireController : MonoBehaviour
             return;
         }
 
-        if (UIManager.Instance != null && UIManager.Instance.IsGameplayControlLocked)
+        if (NewUIManager.instance != null && NewUIManager.instance.IsGameplayControlLocked)
         {
             return;
         }
@@ -41,7 +42,7 @@ public partial class TankFireController : MonoBehaviour
             if (Time.time - _lastReloadWarningTime >= 1f)
             {
                 _lastReloadWarningTime = Time.time;
-                Debug.Log("正在装填中, 无法发射！");
+                Debug.Log("正在重新装填中，无法开火！");
             }
         }
     }
@@ -64,8 +65,6 @@ public partial class TankFireController : MonoBehaviour
         {
             if (_pendingReloadPenaltyTime > 0f)
             {
-                // 切换下一发弹药只影响“下一次准备装填”的种类，但在装填中切换会额外增加装填时间。
-                // 这个加时会被最大装填时间上限限制，防止玩家无限拖长装填。
                 reloadDuration = Mathf.Min(reloadDuration + _pendingReloadPenaltyTime, maxReloadDuration);
                 _pendingReloadPenaltyTime = 0f;
             }
@@ -86,10 +85,6 @@ public partial class TankFireController : MonoBehaviour
         OnReloadStatusChanged?.Invoke(0f);
     }
 
-    /// <summary>
-    /// 仅在装填过程中调用：给当前这次装填叠加延迟。
-    /// 每切换一次弹药，增加 1 秒，但不会超过武器数据里配置的最大装填上限。
-    /// </summary>
     private void AddReloadTimePenalty(float additionalSeconds)
     {
         if (!_isReloading)
@@ -100,10 +95,7 @@ public partial class TankFireController : MonoBehaviour
         _pendingReloadPenaltyTime += Mathf.Max(0f, additionalSeconds);
     }
 
-    /// <summary>
-    /// 返回本武器允许的最大装填时长。
-    /// 如果没有单独配置 MaxReloadTime，则使用 ReloadTime 作为上限。
-    /// </summary>
+
     private float GetMaxReloadDuration()
     {
         if (_MainGunWeaponData == null)
