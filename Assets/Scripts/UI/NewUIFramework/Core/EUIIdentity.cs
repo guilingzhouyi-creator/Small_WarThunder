@@ -24,6 +24,7 @@ namespace NNewUIFramework
         SubtitleOverlay,
 
         // System 层
-        SettingsPanel
+        SettingsPanel,
+        KeyBindingPanel
     }
 }

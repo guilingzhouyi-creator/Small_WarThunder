@@ -95,13 +95,12 @@ public partial class GameManager : MonoBehaviour
 
     /// <summary>
     /// 引导音频和设置子系统的单例引用。
+    /// 新版架构中 AudioManager 自行订阅 SettingManager 事件，无需手动初始化。
     /// </summary>
     private void BootstrapAudioAndSettings()
     {
         _settingManager ??= SettingManager.Instance;
         _audioManager ??= AudioManager.Instance;
-
-        _settingManager?.Initialize(_audioManager);
     }
     public static void ResetStaticData()
     {

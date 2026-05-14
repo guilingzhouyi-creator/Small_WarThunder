@@ -25,9 +25,8 @@ public static class BuildAssetZip
         {
             "Assets/Art",
             "Assets/Audio",
-            "Assets/Desktop",
             "Assets/prefabs",
-            "Assets/PhysicMaterial",
+            "Assets/PhysicMaterials",
             "Assets/Unity Asset Management System"
         };
 

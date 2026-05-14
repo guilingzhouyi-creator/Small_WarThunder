@@ -1,12 +1,13 @@
 using NNewUIFramework;
+using NSettingSystem;
 using UnityEngine;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine.UI;
 using System;
 
 /// <summary>
-/// ���ù����������������Ϸ�еĸ�������ѡ�����������ͼ�����������Ʒ�ʽ�ȡ��ṩ�ӿڹ�����ϵͳ���ã��Ի�ȡ���޸ĵ�ǰ������״̬��
+/// 设置管理器：管理 Tab 导航、apply/cancel 按钮路由分发。
+/// 音频设置逻辑由 AudioSettingController 独立处理，按键设置逻辑由 KeyBindingController 独立处理。
 /// </summary>
 public partial class SettingManager : UGUIViewAdapter
 {
@@ -14,43 +15,33 @@ public partial class SettingManager : UGUIViewAdapter
 
     public static SettingManager Instance { get; private set; }
 
+    /// <summary>外部系统（AudioManager 等）订阅此事件来响应设置变更。</summary>
+    public event Action<SettingManager> OnApplyAllSettings;
+    public event Action<SettingManager> OnCancelAllSettings;
+
+    /// <summary>子设置面板条目，包含 controller 及该子面板的 apply/cancel 按钮。</summary>
     [Serializable]
-    public struct AudioSettingState
+    private struct SubSettingEntry
     {
-        [Range(0f, 1f)] public float MusicVolume;
-        [Range(0f, 1f)] public float SfxVolume;
-        public AudioCategoryVolumeSetting[] CategoryVolumes;
+        public MonoBehaviour controller;
+        public Button applyButton;
+        public Button cancelButton;
     }
 
-    public event Action<AudioSettingState> SettingsChanged;
-    public event Action<AudioSettingState> SettingsApplied;
+    /// <summary>设置 Tab 导航按钮列表，支持鼠标点击和 Tab 键/方向键切换。</summary>
+    [SerializeField] private List<Button> _settingTabNavigationButtons;
+    /// <summary>子设置面板条目列表，管理 apply/cancel 路由分发。</summary>
+    [SerializeField] private List<SubSettingEntry> _subSettingEntries;
 
-    // [SerializeField] private TMP_Dropdown resolutionDropdown;//���÷ֱ��������˵������������ʾ��ѡ����õ���Ļ�ֱ���ѡ��
-    // [SerializeField] private TMP_Dropdown qualityDropdown;
-    [SerializeField] private Slider musicVolumeSlider;
-    [SerializeField] private Slider sfxVolumeSlider;
-    [SerializeField] private TMP_Text musicVolumeValueText;
-    [SerializeField] private TMP_Text sfxVolumeValueText;
-    [SerializeField] private RectTransform categoryVolumeContent;
-    [SerializeField] private GameObject categoryVolumeItemPrefab;
-    [SerializeField] private Button cancelButton;
-    [SerializeField] private Button applyButton;
-
-    // private Resolution[] _availableResolutions;// �洢���õ���Ļ�ֱ����б������ֱ�������ѡ��ʹ��
-    [SerializeField] private AudioSettingState _currentAudioSettings;
-    [SerializeField] private AudioSettingState _appliedAudioSettings;
-    private readonly List<AudioCategoryVolumeItem> _categoryVolumeItems = new List<AudioCategoryVolumeItem>();
-    private AudioManager _audioManager;
+    private Dictionary<string, SubSettingEntry> _subSettingMap;
+    private string _activeTabKey;
+    private int _currentTabIndex;
     private bool _isInitialized;
-
-    // private int _applyQualityIndex;
-    // private int _applyResolutionIndex;
 
     protected override void Awake()
     {
         base.Awake();
 
-        //����Ѿ�����ʵ���Ҳ��ǵ�ǰ���������ٵ�ǰ���󣻷�������ʵ�������Ϊ������
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
@@ -70,356 +61,166 @@ public partial class SettingManager : UGUIViewAdapter
     private void OnEnable()
     {
         EnsureInitialized();
-        RefreshUI();
     }
 
-
-
-
-    /// <summary>
-    /// ����������ڳ�ʼ�����ù�����������һ�� AudioManager ʵ����Ϊ�������Ա������ý����е�������ʱ�ܹ�ֱ�ӵ��� AudioManager �Ľӿ���Ӧ�����á�ͨ���������������ȷ������Ϸ��ʼʱ��������Ҫ���³�ʼ�����ù�����ʱ���ܹ���ȷ�����úͰ���ص�������¼������������Ҽ��ص�ǰ������״̬�Թ�������ʾ�͵�����
-    /// ���磬����Ϸ��ʼʱ��GameManager ���Ե��� SettingManager.Instance.Initialize(audioManager) �����뵱ǰ�� AudioManager ʵ��������ȷ�����ù������ܹ���ȷ��Ӧ�ú�ͬ���������á�����������ý����������������ʱ������ֱ�ӵ��� AudioManager �� SetVolume ������Ӧ���µ��������ã�������Ҫ��ÿ�ε���ʱ�����ж���Ĳ��Һͻ�ȡ AudioManager ʵ���Ĳ�����
-    /// </summary>
-    public void Initialize(AudioManager audioManager)
+    private void Update()
     {
-        _audioManager = audioManager != null ? audioManager : AudioManager.Instance;
-        EnsureInitialized();
-        ApplyCurrentSettingsToAudio();
+        HandleTabNavigationInput();
     }
 
+    private void HandleTabNavigationInput()
+    {
+        if (_settingTabNavigationButtons == null || _settingTabNavigationButtons.Count <= 0) return;
 
+        int newIndex = _currentTabIndex;
+        bool shouldSwitch = false;
 
-    /// <summary>
-    /// ����������ڰ����ý����� UI ������¼������������绬������ֵ�ı��¼��Ͱ�ť�ĵ���¼���ͨ���������������ȷ������������ý������ѡ��ʱ���ܹ���ȷ�ظ����ڲ�������״̬�������ڵ��Ӧ�û�ȡ����ťʱ�ܹ�ִ����Ӧ�Ĳ�����
-    /// ���磬����ҵ�����������������ʱ�����Ը��� _applyMusicVolume ������ֵ�����Ҹ��½�������ʾ�������ٷֱ��ı�������ҵ��Ӧ�ð�ťʱ�����Ե��� ApplySettings ��������ǰ������Ӧ�õ���Ϸ�У������浽 PlayerPrefs������ҵ��ȡ����ťʱ�����Ե��� CancelSettings �����ָ����ϴ�Ӧ�õ�����״̬����ˢ�½�����ʾ��
-    /// </summary>
+        if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.RightArrow))
+        {
+            newIndex = (_currentTabIndex + 1) % _settingTabNavigationButtons.Count;
+            shouldSwitch = true;
+        }
+        else if (Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            newIndex = (_currentTabIndex - 1 + _settingTabNavigationButtons.Count) % _settingTabNavigationButtons.Count;
+            shouldSwitch = true;
+        }
+
+        if (shouldSwitch && newIndex != _currentTabIndex)
+        {
+            SwitchTab(newIndex);
+        }
+    }
+
+    /// <summary>遍历 SubSettingEntry 列表，构建映射并为 apply/cancel 按钮绑定统一路由，初始全部隐藏由 SwitchTab 激活。</summary>
     private void BindUIListeners()
     {
-        // Debug.Log("��SettingManager�����ڰ󶨻����¼�...");
-        if (musicVolumeSlider != null)
+        _subSettingMap = new Dictionary<string, SubSettingEntry>();
+        foreach (SubSettingEntry entry in _subSettingEntries)
         {
-            musicVolumeSlider.onValueChanged.RemoveListener(OnMusicVolumeChanged);
-            musicVolumeSlider.onValueChanged.AddListener(OnMusicVolumeChanged);
-            // Debug.Log("�Ѱ��������������¼�");
-        }
+            ISettingTabController tabCtrl = entry.controller as ISettingTabController;
+            if (tabCtrl == null) continue;
 
-        if (sfxVolumeSlider != null)
-        {
-            sfxVolumeSlider.onValueChanged.RemoveListener(OnSfxVolumeChanged);
-            sfxVolumeSlider.onValueChanged.AddListener(OnSfxVolumeChanged);
-            // Debug.Log("�Ѱ�SFX���������¼�");
-        }
+            string key = tabCtrl.tabKey;
+            if (string.IsNullOrEmpty(key)) continue;
 
-        if (applyButton != null)
-        {
-            applyButton.onClick.RemoveListener(ApplySettings);
-            applyButton.onClick.AddListener(ApplySettings);
-        }
+            _subSettingMap[key] = entry;
 
-        if (cancelButton != null)
-        {
-            cancelButton.onClick.RemoveListener(CancelSettings);
-            cancelButton.onClick.AddListener(CancelSettings);
-        }
+            if (entry.applyButton != null)
+            {
+                entry.applyButton.onClick.RemoveAllListeners();
+                entry.applyButton.onClick.AddListener(OnApplyPressed);
+                entry.applyButton.gameObject.SetActive(false);
+            }
 
-        if (categoryVolumeContent == null)
-        {
-            Debug.LogError("SettingManager: categoryVolumeContent δ���ã����� Inspector �з���������� Content �ڵ㡣", this);
-        }
-
-        if (categoryVolumeItemPrefab == null)
-        {
-            Debug.LogError("SettingManager: categoryVolumeItemPrefab δ���ã����� Inspector �з������������Ԥ���塣", this);
+            if (entry.cancelButton != null)
+            {
+                entry.cancelButton.onClick.RemoveAllListeners();
+                entry.cancelButton.onClick.AddListener(OnCancelPressed);
+                entry.cancelButton.gameObject.SetActive(false);
+            }
         }
     }
-    /// <summary>
-    /// ˢ�����ý���� UI ��ʾ����������ֵ�������������������ǩ��
-    /// </summary>
-    private void RefreshUI()
+
+    /// <summary>根据索引切换到对应的子设置面板，同时控制 apply/cancel 按钮仅对当前活跃 Tab 可见。</summary>
+    public void SwitchTab(int tabIndex)
     {
-        // if (musicVolumeSlider != null) musicVolumeSlider.interactable = true;
-        // if (sfxVolumeSlider != null) sfxVolumeSlider.interactable = true;
-
-        SetSliderValueWithoutNotify(musicVolumeSlider, _currentAudioSettings.MusicVolume);
-        SetSliderValueWithoutNotify(sfxVolumeSlider, _currentAudioSettings.SfxVolume);
-        RefreshCategoryVolumeUI();
-        UpdateVolumeLabels();
-
-        if (musicVolumeSlider != null) musicVolumeSlider.interactable = true;
-        if (sfxVolumeSlider != null) sfxVolumeSlider.interactable = true;
-
-    }
-
-    private void SetSliderValueWithoutNotify(Slider slider, float value)
-    {
-        if (slider == null)
+        if (_subSettingEntries == null || tabIndex < 0 || tabIndex >= _subSettingEntries.Count)
         {
+            Debug.LogWarning($"SettingManager: 无法切换到索引 {tabIndex}，超出范围。", this);
             return;
         }
 
-        slider.SetValueWithoutNotify(Mathf.Clamp01(value));
-    }
-
-    private void UpdateVolumeLabels()
-    {
-        if (musicVolumeValueText != null)
+        SubSettingEntry entry = _subSettingEntries[tabIndex];
+        ISettingTabController newCtrl = entry.controller as ISettingTabController;
+        if (newCtrl == null)
         {
-            musicVolumeValueText.text = FormatVolumePercent(_currentAudioSettings.MusicVolume);
-        }
-
-        if (sfxVolumeValueText != null)
-        {
-            sfxVolumeValueText.text = FormatVolumePercent(_currentAudioSettings.SfxVolume);
-        }
-    }
-
-    private string FormatVolumePercent(float value)
-    {
-        return $"{Mathf.RoundToInt(Mathf.Clamp01(value) * 100f)}%";
-    }
-
-
-    private void OnMusicVolumeChanged(float value)
-    {
-        // Debug.Log($"�������϶�: {value}");
-        _currentAudioSettings.MusicVolume = Mathf.Clamp01(value);
-        UpdateVolumeLabels();
-        NotifySettingsChanged();
-
-        // �������޸���ʵʱӦ�õ���Ƶ��������
-        if (_audioManager != null)
-        {
-            _audioManager.SetGlobalVolume(_currentAudioSettings.MusicVolume, 1);
-        }
-    }
-
-    private void OnSfxVolumeChanged(float value)
-    {
-        // Debug.Log($"�������϶�: {value}");
-        _currentAudioSettings.SfxVolume = Mathf.Clamp01(value);
-        UpdateVolumeLabels();
-        NotifySettingsChanged();
-
-
-        // �������޸���ʵʱӦ�õ���Ƶ��������
-        if (_audioManager != null)
-        {
-            _audioManager.SetGlobalVolume(_currentAudioSettings.SfxVolume, 0);
-        }
-    }
-
-    private void NotifySettingsChanged()
-    {
-        SettingsChanged?.Invoke(CloneAudioSettingState(_currentAudioSettings));
-    }
-
-    public void ApplySettings()
-    {
-        ApplyCurrentSettingsToAudio();
-        SaveSettingsToStorage();
-
-        _appliedAudioSettings = CloneAudioSettingState(_currentAudioSettings);
-
-        RefreshUI();
-        SettingsApplied?.Invoke(CloneAudioSettingState(_currentAudioSettings));
-    }
-
-    private void CancelSettings()
-    {
-        _currentAudioSettings = CloneAudioSettingState(_appliedAudioSettings);
-
-        RefreshUI();
-
-
-        if (NewUIManager.instance != null)
-        {
-            NewUIManager.instance.ShowPauseUI();
-        }
-    }
-
-    public void ApplyCurrentSettingsToAudio()
-    {
-        if (_audioManager == null)
-        {
-            _audioManager = AudioManager.Instance;
-        }
-
-        if (_audioManager == null)
-        {
+            Debug.LogWarning($"SettingManager: 索引 {tabIndex} 的 controller 未实现 ISettingTabController。", this);
             return;
         }
 
-        _audioManager.SetGlobalVolume(_currentAudioSettings.MusicVolume, 1);
-        _audioManager.SetGlobalVolume(_currentAudioSettings.SfxVolume, 0);
-        _audioManager.SetCategoryVolumes(_currentAudioSettings.CategoryVolumes);
+        if (!string.IsNullOrEmpty(_activeTabKey) && _subSettingMap != null && _subSettingMap.TryGetValue(_activeTabKey, out SubSettingEntry oldEntry))
+        {
+            (oldEntry.controller as ISettingTabController)?.OnTabClosed();
+        }
+
+        _activeTabKey = newCtrl.tabKey;
+        _currentTabIndex = tabIndex;
+        newCtrl.OnTabOpened();
+
+        RefreshApplyCancelButtonVisibility();
     }
 
-    public AudioSettingState GetCurrentAudioSettings()
+    /// <summary>仅显示当前活跃 Tab 的 apply/cancel 按钮，隐藏其他 Tab 的按钮。</summary>
+    private void RefreshApplyCancelButtonVisibility()
     {
-        return CloneAudioSettingState(_currentAudioSettings);
+        if (_subSettingEntries == null) return;
+
+        foreach (SubSettingEntry entry in _subSettingEntries)
+        {
+            bool isActive = entry.controller != null &&
+                           (entry.controller as ISettingTabController)?.tabKey == _activeTabKey;
+
+            if (entry.applyButton != null)
+                entry.applyButton.gameObject.SetActive(isActive);
+
+            if (entry.cancelButton != null)
+                entry.cancelButton.gameObject.SetActive(isActive);
+        }
     }
 
-    public void SetMusicVolume(float value)
+    private ICallbackRouterCallback callbackRouterCallback;
+    public interface ICallbackRouterCallback
     {
-        _currentAudioSettings.MusicVolume = Mathf.Clamp01(value);
-        RefreshUI();
-        NotifySettingsChanged();
+        bool RouteApplyToSubControllers(List<MonoBehaviour> controllers);
     }
 
-    public void SetSfxVolume(float value)
+    private void OnApplyPressed()
     {
-        _currentAudioSettings.SfxVolume = Mathf.Clamp01(value);
-        RefreshUI();
-        NotifySettingsChanged();
+        if (TryGetActiveController(out ISettingTabController controller))
+        {
+            controller.OnApplyRequested();
+        }
+
+        OnApplyAllSettings?.Invoke(this);
     }
 
-    public void SetAudioSettings(AudioSettingState state)
+    private void OnCancelPressed()
     {
-        _currentAudioSettings = CloneAudioSettingState(state);
-        _currentAudioSettings.MusicVolume = Mathf.Clamp01(_currentAudioSettings.MusicVolume);
-        _currentAudioSettings.SfxVolume = Mathf.Clamp01(_currentAudioSettings.SfxVolume);
-        _currentAudioSettings.CategoryVolumes = NormalizeCategoryVolumes(_currentAudioSettings.CategoryVolumes);
-        RefreshUI();
-        NotifySettingsChanged();
+        if (TryGetActiveController(out ISettingTabController controller))
+        {
+            controller.OnCancelRequested();
+        }
+
+        OnCancelAllSettings?.Invoke(this);
     }
 
-    public float GetCategoryVolume(AudioVolumeCategory category)
+    private bool TryGetActiveController(out ISettingTabController controller)
     {
-        return GetCategoryVolumeFromSettings(_currentAudioSettings.CategoryVolumes, category);
-    }
+        controller = null;
+        if (_subSettingMap == null || string.IsNullOrEmpty(_activeTabKey))
+        {
+            Debug.LogWarning("SettingManager: 无活跃 Tab，无法路由。", this);
+            return false;
+        }
 
-    public AudioCategoryVolumeSetting[] GetCategoryVolumeSettings()
-    {
-        return CloneCategoryVolumes(_currentAudioSettings.CategoryVolumes);
-    }
+        if (!_subSettingMap.TryGetValue(_activeTabKey, out SubSettingEntry entry))
+        {
+            Debug.LogWarning($"SettingManager: 活跃 Tab 键 '{_activeTabKey}' 在映射中未找到。", this);
+            return false;
+        }
 
-    public void SetCategoryVolume(AudioVolumeCategory category, float value)
-    {
-        _currentAudioSettings.CategoryVolumes = SetCategoryVolumeInternal(_currentAudioSettings.CategoryVolumes, category, value);
-        RefreshUI();
-        NotifySettingsChanged();
-    }
-
-    public void SetCategoryVolumeSettings(AudioCategoryVolumeSetting[] settings)
-    {
-        _currentAudioSettings.CategoryVolumes = NormalizeCategoryVolumes(settings);
-        RefreshUI();
-        NotifySettingsChanged();
+        controller = entry.controller as ISettingTabController;
+        return controller != null;
     }
 
     public void ShowSettingsPanel()
     {
-        if (NewUIManager.instance != null)
-        {
-            NewUIManager.instance.ShowSettingsUI();
-        }
+        NewUIManager.instance?.ShowSettingsUI();
     }
 
     public void HideSettingsPanel()
     {
-        if (NewUIManager.instance != null)
-        {
-            NewUIManager.instance.CloseSettingsUI();
-        }
+        NewUIManager.instance?.CloseSettingsUI();
     }
-
-    private static AudioSettingState CloneAudioSettingState(AudioSettingState state)
-    {
-        state.CategoryVolumes = CloneCategoryVolumes(state.CategoryVolumes);
-        return state;
-    }
-
-    private static AudioCategoryVolumeSetting[] CloneCategoryVolumes(AudioCategoryVolumeSetting[] settings)
-    {
-        if (settings == null || settings.Length == 0)
-        {
-            return CreateDefaultCategoryVolumes();
-        }
-
-        AudioCategoryVolumeSetting[] clonedSettings = new AudioCategoryVolumeSetting[settings.Length];
-        Array.Copy(settings, clonedSettings, settings.Length);
-        return NormalizeCategoryVolumes(clonedSettings);
-    }
-
-    private static AudioCategoryVolumeSetting[] CreateDefaultCategoryVolumes()
-    {
-        AudioVolumeCategory[] categories = (AudioVolumeCategory[])Enum.GetValues(typeof(AudioVolumeCategory));
-        AudioCategoryVolumeSetting[] defaultSettings = new AudioCategoryVolumeSetting[categories.Length];
-
-        for (int index = 0; index < categories.Length; index++)
-        {
-            defaultSettings[index] = new AudioCategoryVolumeSetting
-            {
-                Category = categories[index],
-                Volume = 1f
-            };
-        }
-
-        return defaultSettings;
-    }
-
-    private static AudioCategoryVolumeSetting[] NormalizeCategoryVolumes(AudioCategoryVolumeSetting[] settings)
-    {
-        AudioCategoryVolumeSetting[] normalizedSettings = CreateDefaultCategoryVolumes();
-        if (settings == null || settings.Length == 0)
-        {
-            return normalizedSettings;
-        }
-
-        for (int index = 0; index < normalizedSettings.Length; index++)
-        {
-            AudioVolumeCategory category = normalizedSettings[index].Category;
-            if (TryGetCategoryVolume(settings, category, out float volume))
-            {
-                normalizedSettings[index].Volume = Mathf.Clamp01(volume);
-            }
-        }
-
-        return normalizedSettings;
-    }
-
-    private static bool TryGetCategoryVolume(AudioCategoryVolumeSetting[] settings, AudioVolumeCategory category, out float volume)
-    {
-        if (settings != null)
-        {
-            for (int index = 0; index < settings.Length; index++)
-            {
-                if (settings[index].Category == category)
-                {
-                    volume = settings[index].Volume;
-                    return true;
-                }
-            }
-        }
-
-        volume = 1f;
-        return false;
-    }
-
-    private static float GetCategoryVolumeFromSettings(AudioCategoryVolumeSetting[] settings, AudioVolumeCategory category)
-    {
-        return TryGetCategoryVolume(settings, category, out float volume)
-            ? Mathf.Clamp01(volume)
-            : 1f;
-    }
-
-    private static AudioCategoryVolumeSetting[] SetCategoryVolumeInternal(AudioCategoryVolumeSetting[] settings, AudioVolumeCategory category, float value)
-    {
-        AudioCategoryVolumeSetting[] normalizedSettings = NormalizeCategoryVolumes(settings);
-        for (int index = 0; index < normalizedSettings.Length; index++)
-        {
-            if (normalizedSettings[index].Category != category)
-            {
-                continue;
-            }
-
-            normalizedSettings[index].Volume = Mathf.Clamp01(value);
-            break;
-        }
-
-        return normalizedSettings;
-    }
-
-
-
 }

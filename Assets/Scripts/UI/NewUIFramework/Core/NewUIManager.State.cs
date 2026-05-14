@@ -1,8 +1,8 @@
 namespace NNewUIFramework
 {
     /// <summary>
-    /// NewUIManager partial：全局状态属性查�?
-    /// IsAimMode, IsCgPlaying, IsGameplayControlLocked, IsSettingUIVisible
+    /// NewUIManager partial：全局状态属性查询
+    /// IsAimMode, IsCgPlaying, IsGameplayControlLocked, IsSettingUIVisible, IsKeyBindingUIVisible
     /// 以及 NewUIManager.instance 静态兼容层
     /// </summary>
     public partial class NewUIManager
@@ -11,20 +11,21 @@ namespace NNewUIFramework
         private bool _isTabed;
         private bool _isMapShown;
         private bool _isSettingUIVisible;
+        private bool _isKeyBindingUIVisible;
         private bool _isSightUIVisible = true;
         private bool _isAimMode;
         private bool _isCgPlaying;
 
-        /// <summary>是否处于暂停状�?/summary>
+        /// <summary>是否处于暂停状态</summary>
         public bool IsPaused => _isPaused;
 
-        /// <summary>Gameplay 控制是否被锁定（任何 Overlay 打开 �?CG 播放中）</summary>
-        public bool IsGameplayControlLocked => _isTabed || _isMapShown || _isPaused || _isCgPlaying;
+        /// <summary>Gameplay 控制是否被锁定（任何 Overlay 打开或 CG 播放中）</summary>
+        public bool IsGameplayControlLocked => _isTabed || _isMapShown || _isPaused || _isCgPlaying || _isKeyBindingUIVisible;
 
         /// <summary>是否处于瞄准模式</summary>
         public bool IsAimMode => _isAimMode;
 
-        /// <summary>大地图是否显�?/summary>
+        /// <summary>大地图是否显示</summary>
         public bool IsMapShown => _isMapShown;
 
         /// <summary>Tab 面板是否显示</summary>
@@ -33,13 +34,16 @@ namespace NNewUIFramework
         /// <summary>设置 UI 是否可见</summary>
         public bool IsSettingUIVisible => _isSettingUIVisible;
 
+        /// <summary>按键设置 UI 是否可见</summary>
+        public bool IsKeyBindingUIVisible => _isKeyBindingUIVisible;
+
         /// <summary>CG 是否正在播放</summary>
         public bool IsCgPlaying => _isCgPlaying;
 
-        /// <summary>瞄准 UI 是否激活（等价 IsAimMode�?/summary>
+        /// <summary>瞄准 UI 是否激活（等价 IsAimMode）</summary>
         public bool IsTankAimActive => _isAimMode;
 
-        /// <summary>TankStats UI 是否激�?/summary>
+        /// <summary>TankStats UI 是否激活</summary>
         public bool IsTankStatsActive => !IsGameplayControlLocked && !_isAimMode;
 
         /// <summary>设置 Aim 模式</summary>
@@ -58,7 +62,7 @@ namespace NNewUIFramework
             SetAimMode(!_isAimMode);
         }
 
-        /// <summary>设置 CG 播放状�?/summary>
+        /// <summary>设置 CG 播放状态</summary>
         public void SetCgPlaying(bool playing)
         {
             if (_isCgPlaying == playing)
@@ -70,6 +74,7 @@ namespace NNewUIFramework
             {
                 _isAimMode = false;
                 _isSettingUIVisible = false;
+                _isKeyBindingUIVisible = false;
                 _isPaused = false;
             }
 
@@ -77,7 +82,29 @@ namespace NNewUIFramework
             RefreshUIState();
         }
 
-        /// <summary>刷新鼠标锁定状�?/summary>
+        /// <summary>打开按键设置面板（从 SettingManager 进入）</summary>
+        public void ShowKeyBindingUI()
+        {
+            if (_isKeyBindingUIVisible) return;
+
+            _isKeyBindingUIVisible = true;
+            _isSettingUIVisible = false;
+            RefreshCursorLockState();
+            RefreshUIState();
+        }
+
+        /// <summary>关闭按键设置面板，回到 SettingManager</summary>
+        public void CloseKeyBindingUI()
+        {
+            if (!_isKeyBindingUIVisible) return;
+
+            _isKeyBindingUIVisible = false;
+            _isSettingUIVisible = true;
+            RefreshCursorLockState();
+            RefreshUIState();
+        }
+
+        /// <summary>刷新鼠标锁定状态</summary>
         private void RefreshCursorLockState()
         {
             bool shouldUnlockCursor = IsGameplayControlLocked;
@@ -100,7 +127,7 @@ namespace NNewUIFramework
                 else
                 {
                     mapUIController?.CloseFullMap();
-                    bool miniVisible = !_isPaused && !_isSettingUIVisible && !_isTabed && !_isCgPlaying;
+                    bool miniVisible = !_isPaused && !_isSettingUIVisible && !_isTabed && !_isCgPlaying && !_isKeyBindingUIVisible;
                     bool show = miniVisible && (_isAimMode ? _showMiniMapInAim : _showMiniMapInTPS);
                     mapUIController?.SetMiniMapVisible(show);
                 }
@@ -112,12 +139,16 @@ namespace NNewUIFramework
             }
 
             // ── 暂停面板 ──
-            bool showPause = isGame && _isPaused && !_isSettingUIVisible;
+            bool showPause = isGame && _isPaused && !_isSettingUIVisible && !_isKeyBindingUIVisible;
             SyncPanel(EUIIdentity.PausePanel, showPause, EUIPushBehavior.Exclusive);
 
             // ── 设置面板 ──
-            bool showSettings = isGame && _isPaused && _isSettingUIVisible;
+            bool showSettings = isGame && _isPaused && _isSettingUIVisible && !_isKeyBindingUIVisible;
             SyncPanel(EUIIdentity.SettingsPanel, showSettings);
+
+            // ── 按键设置面板 ──
+            bool showKeyBinding = isGame && _isPaused && _isKeyBindingUIVisible;
+            SyncPanel(EUIIdentity.KeyBindingPanel, showKeyBinding, EUIPushBehavior.Exclusive);
 
             // ── 任务面板 ──
             bool showMission = isGame && _isTabed;

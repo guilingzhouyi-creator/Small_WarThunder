@@ -16,21 +16,15 @@ public class MIddleInputingController : MonoBehaviour
 
     private GameInputingSystem _inputActions;
 
+    /// <summary>获取 InputActionAsset，供按键设置系统使用</summary>
+    public InputActionAsset InputAsset => _inputActions?.asset;
+
+    /// <summary>获取 TankerDriver ActionMap，供按键设置系统使用</summary>
+    public InputActionMap TankerDriverMap => _inputActions?.TankerDriver;
+
     private void Awake()
     {
-        // if (Instance == null)
-        // {
-        //     Instance = this;
-        // }
-        // else
-        // {
-        //     if (Application.isPlaying)
-        //     {
-        //         Destroy(gameObject);
-        //     }
 
-        //     return;
-        // }
 
         if (Instance != null && Instance != this)
         {

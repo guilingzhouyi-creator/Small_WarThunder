@@ -388,7 +388,8 @@ namespace NNewUIFramework
             if (_isSettingBound || settingManager == null)
                 return;
 
-            settingManager.SettingsApplied += HandleSettingsApplied;
+            settingManager.OnApplyAllSettings += HandleSettingsApplied;
+            settingManager.OnCancelAllSettings += HandleSettingsCancelled;
             _isSettingBound = true;
         }
 
@@ -400,11 +401,17 @@ namespace NNewUIFramework
                 return;
             }
 
-            settingManager.SettingsApplied -= HandleSettingsApplied;
+            settingManager.OnApplyAllSettings -= HandleSettingsApplied;
+            settingManager.OnCancelAllSettings -= HandleSettingsCancelled;
             _isSettingBound = false;
         }
 
-        private void HandleSettingsApplied(SettingManager.AudioSettingState audioSettingState)
+        private void HandleSettingsApplied(SettingManager manager)
+        {
+            ShowPauseUI();
+        }
+
+        private void HandleSettingsCancelled(SettingManager manager)
         {
             ShowPauseUI();
         }

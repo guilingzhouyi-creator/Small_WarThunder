@@ -1,10 +1,11 @@
 using System;
 using UnityEngine;
-using NNewUIFramework;
 
-public partial class SettingManager : UGUIViewAdapter
+/// <summary>
+/// AudioSettingController 持久化 Partial：负责音频设置的 PlayerPrefs 读写。
+/// </summary>
+public partial class AudioSettingController
 {
-    private const string AudioSettingsPrefsKey = "SmallWarThunder.AudioSettings";//用于在PlayerPrefs中存储和检索音频设置的键，确保数据的一致性和可维护性
     private const int AudioSettingsPrefsVersion = 1;
 
     [Serializable]
@@ -29,6 +30,7 @@ public partial class SettingManager : UGUIViewAdapter
 
         _currentAudioSettings = NormalizeAudioSettingState(_currentAudioSettings);
         _appliedAudioSettings = CloneAudioSettingState(_currentAudioSettings);
+        Debug.Log("[AudioSettingController] Settings loaded");
     }
 
     private void SaveSettingsToStorage()
@@ -40,20 +42,21 @@ public partial class SettingManager : UGUIViewAdapter
             CategoryVolumes = NormalizeCategoryVolumes(_currentAudioSettings.CategoryVolumes)
         };
 
-        PlayerPrefs.SetString(AudioSettingsPrefsKey, JsonUtility.ToJson(saveData));
+        PlayerPrefs.SetString(SettingConstants.PrefsKeyAudioSettings, JsonUtility.ToJson(saveData));
         PlayerPrefs.Save();
+        Debug.Log("[AudioSettingController] Settings saved to storage");
     }
 
     private static bool TryLoadSettingsFromStorage(out AudioSettingState state)
     {
         state = default;
 
-        if (!PlayerPrefs.HasKey(AudioSettingsPrefsKey))
+        if (!PlayerPrefs.HasKey(SettingConstants.PrefsKeyAudioSettings))
         {
             return false;
         }
 
-        string json = PlayerPrefs.GetString(AudioSettingsPrefsKey, string.Empty);
+        string json = PlayerPrefs.GetString(SettingConstants.PrefsKeyAudioSettings, string.Empty);
         if (string.IsNullOrWhiteSpace(json))
         {
             return false;
@@ -66,7 +69,7 @@ public partial class SettingManager : UGUIViewAdapter
         }
         catch (Exception exception)
         {
-            Debug.LogWarning($"SettingManager: 读取音频设置失败，已回退到默认值。{exception.Message}");
+            Debug.LogWarning($"[AudioSettingController] 读取音频设置失败，已回退到默认值。{exception.Message}");
             return false;
         }
 

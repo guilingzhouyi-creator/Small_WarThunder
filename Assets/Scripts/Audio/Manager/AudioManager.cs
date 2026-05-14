@@ -62,26 +62,37 @@ public partial class AudioManager : MonoBehaviour
     {
         if (SettingManager.Instance != null)
         {
-            SettingManager.Instance.SettingsChanged += OnVolumeSettingsChanged;
+            SettingManager.Instance.OnApplyAllSettings += OnApplyAllSettings;
         }
     }
 
     private void Start()
     {
-        // 初始化时应用当前设置
         if (SettingManager.Instance != null)
         {
-            SettingManager.Instance.SettingsChanged -= OnVolumeSettingsChanged; // 确保不重复订阅
-            SettingManager.Instance.SettingsChanged += OnVolumeSettingsChanged;
+            SettingManager.Instance.OnApplyAllSettings -= OnApplyAllSettings;
+            SettingManager.Instance.OnApplyAllSettings += OnApplyAllSettings;
         }
     }
 
-
-    private void OnVolumeSettingsChanged(SettingManager.AudioSettingState newState)
+    private void OnDisable()
     {
-        // 实时接收修改并应用
-        SetGlobalVolume(newState.MusicVolume, 1);
-        SetGlobalVolume(newState.SfxVolume, 0);
+        if (SettingManager.Instance != null)
+        {
+            SettingManager.Instance.OnApplyAllSettings -= OnApplyAllSettings;
+        }
+    }
+
+    private void OnApplyAllSettings(SettingManager manager)
+    {
+        AudioSettingController audioCtrl = FindFirstObjectByType<AudioSettingController>();
+        if (audioCtrl != null)
+        {
+            AudioSettingState state = audioCtrl.GetCurrentAudioSettings();
+            SetGlobalVolume(state.MusicVolume, 1);
+            SetGlobalVolume(state.SfxVolume, 0);
+            SetCategoryVolumes(state.CategoryVolumes);
+        }
     }
 
     private void OnDestroy()
