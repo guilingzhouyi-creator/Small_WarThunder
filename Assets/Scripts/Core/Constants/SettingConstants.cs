@@ -4,6 +4,12 @@
 /// </summary>
 public static class SettingConstants
 {
+    /// <summary>通用设置 Tab 标识</summary>
+    public const string TabKeyGeneral = "General";
+
+    /// <summary>画面设置 Tab 标识</summary>
+    public const string TabKeyVisual = "Visual";
+
     /// <summary>音频设置 Tab 标识</summary>
     public const string TabKeyAudio = "Audio";
 

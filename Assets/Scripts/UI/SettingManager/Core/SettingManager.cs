@@ -37,6 +37,7 @@ public partial class SettingManager : UGUIViewAdapter
     private string _activeTabKey;
     private int _currentTabIndex;
     private bool _isInitialized;
+    private SettingInteractionRouter _interactionRouter;
 
     protected override void Awake()
     {
@@ -61,41 +62,50 @@ public partial class SettingManager : UGUIViewAdapter
     private void OnEnable()
     {
         EnsureInitialized();
+        _interactionRouter?.EnableInput();
     }
 
-    private void Update()
+    private void OnDisable()
     {
-        HandleTabNavigationInput();
+        _interactionRouter?.DisableInput();
     }
 
-    private void HandleTabNavigationInput()
+    private void OnDestroy()
     {
-        if (_settingTabNavigationButtons == null || _settingTabNavigationButtons.Count <= 0) return;
-
-        int newIndex = _currentTabIndex;
-        bool shouldSwitch = false;
-
-        if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.RightArrow))
+        if (Instance == this)
         {
-            newIndex = (_currentTabIndex + 1) % _settingTabNavigationButtons.Count;
-            shouldSwitch = true;
-        }
-        else if (Input.GetKeyDown(KeyCode.LeftArrow))
-        {
-            newIndex = (_currentTabIndex - 1 + _settingTabNavigationButtons.Count) % _settingTabNavigationButtons.Count;
-            shouldSwitch = true;
+            Instance = null;
         }
 
-        if (shouldSwitch && newIndex != _currentTabIndex)
+        _interactionRouter?.Dispose();
+    }
+
+    private void EnsureInteractionRouter()
+    {
+        if (_interactionRouter == null)
         {
-            SwitchTab(newIndex);
+            _interactionRouter = new SettingInteractionRouter(SwitchToNextTab, SwitchToPreviousTab);
         }
     }
 
     /// <summary>遍历 SubSettingEntry 列表，构建映射并为 apply/cancel 按钮绑定统一路由，初始全部隐藏由 SwitchTab 激活。</summary>
     private void BindUIListeners()
     {
+        EnsureInteractionRouter();
+        NormalizeTabConfiguration();
         _subSettingMap = new Dictionary<string, SubSettingEntry>();
+        _interactionRouter.BindTabButtons(_settingTabNavigationButtons, SwitchTab);
+
+        if (_subSettingEntries == null)
+        {
+            _interactionRouter.BindApplyButtons(null, OnApplyPressed);
+            _interactionRouter.BindCancelButtons(null, OnCancelPressed);
+            return;
+        }
+
+        List<Button> applyButtons = new List<Button>(_subSettingEntries.Count);
+        List<Button> cancelButtons = new List<Button>(_subSettingEntries.Count);
+
         foreach (SubSettingEntry entry in _subSettingEntries)
         {
             ISettingTabController tabCtrl = entry.controller as ISettingTabController;
@@ -105,21 +115,23 @@ public partial class SettingManager : UGUIViewAdapter
             if (string.IsNullOrEmpty(key)) continue;
 
             _subSettingMap[key] = entry;
+            SetControllerVisible(entry.controller, false);
 
             if (entry.applyButton != null)
             {
-                entry.applyButton.onClick.RemoveAllListeners();
-                entry.applyButton.onClick.AddListener(OnApplyPressed);
+                applyButtons.Add(entry.applyButton);
                 entry.applyButton.gameObject.SetActive(false);
             }
 
             if (entry.cancelButton != null)
             {
-                entry.cancelButton.onClick.RemoveAllListeners();
-                entry.cancelButton.onClick.AddListener(OnCancelPressed);
+                cancelButtons.Add(entry.cancelButton);
                 entry.cancelButton.gameObject.SetActive(false);
             }
         }
+
+        _interactionRouter.BindApplyButtons(applyButtons, OnApplyPressed);
+        _interactionRouter.BindCancelButtons(cancelButtons, OnCancelPressed);
     }
 
     /// <summary>根据索引切换到对应的子设置面板，同时控制 apply/cancel 按钮仅对当前活跃 Tab 可见。</summary>
@@ -139,16 +151,65 @@ public partial class SettingManager : UGUIViewAdapter
             return;
         }
 
+        if (_currentTabIndex == tabIndex && !string.IsNullOrEmpty(_activeTabKey) && _activeTabKey == newCtrl.tabKey)
+        {
+            return;
+        }
+
         if (!string.IsNullOrEmpty(_activeTabKey) && _subSettingMap != null && _subSettingMap.TryGetValue(_activeTabKey, out SubSettingEntry oldEntry))
         {
             (oldEntry.controller as ISettingTabController)?.OnTabClosed();
+            SetControllerVisible(oldEntry.controller, false);
         }
 
         _activeTabKey = newCtrl.tabKey;
         _currentTabIndex = tabIndex;
+        SetControllerVisible(entry.controller, true);
         newCtrl.OnTabOpened();
 
         RefreshApplyCancelButtonVisibility();
+    }
+
+    private void SwitchTabRelative(int step)
+    {
+        if (_subSettingEntries == null || _subSettingEntries.Count <= 0)
+        {
+            return;
+        }
+
+        int buttonCount = _subSettingEntries.Count;
+        int newIndex = (_currentTabIndex + step + buttonCount) % buttonCount;
+        SwitchTab(newIndex);
+    }
+
+    private static void SetControllerVisible(MonoBehaviour controller, bool visible)
+    {
+        if (controller == null || controller.gameObject.activeSelf == visible)
+        {
+            return;
+        }
+
+        controller.gameObject.SetActive(visible);
+    }
+
+    private void SwitchToNextTab()
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        SwitchTabRelative(1);
+    }
+
+    private void SwitchToPreviousTab()
+    {
+        if (!isActiveAndEnabled)
+        {
+            return;
+        }
+
+        SwitchTabRelative(-1);
     }
 
     /// <summary>仅显示当前活跃 Tab 的 apply/cancel 按钮，隐藏其他 Tab 的按钮。</summary>

@@ -34,11 +34,7 @@ public class HitPosition : MonoBehaviour
 
     public void ReceiveHit(CannonBall cannonBall, Collider hitCollider)
     {
-        // if (targetDurone == null)
-        // {
-        //     Debug.LogWarning($"{name} 收到命中，但没有 TargetDurone 可转发。", this);
-        //     return;
-        // }
+
 
         Rigidbody cannonBallRigidbody = cannonBall.GetComponent<Rigidbody>();
 
@@ -49,7 +45,10 @@ public class HitPosition : MonoBehaviour
         Debug.Log($"HitPosition 收到命中：部位 = {hitPartName}, 命中点 = {hitPoint}, 炮弹 = {cannonBall.name}, 炮弹速度 = {cannonBallVelocity}", this);
 
         // 将命中信息转发给 TargetDurone 进行处理
-        targetDurone?.ReceiveHit(hitPartName, cannonBall, hitCollider);
+        if (targetDurone != null)
+        {
+            targetDurone.ReceiveHit(hitPartName, cannonBall, hitCollider);
+        }
 
         if (_targetDamageResolver != null && cannonBall != null)
         {

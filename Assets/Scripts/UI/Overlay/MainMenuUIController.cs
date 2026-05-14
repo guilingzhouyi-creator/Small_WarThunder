@@ -12,7 +12,6 @@ public class MainMenuUIController : MonoBehaviour
     [SerializeField] private Button OptionsButton;
     [SerializeField] private Button QuitButton;
 
-    // private LoadingManager loadingManager;
 
     private void Awake()
     {
