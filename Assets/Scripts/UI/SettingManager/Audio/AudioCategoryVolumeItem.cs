@@ -39,6 +39,7 @@ public class AudioCategoryVolumeItem : MonoBehaviour
     public void Bind(AudioVolumeCategory category, float volume, Action<AudioVolumeCategory, float> onValueChanged)
     {
         ResolveReferences();
+        ApplyCompactRowLayout();
         _category = category;
         _onValueChanged = onValueChanged;
         _lastDisplayedValue = Mathf.Clamp01(volume);
@@ -158,6 +159,108 @@ public class AudioCategoryVolumeItem : MonoBehaviour
         }
     }
 
+    private void ApplyCompactRowLayout()
+    {
+        RectTransform rowRect = transform as RectTransform;
+        if (rowRect != null)
+        {
+            rowRect.anchorMin = new Vector2(0f, 1f);
+            rowRect.anchorMax = new Vector2(1f, 1f);
+            rowRect.pivot = new Vector2(0.5f, 1f);
+            rowRect.anchoredPosition = Vector2.zero;
+            rowRect.sizeDelta = new Vector2(0f, 40f);
+        }
+
+        ApplyTextLayout(categoryNameText, isValueText: false);
+        ApplyTextLayout(volumeValueText, isValueText: true);
+        ApplySliderVisualLayout();
+    }
+
+    private void ApplyTextLayout(TMP_Text text, bool isValueText)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        RectTransform textRect = text.transform as RectTransform;
+        if (textRect == null)
+        {
+            return;
+        }
+
+        if (isValueText)
+        {
+            textRect.anchorMin = new Vector2(1f, 0.5f);
+            textRect.anchorMax = new Vector2(1f, 0.5f);
+            textRect.pivot = new Vector2(1f, 0.5f);
+            textRect.anchoredPosition = new Vector2(-12f, 0f);
+            textRect.sizeDelta = new Vector2(84f, 32f);
+            text.alignment = TextAlignmentOptions.Midline;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 18f;
+            text.fontSizeMax = 24f;
+        }
+        else
+        {
+            textRect.anchorMin = new Vector2(0f, 0.5f);
+            textRect.anchorMax = new Vector2(0f, 0.5f);
+            textRect.pivot = new Vector2(0f, 0.5f);
+            textRect.anchoredPosition = new Vector2(12f, 0f);
+            textRect.sizeDelta = new Vector2(140f, 32f);
+            text.alignment = TextAlignmentOptions.MidlineLeft;
+            text.enableAutoSizing = true;
+            text.fontSizeMin = 18f;
+            text.fontSizeMax = 24f;
+        }
+
+        text.margin = Vector4.zero;
+        text.textWrappingMode = TextWrappingModes.NoWrap;
+    }
+
+    private void ApplySliderVisualLayout()
+    {
+        ConfigureSliderChildRect("Background");
+        ConfigureSliderChildRect("Fill Area");
+        ConfigureSliderChildRect("Handle Slide Area");
+
+        RectTransform handleRect = FindRectByName("Handle");
+        if (handleRect != null)
+        {
+            handleRect.anchorMin = new Vector2(0f, 0.5f);
+            handleRect.anchorMax = new Vector2(0f, 0.5f);
+            handleRect.pivot = new Vector2(0.5f, 0.5f);
+            handleRect.anchoredPosition = Vector2.zero;
+            handleRect.sizeDelta = new Vector2(18f, 28f);
+        }
+    }
+
+    private void ConfigureSliderChildRect(string childName)
+    {
+        RectTransform childRect = FindRectByName(childName);
+        if (childRect == null)
+        {
+            return;
+        }
+
+        childRect.anchorMin = new Vector2(0f, 0.5f);
+        childRect.anchorMax = new Vector2(1f, 0.5f);
+        childRect.pivot = new Vector2(0.5f, 0.5f);
+        childRect.offsetMin = new Vector2(180f, -8f);
+        childRect.offsetMax = new Vector2(-96f, 8f);
+    }
+
+    private RectTransform FindRectByName(string targetName)
+    {
+        if (string.IsNullOrWhiteSpace(targetName))
+        {
+            return null;
+        }
+
+        Transform targetTransform = transform.Find(targetName);
+        return targetTransform as RectTransform;
+    }
+
     private TMP_Text FindTextByName(string targetName)
     {
         if (string.IsNullOrWhiteSpace(targetName))
@@ -188,13 +291,13 @@ public class AudioCategoryVolumeItem : MonoBehaviour
     {
         return category switch
         {
-            AudioVolumeCategory.Engine => "Engine",
-            AudioVolumeCategory.Weapon => "Weapon",
-            AudioVolumeCategory.Reload => "Reload",
-            AudioVolumeCategory.Impact => "Impact",
-            AudioVolumeCategory.Track => "Track",
-            AudioVolumeCategory.UI => "UI",
-            _ => "Default"
+            AudioVolumeCategory.Engine => "引擎",
+            AudioVolumeCategory.Weapon => "武器",
+            AudioVolumeCategory.Reload => "装填",
+            AudioVolumeCategory.Impact => "碰撞",
+            AudioVolumeCategory.Track => "履带",
+            AudioVolumeCategory.UI => "界面",
+            _ => "默认"
         };
     }
 }

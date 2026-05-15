@@ -12,7 +12,6 @@ public partial class KeyBindingController : MonoBehaviour, ISettingTabController
 {
     public string tabKey => SettingConstants.TabKeyKeyBinding;
 
-    [SerializeField] private ScrollRect _scrollRect;
     [SerializeField] private Transform _contentRoot;
     [SerializeField] private GameObject _itemPrefab;
     [SerializeField] private Button _resetDefaultsButton;
@@ -121,6 +120,12 @@ public partial class KeyBindingController : MonoBehaviour, ISettingTabController
     {
         ClearItems();
 
+        if (_contentRoot == null)
+        {
+            Debug.LogError("[KeyBindingController] 未找到有效的 KeyBinding ContentRoot");
+            return;
+        }
+
         InputActionMap tankerMap = MIddleInputingController.Instance?.TankerDriverMap;
         if (tankerMap == null)
         {
@@ -145,9 +150,9 @@ public partial class KeyBindingController : MonoBehaviour, ISettingTabController
             }
             else
             {
-                if (_itemPrefab == null || _contentRoot == null)
+                if (_itemPrefab == null)
                 {
-                    Debug.LogWarning("[KeyBindingController] _itemPrefab 或 _contentRoot 为空，无法动态创建条目");
+                    Debug.LogWarning("[KeyBindingController] _itemPrefab 为空，无法动态创建条目");
                     continue;
                 }
 

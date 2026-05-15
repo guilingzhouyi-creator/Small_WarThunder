@@ -78,8 +78,29 @@ public partial class VisualSettingController : MonoBehaviour, ISettingTabControl
             _contentRoot = transform;
         }
 
+        ResolveResetDefaultsButton();
+
         _isInitialized = true;
         Debug.Log("[VisualSettingController] Placeholder initialized", this);
+    }
+
+    private void ResolveResetDefaultsButton()
+    {
+        if (_resetDefaultsButton != null && _resetDefaultsButton.gameObject.name == SettingConstants.ButtonNameVisualReset)
+        {
+            return;
+        }
+
+        Button[] buttons = GetComponentsInChildren<Button>(true);
+        for (int index = 0; index < buttons.Length; index++)
+        {
+            Button button = buttons[index];
+            if (button != null && button.gameObject.name == SettingConstants.ButtonNameVisualReset)
+            {
+                _resetDefaultsButton = button;
+                return;
+            }
+        }
     }
 
     private void BindUIListeners()

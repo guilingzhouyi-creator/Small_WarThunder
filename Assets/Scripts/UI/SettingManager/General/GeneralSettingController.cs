@@ -78,8 +78,29 @@ public partial class GeneralSettingController : MonoBehaviour, ISettingTabContro
             _contentRoot = transform;
         }
 
+        ResolveResetDefaultsButton();
+
         _isInitialized = true;
         Debug.Log("[GeneralSettingController] Placeholder initialized", this);
+    }
+
+    private void ResolveResetDefaultsButton()
+    {
+        if (_resetDefaultsButton != null && _resetDefaultsButton.gameObject.name == SettingConstants.ButtonNameGeneralReset)
+        {
+            return;
+        }
+
+        Button[] buttons = GetComponentsInChildren<Button>(true);
+        for (int index = 0; index < buttons.Length; index++)
+        {
+            Button button = buttons[index];
+            if (button != null && button.gameObject.name == SettingConstants.ButtonNameGeneralReset)
+            {
+                _resetDefaultsButton = button;
+                return;
+            }
+        }
     }
 
     private void BindUIListeners()

@@ -39,6 +39,7 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
         Debug.Log("[AudioSettingController] OnTabOpened");
         EnsureInitialized();
         LoadSettingsFromStorageOrDefault();
+        BuildCategoryVolumeUI();
         RefreshUI();
     }
 
@@ -151,8 +152,9 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
         }
 
         ValidateRequiredReferences();
+        NormalizePrimarySliderInteraction(musicVolumeSlider, musicVolumeValueText);
+        NormalizePrimarySliderInteraction(sfxVolumeSlider, sfxVolumeValueText);
         BindUIListeners();
-        BuildCategoryVolumeUI();
         _isInitialized = true;
         Debug.Log("[AudioSettingController] Initialized");
     }
@@ -185,6 +187,7 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
     {
         SetSliderValueWithoutNotify(musicVolumeSlider, _currentAudioSettings.MusicVolume);
         SetSliderValueWithoutNotify(sfxVolumeSlider, _currentAudioSettings.SfxVolume);
+        EnsureCategoryVolumeUIMatchesSettings();
         RefreshCategoryVolumeUI();
         UpdateVolumeLabels();
 
@@ -315,6 +318,27 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
         NotifySettingsChanged();
     }
 
+    private void EnsureCategoryVolumeUIMatchesSettings()
+    {
+        AudioCategoryVolumeSetting[] settings = _currentAudioSettings.CategoryVolumes;
+        int expectedCount = settings != null ? settings.Length : 0;
+
+        if (_categoryVolumeItems.Count != expectedCount)
+        {
+            BuildCategoryVolumeUI();
+            return;
+        }
+
+        for (int index = 0; index < _categoryVolumeItems.Count; index++)
+        {
+            if (_categoryVolumeItems[index] == null)
+            {
+                BuildCategoryVolumeUI();
+                return;
+            }
+        }
+    }
+
     private static AudioSettingState CloneAudioSettingState(AudioSettingState state)
     {
         state.CategoryVolumes = CloneCategoryVolumes(state.CategoryVolumes);
@@ -396,6 +420,72 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
         }
 
         return normalized;
+    }
+
+    private static void NormalizePrimarySliderInteraction(Slider slider, TMP_Text valueText)
+    {
+        if (slider == null)
+        {
+            return;
+        }
+
+        if (valueText != null)
+        {
+            valueText.raycastTarget = false;
+        }
+
+        SetChildGraphicRaycast(slider.transform, "Background", true);
+        SetChildGraphicRaycast(slider.transform, "Fill", false);
+        SetChildGraphicRaycast(slider.transform, "Handle", true);
+
+        RectTransform handleSlideArea = FindChildRect(slider.transform, "Handle Slide Area") ?? FindChildRect(slider.transform, "Sliding Area");
+        if (handleSlideArea != null)
+        {
+            handleSlideArea.anchorMin = Vector2.zero;
+            handleSlideArea.anchorMax = Vector2.one;
+            handleSlideArea.anchoredPosition = Vector2.zero;
+            handleSlideArea.sizeDelta = new Vector2(-20f, -20f);
+        }
+
+        RectTransform handle = FindChildRect(slider.transform, "Handle");
+        if (handle != null)
+        {
+            handle.anchorMin = Vector2.zero;
+            handle.anchorMax = Vector2.zero;
+            handle.anchoredPosition = Vector2.zero;
+            handle.sizeDelta = new Vector2(20f, 20f);
+        }
+    }
+
+    private static void SetChildGraphicRaycast(Transform root, string childName, bool raycastTarget)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(childName))
+        {
+            return;
+        }
+
+        Transform child = root.Find(childName);
+        if (child == null)
+        {
+            return;
+        }
+
+        Graphic graphic = child.GetComponent<Graphic>();
+        if (graphic != null)
+        {
+            graphic.raycastTarget = raycastTarget;
+        }
+    }
+
+    private static RectTransform FindChildRect(Transform root, string childName)
+    {
+        if (root == null || string.IsNullOrWhiteSpace(childName))
+        {
+            return null;
+        }
+
+        Transform child = root.Find(childName);
+        return child as RectTransform;
     }
 
     private static void SetSliderValueWithoutNotify(Slider slider, float value)

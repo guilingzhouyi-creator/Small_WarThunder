@@ -59,15 +59,19 @@ public partial class SettingManager
                 continue;
             }
 
-            string tabKey = ResolveTabKeyFromButtonName(navigationButton.gameObject.name);
-            if (string.IsNullOrEmpty(tabKey))
+            if (!SettingConstants.TryGetTabKeyFromNavigationButtonName(navigationButton.gameObject.name, out string tabKey))
             {
                 continue;
             }
 
             if (existingEntriesByKey.TryGetValue(tabKey, out SubSettingEntry existingEntry))
             {
-                resolvedEntries.Add(existingEntry);
+                resolvedEntries.Add(new SubSettingEntry
+                {
+                    controller = existingEntry.controller,
+                    applyButton = ResolveActionButton(existingEntry.controller != null ? existingEntry.controller.transform : null, tabKey, true, existingEntry.applyButton),
+                    cancelButton = ResolveActionButton(existingEntry.controller != null ? existingEntry.controller.transform : null, tabKey, false, existingEntry.cancelButton)
+                });
                 continue;
             }
 
@@ -80,17 +84,61 @@ public partial class SettingManager
             resolvedEntries.Add(new SubSettingEntry
             {
                 controller = controller,
-                applyButton = FindFirstNamedButton(controller.transform, "ApplyButton"),
-                cancelButton = FindFirstNamedButton(controller.transform, "CancelButton")
+                applyButton = ResolveActionButton(controller.transform, tabKey, true, null),
+                cancelButton = ResolveActionButton(controller.transform, tabKey, false, null)
             });
         }
 
         return resolvedEntries;
     }
 
+    private static Button ResolveActionButton(Transform root, string tabKey, bool isApplyButton, Button existingButton)
+    {
+        if (root != null)
+        {
+            string[] candidateNames = SettingConstants.GetActionButtonNames(tabKey, isApplyButton);
+            for (int index = 0; index < candidateNames.Length; index++)
+            {
+                Button button = FindFirstNamedButton(root, candidateNames[index]);
+                if (button != null)
+                {
+                    return button;
+                }
+            }
+
+            Button fallbackButton = FindButtonBySuffix(root, isApplyButton ? SettingConstants.ButtonNameApply : SettingConstants.ButtonNameCancel);
+            if (fallbackButton != null)
+            {
+                return fallbackButton;
+            }
+        }
+
+        return existingButton;
+    }
+
+    private static Button FindButtonBySuffix(Transform root, string suffix)
+    {
+        if (root == null || string.IsNullOrEmpty(suffix))
+        {
+            return null;
+        }
+
+        Button[] buttons = root.GetComponentsInChildren<Button>(true);
+        for (int index = 0; index < buttons.Length; index++)
+        {
+            Button button = buttons[index];
+            if (button != null && button.gameObject.name.EndsWith(suffix, StringComparison.Ordinal))
+            {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
     private MonoBehaviour ResolveOrCreateController(string tabKey)
     {
-        string panelName = ResolvePanelNameForTabKey(tabKey);
+        string panelName = SettingConstants.GetPanelName(tabKey);
         if (string.IsNullOrEmpty(panelName))
         {
             return null;
@@ -202,7 +250,7 @@ public partial class SettingManager
         rectTransform.anchoredPosition = new Vector2(0f, -87.5f);
         rectTransform.sizeDelta = new Vector2(-16f, -195f);
 
-        CreatePlaceholderLabel(rectTransform, GetPlaceholderTitle(tabKey));
+        CreatePlaceholderLabel(rectTransform, SettingConstants.GetPlaceholderTitle(tabKey));
 
         panel.SetActive(false);
         return panel;
@@ -228,67 +276,4 @@ public partial class SettingManager
         text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
     }
 
-    private static string ResolveTabKeyFromButtonName(string buttonName)
-    {
-        if (string.IsNullOrEmpty(buttonName))
-        {
-            return null;
-        }
-
-        if (buttonName.StartsWith("General", StringComparison.OrdinalIgnoreCase))
-        {
-            return SettingConstants.TabKeyGeneral;
-        }
-
-        if (buttonName.StartsWith("Visual", StringComparison.OrdinalIgnoreCase))
-        {
-            return SettingConstants.TabKeyVisual;
-        }
-
-        if (buttonName.StartsWith("Sound", StringComparison.OrdinalIgnoreCase))
-        {
-            return SettingConstants.TabKeyAudio;
-        }
-
-        if (buttonName.StartsWith("Key", StringComparison.OrdinalIgnoreCase))
-        {
-            return SettingConstants.TabKeyKeyBinding;
-        }
-
-        return null;
-    }
-
-    private static string ResolvePanelNameForTabKey(string tabKey)
-    {
-        switch (tabKey)
-        {
-            case SettingConstants.TabKeyGeneral:
-                return "GeneralSettingPannel";
-            case SettingConstants.TabKeyVisual:
-                return "VisualSettingPannel";
-            case SettingConstants.TabKeyAudio:
-                return "SoundSettingPannel";
-            case SettingConstants.TabKeyKeyBinding:
-                return "KeyBingSettingPannel";
-            default:
-                return null;
-        }
-    }
-
-    private static string GetPlaceholderTitle(string tabKey)
-    {
-        switch (tabKey)
-        {
-            case SettingConstants.TabKeyGeneral:
-                return "通用设置";
-            case SettingConstants.TabKeyVisual:
-                return "画面设置";
-            case SettingConstants.TabKeyAudio:
-                return "音频设置";
-            case SettingConstants.TabKeyKeyBinding:
-                return "按键设置";
-            default:
-                return "设置";
-        }
-    }
 }
