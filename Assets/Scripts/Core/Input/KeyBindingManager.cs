@@ -239,6 +239,31 @@ public class KeyBindingManager
     }
 
     /// <summary>
+    /// 从 PlayerPrefs 重新加载当前生效的 binding overrides。
+    /// 若无存档则回退为默认绑定。
+    /// </summary>
+    public void LoadBindings()
+    {
+        if (_asset == null)
+        {
+            Debug.LogError("[KeyBindingManager] LoadBindings 失败：asset 为空");
+            return;
+        }
+
+        _asset.RemoveAllBindingOverrides();
+
+        string json = PlayerPrefs.GetString(KeyBindingConstants.SaveKeyBindingOverrides, string.Empty);
+        if (!string.IsNullOrWhiteSpace(json))
+        {
+            _asset.LoadBindingOverridesFromJson(json);
+            Debug.Log($"[KeyBindingManager] 已从存档恢复按键绑定, length={json.Length}");
+            return;
+        }
+
+        Debug.Log("[KeyBindingManager] 未找到已保存的按键覆盖，已回退为默认绑定");
+    }
+
+    /// <summary>
     /// 获取指定 Action 当前生效的绑定路径字符串。
     /// </summary>
     public string GetCurrentBindingPath(string actionId)

@@ -16,6 +16,12 @@ namespace NGameData.NAIConfigs
         [Tooltip("默认行为策略配置，未在映射列表中找到时使用")]
         public BehaviorConfig defaultBehaviorConfig;
 
+        [Tooltip("默认物理驱动配置（移动/悬挂），未在映射列表中找到时使用")]
+        public AIMotionConfig defaultMotionConfig;
+
+        [Tooltip("默认悬挂系统配置，未在映射列表中找到时使用")]
+        public AISuspensionConfig defaultSuspensionConfig;
+
         [Header("映射列表")]
         [Tooltip("按Prefab匹配的配置列表，优先于默认配置")]
         public List<AIConfigMapping> configMappingList = new List<AIConfigMapping>();

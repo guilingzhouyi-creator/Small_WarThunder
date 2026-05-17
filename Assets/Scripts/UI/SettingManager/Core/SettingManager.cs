@@ -38,6 +38,8 @@ public partial class SettingManager : UGUIViewAdapter
     private int _currentTabIndex;
     private bool _isInitialized;
     private SettingInteractionRouter _interactionRouter;
+    private SettingPromptService _promptService;
+    private SettingPromptRouter _promptRouter;
 
     protected override void Awake()
     {
@@ -238,22 +240,30 @@ public partial class SettingManager : UGUIViewAdapter
 
     private void OnApplyPressed()
     {
+        SettingActionResult result = SettingActionResult.NoOp(_activeTabKey, SettingActionType.Apply);
+
         if (TryGetActiveController(out ISettingTabController controller))
         {
-            controller.OnApplyRequested();
+            result = controller.OnApplyRequested();
         }
 
+        Debug.Log($"[SettingPromptFlow][SettingManager] OnApplyPressed tab={_activeTabKey}, status={result.Status}, showPrompt={result.ShowPrompt}, closeSettings={result.CloseSettings}, message={result.MessageText}", this);
+
         OnApplyAllSettings?.Invoke(this);
+        HandleActionResult(result);
     }
 
     private void OnCancelPressed()
     {
+        SettingActionResult result = SettingActionResult.CancelExit(_activeTabKey);
+
         if (TryGetActiveController(out ISettingTabController controller))
         {
-            controller.OnCancelRequested();
+            result = controller.OnCancelRequested();
         }
 
         OnCancelAllSettings?.Invoke(this);
+        HandleActionResult(result);
     }
 
     private bool TryGetActiveController(out ISettingTabController controller)
@@ -283,5 +293,47 @@ public partial class SettingManager : UGUIViewAdapter
     public void HideSettingsPanel()
     {
         NewUIManager.instance?.CloseSettingsUI();
+    }
+
+    public void HandleActionResult(SettingActionResult result)
+    {
+        if (!result.IsValid)
+        {
+            Debug.LogWarning("[SettingPromptFlow][SettingManager] HandleActionResult ignored invalid result", this);
+            return;
+        }
+
+        Debug.Log($"[SettingPromptFlow][SettingManager] HandleActionResult status={result.Status}, action={result.ActionType}, showPrompt={result.ShowPrompt}, closeSettings={result.CloseSettings}", this);
+
+        EnsurePromptRouter();
+        _promptRouter?.Route(result);
+    }
+
+    private void EnsurePromptRouter()
+    {
+        if (_promptService == null)
+        {
+            _promptService = GetComponent<SettingPromptService>();
+            if (_promptService == null)
+            {
+                _promptService = FindFirstObjectByType<SettingPromptService>(FindObjectsInactive.Include);
+                if (_promptService != null)
+                {
+                    Debug.Log($"[SettingPromptFlow][SettingManager] Reusing scene SettingPromptService on '{_promptService.gameObject.name}'", this);
+                }
+            }
+
+            if (_promptService == null)
+            {
+                _promptService = gameObject.AddComponent<SettingPromptService>();
+                Debug.LogWarning("[SettingPromptFlow][SettingManager] No scene SettingPromptService found, created fallback on SettingManager", this);
+            }
+        }
+
+        if (_promptRouter == null)
+        {
+            _promptRouter = new SettingPromptRouter(_promptService, HideSettingsPanel);
+            Debug.Log("[SettingPromptFlow][SettingManager] SettingPromptRouter initialized", this);
+        }
     }
 }

@@ -18,6 +18,12 @@ namespace NGameData.NAIConfigs
         [Tooltip("行为策略配置")]
         public BehaviorConfig behaviorConfig;
 
+        [Tooltip("物理驱动配置（移动/悬挂参数）")]
+        public AIMotionConfig motionConfig;
+
+        [Tooltip("悬挂系统配置（悬挂几何/防翻滚/地形对齐/车身稳定）")]
+        public AISuspensionConfig suspensionConfig;
+
         [Tooltip("AI类型")]
         public EAIType aiType = EAIType.Tank;
     }

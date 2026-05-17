@@ -1,0 +1,7 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements">
+    <ui:VisualElement name="setting-prompt-overlay" class="setting-prompt-overlay">
+        <ui:VisualElement name="setting-prompt-card" class="setting-prompt-card">
+            <ui:Label name="setting-prompt-text" class="setting-prompt-text" text="设置已应用" />
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

@@ -14,10 +14,10 @@ partial class GlobalSubtitleEngine
     /// <summary>
     /// [弃用] 保留兼容旧引用，等价于 OnOverlayTextChanged
     /// </summary>
-    [Obsolete("请使用 OnOverlayTextChanged 替代 OnSubtitleTextChanged")]
-    public event Action<string> OnSubtitleTextChanged
-    {
-        add { OnOverlayTextChanged += value; }
-        remove { OnOverlayTextChanged -= value; }
-    }
+    // [Obsolete("请使用 OnOverlayTextChanged 替代 OnSubtitleTextChanged")]
+    // public event Action<string> OnSubtitleTextChanged
+    // {
+    //     add { OnOverlayTextChanged += value; }
+    //     remove { OnOverlayTextChanged -= value; }
+    // }
 }

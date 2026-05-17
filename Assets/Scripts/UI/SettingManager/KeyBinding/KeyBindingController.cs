@@ -46,17 +46,23 @@ public partial class KeyBindingController : MonoBehaviour, ISettingTabController
     }
 
     /// <summary>SettingManager 统一调度的 Apply 入口。</summary>
-    public void OnApplyRequested()
+    public SettingActionResult OnApplyRequested()
     {
         Debug.Log("[KeyBindingController] OnApplyRequested");
-        SaveSettings();
+        return SaveSettings();
+    }
+
+    public SettingActionResult OnResetRequested()
+    {
+        Debug.Log("[KeyBindingController] OnResetRequested");
+        return ResetSettings();
     }
 
     /// <summary>SettingManager 统一调度的 Cancel 入口。</summary>
-    public void OnCancelRequested()
+    public SettingActionResult OnCancelRequested()
     {
         Debug.Log("[KeyBindingController] OnCancelRequested");
-        CancelSettings();
+        return CancelSettings();
     }
 
     private void ScanPrePlacedItems()
@@ -206,25 +212,38 @@ public partial class KeyBindingController : MonoBehaviour, ISettingTabController
 
     private void OnResetDefaultsClicked()
     {
-        _manager?.ResetAllBindings();
-        RefreshAllItems();
-        _hasChanges = true;
+        SettingActionResult result = OnResetRequested();
+        SettingManager.Instance?.HandleActionResult(result);
     }
 
-    private void SaveSettings()
+    private SettingActionResult SaveSettings()
     {
         _manager?.SaveBindings();
         _hasChanges = false;
         Debug.Log("[KeyBindingController] 按键设置已保存");
+        return SettingActionResult.Success(tabKey, SettingActionType.Apply, "按键设置已应用");
     }
 
-    private void CancelSettings()
+    private SettingActionResult CancelSettings()
     {
+        bool hadChanges = _hasChanges;
+
         if (_hasChanges)
         {
+            _manager?.LoadBindings();
             RefreshAllItems();
             _hasChanges = false;
         }
+
+        return hadChanges ? SettingActionResult.CancelRollback(tabKey) : SettingActionResult.CancelExit(tabKey);
+    }
+
+    private SettingActionResult ResetSettings()
+    {
+        _manager?.ResetAllBindings();
+        RefreshAllItems();
+        _hasChanges = false;
+        return SettingActionResult.Success(tabKey, SettingActionType.Reset, "按键设置已重置");
     }
 
     private void RefreshAllItems()

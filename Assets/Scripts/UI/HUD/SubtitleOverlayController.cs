@@ -74,6 +74,11 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
             return;
         }
 
+        // 该覆盖层自行管理内部 subtitle-root 的显隐，不依赖 UIToolkitViewAdapter.Open()
+        // 因此需要主动解除基类在 Awake() 中对整个 rootVisualElement 的隐藏。
+        root.style.display = DisplayStyle.Flex;
+        root.style.opacity = 1f;
+
         // 清空 root，确保干净状态（UIDocument 没有绑定 UXML 时通常为空）
         root.Clear();
 
@@ -93,6 +98,7 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
         _subtitleRoot.AddToClassList(UIStyleClassNames.SubtitleRoot);
 
         _subtitleText = new Label();
+        _subtitleText.enableRichText = true;
         _subtitleText.AddToClassList(UIStyleClassNames.SubtitleText);
 
         _subtitleRoot.Add(_subtitleText);
@@ -146,6 +152,11 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
     {
         _cachedText = text ?? string.Empty;
 
+        if (_subtitleText == null)
+        {
+            InitializeUI();
+        }
+
         if (_subtitleText != null)
         {
             // 已包含颜色标签（来自 GlobalSubtitleEngine 打字机缓存的 GetVisibleSubstring 输出），跳过重复着色
@@ -167,6 +178,11 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
     /// </summary>
     public void SetNarrativeActive(bool active)
     {
+        if (_subtitleRoot == null)
+        {
+            InitializeUI();
+        }
+
         if (_isNarrativeActive == active)
         {
             return;
@@ -245,6 +261,11 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
         if (!SceneLoader.IsScene(SceneManager.GetActiveScene(), SceneLoader.Scene.GameScene))
         {
             return;
+        }
+
+        if (_subtitleRoot == null)
+        {
+            InitializeUI();
         }
 
         if (_subtitleRoot == null)

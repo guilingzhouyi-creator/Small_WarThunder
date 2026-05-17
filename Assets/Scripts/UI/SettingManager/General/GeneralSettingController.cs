@@ -37,17 +37,23 @@ public partial class GeneralSettingController : MonoBehaviour, ISettingTabContro
     }
 
     /// <summary>SettingManager 统一调度的 Apply 入口。</summary>
-    public void OnApplyRequested()
+    public SettingActionResult OnApplyRequested()
     {
         Debug.Log("[GeneralSettingController] OnApplyRequested", this);
-        SaveSettings();
+        return SaveSettings();
+    }
+
+    public SettingActionResult OnResetRequested()
+    {
+        Debug.Log("[GeneralSettingController] OnResetRequested", this);
+        return ResetSettings();
     }
 
     /// <summary>SettingManager 统一调度的 Cancel 入口。</summary>
-    public void OnCancelRequested()
+    public SettingActionResult OnCancelRequested()
     {
         Debug.Log("[GeneralSettingController] OnCancelRequested", this);
-        CancelSettings();
+        return CancelSettings();
     }
 
     private void Awake()
@@ -122,19 +128,29 @@ public partial class GeneralSettingController : MonoBehaviour, ISettingTabContro
 
     private void OnResetDefaultsClicked()
     {
-        Debug.Log("[GeneralSettingController] Reset defaults placeholder", this);
-        _hasChanges = true;
+        SettingActionResult result = OnResetRequested();
+        SettingManager.Instance?.HandleActionResult(result);
     }
 
-    private void SaveSettings()
+    private SettingActionResult SaveSettings()
     {
         _hasChanges = false;
         Debug.Log("[GeneralSettingController] Placeholder save completed", this);
+        return SettingActionResult.Success(tabKey, SettingActionType.Apply, "通用设置已应用");
     }
 
-    private void CancelSettings()
+    private SettingActionResult CancelSettings()
     {
+        bool hadChanges = _hasChanges;
         _hasChanges = false;
         Debug.Log("[GeneralSettingController] Placeholder cancel completed", this);
+        return hadChanges ? SettingActionResult.CancelRollback(tabKey) : SettingActionResult.CancelExit(tabKey);
+    }
+
+    private SettingActionResult ResetSettings()
+    {
+        _hasChanges = true;
+        Debug.Log("[GeneralSettingController] Reset defaults placeholder", this);
+        return SettingActionResult.Success(tabKey, SettingActionType.Reset, "通用设置已重置");
     }
 }

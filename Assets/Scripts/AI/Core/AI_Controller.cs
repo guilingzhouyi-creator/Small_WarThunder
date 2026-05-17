@@ -23,16 +23,50 @@ namespace NAI
         private string _previousState;
         private float _stateEnterTime;
 
+        private AIMotionConfig _resolvedMotionConfig;
+
         public AI_Blackboard Blackboard => _blackboard;
         public string CurrentState => _currentState;
         public EnemyConfig EnemyConfig => _enemyConfig;
         public BehaviorConfig BehaviorConfig => _behaviorConfig;
+        /// <summary>经过中央配置映射表解析后的物理驱动配置（不会为null，必然返回有效值或默认值）</summary>
+        public AIMotionConfig ResolvedMotionConfig => _resolvedMotionConfig;
 
         private void Awake()
         {
             _blackboard = new AI_Blackboard();
+            ResolveMotionConfig();
             ApplyConfig(_enemyConfig);
             TransitionToState(AIConstants.StateWatch);
+        }
+
+        /// <summary>
+        /// 从 centralConfig 中解析该 Prefab 对应的 AIMotionConfig
+        /// </summary>
+        private void ResolveMotionConfig()
+        {
+            if (_centralConfig == null)
+            {
+                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller: centralConfig is null, motionConfig will be null");
+                return;
+            }
+
+            foreach (var mapping in _centralConfig.configMappingList)
+            {
+                if (mapping != null && mapping.prefab != null && mapping.prefab == gameObject)
+                {
+                    _resolvedMotionConfig = mapping.motionConfig;
+                    break;
+                }
+            }
+
+            if (_resolvedMotionConfig == null)
+                _resolvedMotionConfig = _centralConfig.defaultMotionConfig;
+
+            if (_resolvedMotionConfig == null)
+                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller.ResolveMotionConfig: no motionConfig found for {gameObject.name}, using null");
+            else
+                Debug.Log($"{AIConstants.DebugTagAI} AI_Controller.ResolveMotionConfig: resolved motionConfig={_resolvedMotionConfig.name} for {gameObject.name}");
         }
 
         /// <summary>

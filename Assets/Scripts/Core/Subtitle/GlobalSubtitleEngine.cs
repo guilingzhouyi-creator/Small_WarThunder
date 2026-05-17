@@ -3,28 +3,23 @@ using UnityEngine.SceneManagement;
 using TMPro;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.TextCore;
 
 /// <summary>
-/// 字幕引擎（主文件 / 核心调度模块）。
-/// 采用 partial class 架构，将不同渲染职责拆分到同名 partial 文件：
-///   - GlobalSubtitleEngine.TaskText.cs     → 任务文本渲染模块
-///   - GlobalSubtitleEngine.Intelligence.cs → 情报栏整片推送模块
-///   - GlobalSubtitleEngine.Overlay.cs      → 跨层级字幕打字机模块
-/// 本文件负责：单例、优先级调度池、生命周期、公共 API 入口、打字机协程分发。
+/// 字幕引擎主调度模块。
 /// </summary>
 public partial class GlobalSubtitleEngine : MonoBehaviour
 {
-    private static WaitForSeconds WaitForSeconds_Two = new WaitForSeconds(2.0f);
-    private static WaitForSeconds WaitForSeconds_LinePause = new WaitForSeconds(1.5f);
+    private static readonly WaitForSeconds WaitForSeconds_Two = new WaitForSeconds(2.0f);
+    private static readonly WaitForSeconds WaitForSeconds_LinePause = new WaitForSeconds(1.5f);
 
     public static GlobalSubtitleEngine Instance { get; private set; }
 
     [SerializeField] private TextMeshProUGUI targetLabel;
-
     [SerializeField] private float typingSpeed = 0.05f;
 
     private static SubtitlePackage _activePackage;
-    private List<SubtitlePackage> _priorityPool = new List<SubtitlePackage>();
+    private readonly List<SubtitlePackage> _priorityPool = new List<SubtitlePackage>();
     private Coroutine _typeRoutine;
 
     public bool HasActivePackage => _activePackage != null;
@@ -61,31 +56,11 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
         }
     }
 
-    // ──────────────────────── 场景加载回调 ────────────────────────
-
-    /// <summary>
-    /// 当加载到 GameScene 时，通过 MissionPannelUIController.Instance 绑定 targetLabel；
-    /// 离开 GameScene 时置空 targetLabel 并重置播放状态。
-    /// 注意：MissionPannelUIController 是 DontDestroyOnLoad，不能用 FindGameObjectWithTag（会因 inactive 而失败）。
-    /// </summary>
     private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         if (SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
         {
-            // 使用 Instance 绑定（始终可用，不受 SetActive 状态影响）
-            if (MissionPannelUIController.Instance != null)
-            {
-                targetLabel = MissionPannelUIController.Instance.SubtitleLabel;
-                if (targetLabel == null)
-                {
-                    Debug.LogWarning("[GlobalSubtitleEngine] MissionPannelUIController.SubtitleLabel 为 null，请在 Inspector 中为 MissionPannelUIController 的 _subtitleLabel 字段赋值。");
-                }
-            }
-            else
-            {
-                targetLabel = null;
-                Debug.LogWarning("[GlobalSubtitleEngine] MissionPannelUIController.Instance 为 null，无法绑定 targetLabel。");
-            }
+            TryBindTargetLabel();
         }
         else
         {
@@ -94,11 +69,6 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
         }
     }
 
-    // ──────────────────────── 公开 API ────────────────────────
-
-    /// <summary>
-    /// 请求显示一个新的字幕包。根据新包的频道优先级决定是立即替换还是加入优先级池等待显示。
-    /// </summary>
     public void RequestSubtitle(SubtitlePackage newPackage)
     {
         if (newPackage == null || !newPackage.HasContent)
@@ -142,6 +112,8 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
             return;
         }
 
+        TryBindTargetLabel();
+
         if (ReferenceEquals(_activePackage, package))
         {
             if (package.HasFinished)
@@ -150,6 +122,7 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
                 {
                     return;
                 }
+
                 package.ResetProgress();
                 ReplaceActivePackage(package);
                 return;
@@ -168,6 +141,7 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
             {
                 return;
             }
+
             package.ResetProgress();
         }
 
@@ -176,6 +150,8 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
     public void ShowIdleState()
     {
+        TryBindTargetLabel();
+
         if (targetLabel == null)
         {
             return;
@@ -192,6 +168,10 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
     public void ResetPlayback()
     {
+        TryBindTargetLabel();
+        ClearIntelligenceBuffer();
+        ClearPanelNarrativeBuffer();
+
         if (_typeRoutine != null)
         {
             StopCoroutine(_typeRoutine);
@@ -210,6 +190,9 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
     public void ClearCurrentOutput()
     {
+        ClearIntelligenceBuffer();
+        ClearPanelNarrativeBuffer();
+
         if (_typeRoutine != null)
         {
             StopCoroutine(_typeRoutine);
@@ -245,10 +228,9 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
             return;
         }
 
+        TryBindTargetLabel();
         _typeRoutine = StartCoroutine(SubtitleRoutine(_activePackage));
     }
-
-    // ──────────────────────── 内部调度 ────────────────────────
 
     private void PlayPackage(SubtitlePackage package)
     {
@@ -268,6 +250,34 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
         StopActiveRoutine();
     }
 
+    private bool TryBindTargetLabel()
+    {
+        if (targetLabel != null)
+        {
+            return true;
+        }
+
+        var missionPanel = MissionPannelUIController.Instance;
+        if (missionPanel == null)
+        {
+            return false;
+        }
+
+        targetLabel = missionPanel.SubtitleLabel;
+        if (targetLabel == null)
+        {
+            Debug.LogWarning("[GlobalSubtitleEngine] MissionPannelUIController.SubtitleLabel 为 null，请在 Inspector 中为 MissionPannelUIController 的 _subtitleLabel 字段赋值。", missionPanel);
+            return false;
+        }
+
+        // 任务面板右栏需要显示累计内容，使用顶部起排避免前文被垂直居中后裁掉。
+        targetLabel.alignment = TextAlignmentOptions.TopLeft;
+        targetLabel.verticalAlignment = VerticalAlignmentOptions.Top;
+        targetLabel.horizontalAlignment = HorizontalAlignmentOptions.Left;
+
+        return true;
+    }
+
     private void StopActiveRoutine()
     {
         if (_typeRoutine == null)
@@ -278,7 +288,6 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
         StopCoroutine(_typeRoutine);
         _typeRoutine = null;
 
-        // 中断打字机协程时，清理 UIToolkit overlay 可见性
         if (_activePackage != null && _activePackage.Channel != SubtitleChannel.Mission)
         {
             SubtitleOverlayController.Instance?.SetNarrativeActive(false);
@@ -300,45 +309,35 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
     private void SortPool() =>
         _priorityPool.Sort((a, b) => ((int)a.Channel).CompareTo((int)b.Channel));
 
-    // ──────────────────────── 核心分发协程 ────────────────────────
-
-    /// <summary>
-    /// 字幕主协程。根据 SubtitleChannel 分发到 IntelligenceRoutine（Mission）或
-    /// 覆盖层打字机逻辑（System/Dialogue/Ambient）。
-    /// </summary>
     private IEnumerator SubtitleRoutine(SubtitlePackage package)
     {
-        // Mission 频道 → 情报栏整片推送（定义在 GlobalSubtitleEngine.Intelligence.cs）
         if (package.Channel == SubtitleChannel.Mission)
         {
             yield return IntelligenceRoutine(package);
             yield break;
         }
 
-        // ─── 覆盖层打字机（System / Dialogue / Ambient）───
-
-        // 激活 UIToolkit 字幕 overlay 可见性（SubtitleOverlayController）
         SubtitleOverlayController.Instance?.SetNarrativeActive(true);
+        SyncPanelNarrativeBufferForProgress(package);
 
         try
         {
             while (package.CurrentLineIndex < package.ContentList.Count)
             {
                 string text = package.ContentList[package.CurrentLineIndex];
-
-                // ★ 缓存复用：只调用一次 Process 对整个文本着色，打字机循环中用 GetVisibleSubstring 截取
                 string richCached = SubtitleColorRenderEngine.Process(text, SubtitleRenderScope.Overlay, package.Channel);
+                AppendPanelNarrativeLine(text);
+
+                if (targetLabel != null)
+                {
+                    targetLabel.text = GetRenderedPanelNarrativeBuffer(package.Channel);
+                }
 
                 for (int i = package.CurrentCharIndex; i <= text.Length; i++)
                 {
                     package.CurrentCharIndex = i;
 
                     string colored = SubtitleColorRenderEngine.GetVisibleSubstring(richCached, i);
-
-                    if (targetLabel != null)
-                    {
-                        targetLabel.text = colored;
-                    }
 
                     OnOverlayTextChanged?.Invoke(colored);
 
@@ -353,7 +352,6 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
         }
         finally
         {
-            // 打字机结束：隐藏 UIToolkit 字幕 overlay
             SubtitleOverlayController.Instance?.SetNarrativeActive(false);
         }
 

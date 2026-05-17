@@ -37,17 +37,23 @@ public partial class VisualSettingController : MonoBehaviour, ISettingTabControl
     }
 
     /// <summary>SettingManager 统一调度的 Apply 入口。</summary>
-    public void OnApplyRequested()
+    public SettingActionResult OnApplyRequested()
     {
         Debug.Log("[VisualSettingController] OnApplyRequested", this);
-        SaveSettings();
+        return SaveSettings();
+    }
+
+    public SettingActionResult OnResetRequested()
+    {
+        Debug.Log("[VisualSettingController] OnResetRequested", this);
+        return ResetSettings();
     }
 
     /// <summary>SettingManager 统一调度的 Cancel 入口。</summary>
-    public void OnCancelRequested()
+    public SettingActionResult OnCancelRequested()
     {
         Debug.Log("[VisualSettingController] OnCancelRequested", this);
-        CancelSettings();
+        return CancelSettings();
     }
 
     private void Awake()
@@ -122,19 +128,29 @@ public partial class VisualSettingController : MonoBehaviour, ISettingTabControl
 
     private void OnResetDefaultsClicked()
     {
-        Debug.Log("[VisualSettingController] Reset defaults placeholder", this);
-        _hasChanges = true;
+        SettingActionResult result = OnResetRequested();
+        SettingManager.Instance?.HandleActionResult(result);
     }
 
-    private void SaveSettings()
+    private SettingActionResult SaveSettings()
     {
         _hasChanges = false;
         Debug.Log("[VisualSettingController] Placeholder save completed", this);
+        return SettingActionResult.Success(tabKey, SettingActionType.Apply, "画面设置已应用");
     }
 
-    private void CancelSettings()
+    private SettingActionResult CancelSettings()
     {
+        bool hadChanges = _hasChanges;
         _hasChanges = false;
         Debug.Log("[VisualSettingController] Placeholder cancel completed", this);
+        return hadChanges ? SettingActionResult.CancelRollback(tabKey) : SettingActionResult.CancelExit(tabKey);
+    }
+
+    private SettingActionResult ResetSettings()
+    {
+        _hasChanges = true;
+        Debug.Log("[VisualSettingController] Reset defaults placeholder", this);
+        return SettingActionResult.Success(tabKey, SettingActionType.Reset, "画面设置已重置");
     }
 }

@@ -55,17 +55,22 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
     }
 
     /// <summary>SettingManager 统一调度的 Apply 入口。</summary>
-    public void OnApplyRequested()
+    public SettingActionResult OnApplyRequested()
     {
         Debug.Log("[AudioSettingController] OnApplyRequested");
-        ApplySettings();
+        return ApplySettings();
+    }
+
+    public SettingActionResult OnResetRequested()
+    {
+        return SettingActionResult.NoOp(tabKey, SettingActionType.Reset);
     }
 
     /// <summary>SettingManager 统一调度的 Cancel 入口。</summary>
-    public void OnCancelRequested()
+    public SettingActionResult OnCancelRequested()
     {
         Debug.Log("[AudioSettingController] OnCancelRequested");
-        CancelSettings();
+        return CancelSettings();
     }
 
     public void Initialize(AudioManager audioManager)
@@ -235,7 +240,7 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
         SettingsChanged?.Invoke(CloneAudioSettingState(_currentAudioSettings));
     }
 
-    private void ApplySettings()
+    private SettingActionResult ApplySettings()
     {
         ApplyCurrentSettingsToAudio();
         SaveSettingsToStorage();
@@ -245,17 +250,14 @@ public partial class AudioSettingController : MonoBehaviour, ISettingTabControll
         RefreshUI();
         SettingsApplied?.Invoke(CloneAudioSettingState(_currentAudioSettings));
         Debug.Log("[AudioSettingController] Settings applied and saved");
+        return SettingActionResult.Success(tabKey, SettingActionType.Apply, "音频设置已应用");
     }
 
-    private void CancelSettings()
+    private SettingActionResult CancelSettings()
     {
         _currentAudioSettings = CloneAudioSettingState(_appliedAudioSettings);
         RefreshUI();
-
-        if (NewUIManager.instance != null)
-        {
-            NewUIManager.instance.ShowPauseUI();
-        }
+        return SettingActionResult.CancelExit(tabKey);
     }
 
     public void ApplyCurrentSettingsToAudio()

@@ -15,6 +15,9 @@ using UnityEngine.UI;
 
 public class AudioCategoryVolumeItem : MonoBehaviour
 {
+    private const float RuntimeSliderWidth = 1550f;
+    private const float RuntimeTextOffset = 135.5f;
+
     [SerializeField] private TMP_Text categoryNameText;
     [SerializeField] private Slider volumeSlider;
     [SerializeField] private TMP_Text volumeValueText;
@@ -39,7 +42,7 @@ public class AudioCategoryVolumeItem : MonoBehaviour
     public void Bind(AudioVolumeCategory category, float volume, Action<AudioVolumeCategory, float> onValueChanged)
     {
         ResolveReferences();
-        ApplyCompactRowLayout();
+        ApplyRuntimeLayoutConstraints();
         _category = category;
         _onValueChanged = onValueChanged;
         _lastDisplayedValue = Mathf.Clamp01(volume);
@@ -159,24 +162,27 @@ public class AudioCategoryVolumeItem : MonoBehaviour
         }
     }
 
-    private void ApplyCompactRowLayout()
+    private void ApplyRuntimeLayoutConstraints()
     {
         RectTransform rowRect = transform as RectTransform;
         if (rowRect != null)
         {
-            rowRect.anchorMin = new Vector2(0f, 1f);
-            rowRect.anchorMax = new Vector2(1f, 1f);
-            rowRect.pivot = new Vector2(0.5f, 1f);
-            rowRect.anchoredPosition = Vector2.zero;
-            rowRect.sizeDelta = new Vector2(0f, 40f);
+            rowRect.sizeDelta = new Vector2(RuntimeSliderWidth, rowRect.sizeDelta.y);
+
+            LayoutElement layoutElement = GetComponent<LayoutElement>();
+            if (layoutElement == null)
+            {
+                layoutElement = gameObject.AddComponent<LayoutElement>();
+            }
+
+            layoutElement.preferredWidth = RuntimeSliderWidth;
         }
 
-        ApplyTextLayout(categoryNameText, isValueText: false);
-        ApplyTextLayout(volumeValueText, isValueText: true);
-        ApplySliderVisualLayout();
+        ApplyTextAnchor(categoryNameText, isLeftText: true);
+        ApplyTextAnchor(volumeValueText, isLeftText: false);
     }
 
-    private void ApplyTextLayout(TMP_Text text, bool isValueText)
+    private static void ApplyTextAnchor(TMP_Text text, bool isLeftText)
     {
         if (text == null)
         {
@@ -189,76 +195,22 @@ public class AudioCategoryVolumeItem : MonoBehaviour
             return;
         }
 
-        if (isValueText)
-        {
-            textRect.anchorMin = new Vector2(1f, 0.5f);
-            textRect.anchorMax = new Vector2(1f, 0.5f);
-            textRect.pivot = new Vector2(1f, 0.5f);
-            textRect.anchoredPosition = new Vector2(-12f, 0f);
-            textRect.sizeDelta = new Vector2(84f, 32f);
-            text.alignment = TextAlignmentOptions.Midline;
-            text.enableAutoSizing = true;
-            text.fontSizeMin = 18f;
-            text.fontSizeMax = 24f;
-        }
-        else
+        if (isLeftText)
         {
             textRect.anchorMin = new Vector2(0f, 0.5f);
             textRect.anchorMax = new Vector2(0f, 0.5f);
             textRect.pivot = new Vector2(0f, 0.5f);
-            textRect.anchoredPosition = new Vector2(12f, 0f);
-            textRect.sizeDelta = new Vector2(140f, 32f);
+            textRect.anchoredPosition = new Vector2(-RuntimeTextOffset, 0f);
+            text.alignment = TextAlignmentOptions.MidlineRight;
+        }
+        else
+        {
+            textRect.anchorMin = new Vector2(1f, 0.5f);
+            textRect.anchorMax = new Vector2(1f, 0.5f);
+            textRect.pivot = new Vector2(1f, 0.5f);
+            textRect.anchoredPosition = new Vector2(RuntimeTextOffset, 0f);
             text.alignment = TextAlignmentOptions.MidlineLeft;
-            text.enableAutoSizing = true;
-            text.fontSizeMin = 18f;
-            text.fontSizeMax = 24f;
         }
-
-        text.margin = Vector4.zero;
-        text.textWrappingMode = TextWrappingModes.NoWrap;
-    }
-
-    private void ApplySliderVisualLayout()
-    {
-        ConfigureSliderChildRect("Background");
-        ConfigureSliderChildRect("Fill Area");
-        ConfigureSliderChildRect("Handle Slide Area");
-
-        RectTransform handleRect = FindRectByName("Handle");
-        if (handleRect != null)
-        {
-            handleRect.anchorMin = new Vector2(0f, 0.5f);
-            handleRect.anchorMax = new Vector2(0f, 0.5f);
-            handleRect.pivot = new Vector2(0.5f, 0.5f);
-            handleRect.anchoredPosition = Vector2.zero;
-            handleRect.sizeDelta = new Vector2(18f, 28f);
-        }
-    }
-
-    private void ConfigureSliderChildRect(string childName)
-    {
-        RectTransform childRect = FindRectByName(childName);
-        if (childRect == null)
-        {
-            return;
-        }
-
-        childRect.anchorMin = new Vector2(0f, 0.5f);
-        childRect.anchorMax = new Vector2(1f, 0.5f);
-        childRect.pivot = new Vector2(0.5f, 0.5f);
-        childRect.offsetMin = new Vector2(180f, -8f);
-        childRect.offsetMax = new Vector2(-96f, 8f);
-    }
-
-    private RectTransform FindRectByName(string targetName)
-    {
-        if (string.IsNullOrWhiteSpace(targetName))
-        {
-            return null;
-        }
-
-        Transform targetTransform = transform.Find(targetName);
-        return targetTransform as RectTransform;
     }
 
     private TMP_Text FindTextByName(string targetName)

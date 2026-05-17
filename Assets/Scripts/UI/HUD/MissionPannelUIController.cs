@@ -13,7 +13,20 @@ public class MissionPannelUIController : UGUIViewAdapter
 {
     public override EUIIdentity identity => EUIIdentity.MissionPanel;
 
-    public static MissionPannelUIController Instance { get; private set; }
+    private static MissionPannelUIController _instance;
+
+    public static MissionPannelUIController Instance
+    {
+        get
+        {
+            if (_instance == null)
+            {
+                _instance = FindFirstObjectByType<MissionPannelUIController>(FindObjectsInactive.Include);
+            }
+
+            return _instance;
+        }
+    }
 
     /// <summary>GlobalSubtitleEngine 的渲染目标，拖入面板内的 TMP 字幕标签</summary>
     [SerializeField] private TextMeshProUGUI _subtitleLabel;
@@ -34,14 +47,14 @@ public class MissionPannelUIController : UGUIViewAdapter
             return;
         }
 
-        Instance = this;
+        _instance = this;
     }
 
     private void OnDestroy()
     {
-        if (Instance == this)
+        if (_instance == this)
         {
-            Instance = null;
+            _instance = null;
         }
     }
 
@@ -121,6 +134,13 @@ public class MissionPannelUIController : UGUIViewAdapter
     public void PresentNarrative(SubtitlePackage package)
     {
         if (package == null)
+        {
+            return;
+        }
+
+        if (ReferenceEquals(_requestedNarrative, package)
+            && GlobalSubtitleEngine.Instance != null
+            && ReferenceEquals(GlobalSubtitleEngine.Instance.CurrentPackage, package))
         {
             return;
         }

@@ -19,9 +19,12 @@ namespace NSettingSystem
         bool OnBackRequested();
 
         /// <summary>用户点击应用按钮。</summary>
-        void OnApplyRequested();
+        SettingActionResult OnApplyRequested();
+
+        /// <summary>用户点击重置按钮。</summary>
+        SettingActionResult OnResetRequested();
 
         /// <summary>用户点击取消按钮。</summary>
-        void OnCancelRequested();
+        SettingActionResult OnCancelRequested();
     }
 }

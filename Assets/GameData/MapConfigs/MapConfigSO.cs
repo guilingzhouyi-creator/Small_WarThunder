@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// 地图渲染配置 ScriptableObject。
-/// 控制小地图/大地图的时间间隔、颜色、网格、标记样式。
+/// 控制小地图/大地图的时间间隔、网格、玩家指示器和标记样式。
 /// 创建路径：右键 → SmallWarThunder → Map → MapConfig
 /// </summary>
 [CreateAssetMenu(menuName = "SmallWarThunder/Map/MapConfig")]
@@ -17,21 +17,21 @@ public class MapConfigSO : ScriptableObject
     public Color MiniMapGridColor = new Color(1f, 1f, 1f, 0.15f);
     [Tooltip("小地图网格在世界坐标中的间距（米）。")]
     public float MiniMapGridSpacing = 50f;
-    public float MiniMapPlayerMarkerRadius = 4f;
-    public Color MiniMapPlayerColor = Color.cyan;
+    public float MiniMapPlayerIndicatorRadius = 4f;
+    public Color MiniMapPlayerIndicatorColor = Color.cyan;
 
     [Header("大地图叠加层")]
     public bool ShowGridOnFullMap = true;
     public Color FullMapGridColor = new Color(1f, 1f, 1f, 0.2f);
     [Tooltip("大地图网格在世界坐标中的间距（米）。")]
     public float FullMapGridSpacing = 100f;
-    public float FullMapPlayerMarkerRadius = 6f;
-    public Color FullMapPlayerColor = Color.cyan;
+    public float FullMapPlayerIndicatorRadius = 6f;
+    public Color FullMapPlayerIndicatorColor = Color.cyan;
 
-    [Header("敌友标记")]
-    public Color AllyColor = Color.green;
-    public Color EnemyColor = Color.red;
-    public float MarkerRadius = 5f;
+    [Header("敌友与通用标记样式")]
+    public Color AllyMarkerColor = Color.green;
+    public Color EnemyMarkerColor = Color.red;
+    public float DefaultMarkerDisplayRadius = 5f;
     [Tooltip("是否在地图标记上显示文字标签。")]
-    public bool ShowLabels = false;
+    public bool ShowMarkerLabels = false;
 }

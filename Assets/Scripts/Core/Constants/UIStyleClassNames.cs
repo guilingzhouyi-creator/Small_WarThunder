@@ -8,4 +8,9 @@ public static class UIStyleClassNames
     public const string SubtitleRoot = "subtitle-root";
     public const string SubtitleText = "subtitle-text";
     public const string SubtitleVisible = "subtitle-root--visible";
+
+    // --- SettingPrompt ---
+    public const string SettingPromptOverlay = "setting-prompt-overlay";
+    public const string SettingPromptCard = "setting-prompt-card";
+    public const string SettingPromptText = "setting-prompt-text";
 }

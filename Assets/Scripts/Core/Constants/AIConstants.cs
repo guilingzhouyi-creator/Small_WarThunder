@@ -27,6 +27,10 @@ public static class AIConstants
     public const string BbKeySuspiciousTimer = "SuspiciousTimer";     // 可疑态剩余秒
     public const string BbKeyLockBufferDone = "LockBufferDone";      // 锁定准备完成
     public const string BbKeyFireCommand = "FireCommand";         // bool：行为树触发开火
+    public const string BbKeyMoveForwardInput = "MoveForwardInput";   // float：前向输入 (-1~1)
+    public const string BbKeyMoveTurnInput = "MoveTurnInput";     // float：转向输入 (-1~1)
+    public const string BbKeyCurrentSpeed = "CurrentSpeed";       // float：当前前向速度 m/s
+    public const string BbKeyIsGrounded = "IsGrounded";          // bool：是否接地
 
     // ─── 行为树节点名 ───
     public const string BtNodeCheckEnemy = "CheckEnemy";

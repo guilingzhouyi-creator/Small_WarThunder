@@ -15,7 +15,7 @@ public class MapRenderingEngine : VisualElement
     private bool _isFullMapOpen;
     private bool _isVisible;
 
-    private readonly List<MapMarkerData> _alphaMarkers = new List<MapMarkerData>();
+    private readonly List<MapMarkerData> _markerBuffer = new List<MapMarkerData>();
 
     private RenderTexture _renderTexture;
     private Vector2Int _renderTextureSize;
@@ -202,16 +202,16 @@ public class MapRenderingEngine : VisualElement
 
         if (_playerTransform != null)
         {
-            snap.PlayerWorldPosition = _playerTransform.position;
-            snap.PlayerYaw = _playerTransform.eulerAngles.y;
+            snap.PlayerContextWorldPosition = _playerTransform.position;
+            snap.PlayerContextYaw = _playerTransform.eulerAngles.y;
         }
 
         if (_mapCamera != null)
         {
-            snap.CameraWorldCenter = _playerTransform != null
+            snap.MapCameraWorldCenter = _playerTransform != null
                 ? _playerTransform.position
                 : _mapCamera.transform.position;
-            snap.CameraOrthoSize = _mapCamera.OrthoSize;
+            snap.MapCameraOrthoSize = _mapCamera.OrthoSize;
         }
 
         if (panel != null)
@@ -230,14 +230,14 @@ public class MapRenderingEngine : VisualElement
             }
         }
 
-        snap.Markers = CollectMarkers();
+        snap.MapMarkers = CollectMarkers();
         _currentSnapshot = snap;
     }
 
     private List<MapMarkerData> CollectMarkers()
     {
-        _alphaMarkers.Clear();
-        return _alphaMarkers;
+        _markerBuffer.Clear();
+        return _markerBuffer;
     }
 
     private void OnGenerateVisualContent(MeshGenerationContext mgc)
@@ -296,7 +296,7 @@ public class MapRenderingEngine : VisualElement
 
     private void DrawGrid(Painter2D painter, MapSnapshot snap, float worldSpacing, Color color)
     {
-        if (worldSpacing <= 0f || snap.CameraOrthoSize <= 0f)
+        if (worldSpacing <= 0f || snap.MapCameraOrthoSize <= 0f)
         {
             return;
         }
@@ -307,14 +307,14 @@ public class MapRenderingEngine : VisualElement
             return;
         }
 
-        float pixelsPerWorldUnit = pixelSize.y / (snap.CameraOrthoSize * 2f);
+        float pixelsPerWorldUnit = pixelSize.y / (snap.MapCameraOrthoSize * 2f);
         float pixelSpacing = worldSpacing * pixelsPerWorldUnit;
         if (pixelSpacing <= 0.01f)
         {
             return;
         }
 
-        Vector2 cameraPixelCenter = WorldToPixel(snap.CameraWorldCenter, snap);
+        Vector2 cameraPixelCenter = WorldToPixel(snap.MapCameraWorldCenter, snap);
         float gridOriginX = cameraPixelCenter.x % pixelSpacing;
         float gridOriginY = cameraPixelCenter.y % pixelSpacing;
 
@@ -345,23 +345,23 @@ public class MapRenderingEngine : VisualElement
             return;
         }
 
-        Vector2 playerPixelPos = WorldToPixel(snap.PlayerWorldPosition, snap);
-        float markerRadius = _isFullMapOpen ? _config.FullMapPlayerMarkerRadius : _config.MiniMapPlayerMarkerRadius;
-        Color playerColor = _isFullMapOpen ? _config.FullMapPlayerColor : _config.MiniMapPlayerColor;
+        Vector2 playerPixelPos = WorldToPixel(snap.PlayerContextWorldPosition, snap);
+        float playerIndicatorRadius = _isFullMapOpen ? _config.FullMapPlayerIndicatorRadius : _config.MiniMapPlayerIndicatorRadius;
+        Color playerIndicatorColor = _isFullMapOpen ? _config.FullMapPlayerIndicatorColor : _config.MiniMapPlayerIndicatorColor;
 
-        painter.fillColor = playerColor;
+        painter.fillColor = playerIndicatorColor;
         painter.BeginPath();
-        painter.Arc(playerPixelPos, markerRadius, 0f, 360f);
+        painter.Arc(playerPixelPos, playerIndicatorRadius, 0f, 360f);
         painter.Fill();
 
-        float headingLength = markerRadius * 2f;
-        float headingRad = snap.PlayerYaw * Mathf.Deg2Rad;
+        float headingLength = playerIndicatorRadius * 2f;
+        float headingRad = snap.PlayerContextYaw * Mathf.Deg2Rad;
         Vector2 headingEnd = playerPixelPos + new Vector2(
             Mathf.Sin(headingRad) * headingLength,
             Mathf.Cos(headingRad) * headingLength
         );
 
-        painter.strokeColor = playerColor;
+        painter.strokeColor = playerIndicatorColor;
         painter.lineWidth = 1f;
         painter.BeginPath();
         painter.MoveTo(playerPixelPos);
@@ -371,18 +371,18 @@ public class MapRenderingEngine : VisualElement
 
     private void DrawMarkers(Painter2D painter, MapSnapshot snap)
     {
-        if (snap.Markers == null || snap.Markers.Count == 0)
+        if (snap.MapMarkers == null || snap.MapMarkers.Count == 0)
         {
             return;
         }
 
-        for (int i = 0; i < snap.Markers.Count; i++)
+        for (int i = 0; i < snap.MapMarkers.Count; i++)
         {
-            MapMarkerData marker = snap.Markers[i];
-            Vector2 pixelPos = WorldToPixel(marker.WorldPosition, snap);
-            float radius = Mathf.Max(2f, marker.Radius * 0.5f);
+            MapMarkerData marker = snap.MapMarkers[i];
+            Vector2 pixelPos = WorldToPixel(marker.MapWorldPosition, snap);
+            float radius = Mathf.Max(2f, marker.DisplayRadius * 0.5f);
 
-            painter.fillColor = marker.Color;
+            painter.fillColor = marker.DisplayColor;
             painter.BeginPath();
             painter.Arc(pixelPos, radius, 0f, 360f);
             painter.Fill();
@@ -397,11 +397,11 @@ public class MapRenderingEngine : VisualElement
             return Vector2.zero;
         }
 
-        float orthoHalfHeight = Mathf.Max(0.001f, snap.CameraOrthoSize);
+        float orthoHalfHeight = Mathf.Max(0.001f, snap.MapCameraOrthoSize);
         float pixelsPerWorldUnit = pixelSize.y / (orthoHalfHeight * 2f);
 
-        float relativeX = worldPos.x - snap.CameraWorldCenter.x;
-        float relativeZ = worldPos.z - snap.CameraWorldCenter.z;
+        float relativeX = worldPos.x - snap.MapCameraWorldCenter.x;
+        float relativeZ = worldPos.z - snap.MapCameraWorldCenter.z;
 
         float pixelX = pixelSize.x * 0.5f + relativeX * pixelsPerWorldUnit;
         float pixelY = pixelSize.y * 0.5f - relativeZ * pixelsPerWorldUnit;

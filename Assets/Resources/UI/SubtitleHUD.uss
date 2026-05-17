@@ -35,6 +35,7 @@
 .subtitle-text {
     color: rgb(255, 255, 255);
     font-size: 20px;
+    max-width: 82%;
     -unity-font-style: normal;
     -unity-text-align: middle-center;
     white-space: normal;

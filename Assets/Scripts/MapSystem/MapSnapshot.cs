@@ -7,17 +7,17 @@ using UnityEngine;
 /// </summary>
 public struct MapSnapshot
 {
-    /// <summary>玩家在世界空间中的位置（通常是坦克根节点坐标）。</summary>
-    public Vector3 PlayerWorldPosition;
+    /// <summary>玩家在地图快照中的世界空间位置上下文（通常是坦克根节点坐标）。</summary>
+    public Vector3 PlayerContextWorldPosition;
 
-    /// <summary>玩家当前朝向（Yaw 角度）。</summary>
-    public float PlayerYaw;
+    /// <summary>玩家在地图快照中的朝向上下文（Yaw 角度）。</summary>
+    public float PlayerContextYaw;
 
-    /// <summary>俯拍相机在世界空间中的中心点坐标。</summary>
-    public Vector3 CameraWorldCenter;
+    /// <summary>地图相机在世界空间中的中心点坐标。</summary>
+    public Vector3 MapCameraWorldCenter;
 
-    /// <summary>俯拍相机的正交半高度（世界单位）。</summary>
-    public float CameraOrthoSize;
+    /// <summary>地图相机的正交半高度（世界单位）。</summary>
+    public float MapCameraOrthoSize;
 
     /// <summary>小地图在 UI 上的像素尺寸。</summary>
     public Vector2 MiniMapPixelSize;
@@ -28,8 +28,8 @@ public struct MapSnapshot
     /// <summary>是否为全屏大地图模式（false 为小地图常驻模式）。</summary>
     public bool IsFullMapMode;
 
-    /// <summary>地图上的敌友标记列表。</summary>
-    public List<MapMarkerData> Markers;
+    /// <summary>地图上的标记列表。</summary>
+    public List<MapMarkerData> MapMarkers;
 
     /// <summary>
     /// 获取当前模式对应的像素尺寸。
@@ -38,7 +38,7 @@ public struct MapSnapshot
 
     public static MapSnapshot Empty => new MapSnapshot
     {
-        Markers = new List<MapMarkerData>(),
+        MapMarkers = new List<MapMarkerData>(),
     };
 }
 
@@ -48,14 +48,14 @@ public struct MapSnapshot
 public struct MapMarkerData
 {
     /// <summary>标记在世界空间中的位置。</summary>
-    public Vector3 WorldPosition;
+    public Vector3 MapWorldPosition;
 
     /// <summary>标记的显示颜色。</summary>
-    public Color Color;
+    public Color DisplayColor;
 
     /// <summary>可选显示的文字标签。</summary>
-    public string Label;
+    public string DisplayLabel;
 
-    /// <summary>标记圆的半径（世界单位）。</summary>
-    public float Radius;
+    /// <summary>标记圆的显示半径（世界单位）。</summary>
+    public float DisplayRadius;
 }
