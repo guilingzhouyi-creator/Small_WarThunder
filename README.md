@@ -154,3 +154,4 @@ Third-party assets retain their original licenses — see [Dependencies](#depend
 ## 资源资产包
 
 项目的大文件资源（模型、音频、贴图、FMOD 插件等）通过 **Git LFS** 管理，同时提供独立的 ZIP 资源包用于 Release 分发。详见上方 Clone & Setup。
+
