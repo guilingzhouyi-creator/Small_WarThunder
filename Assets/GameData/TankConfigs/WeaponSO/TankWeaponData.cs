@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "TankWeaponData", menuName = "Scriptable Objects/TankWeaponData")]
+[CreateAssetMenu(fileName = "TankWeaponData", menuName = "SmallWarThunder/坦克/武器/坦克武器数据")]
 public class TankWeaponData : ScriptableObject
 {
 

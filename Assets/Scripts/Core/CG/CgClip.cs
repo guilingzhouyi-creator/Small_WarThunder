@@ -5,7 +5,7 @@ using UnityEngine.Video;
 /// CG 片段数据（ScriptableObject）。
 /// 配置 CG 视频资源和播放参数。
 /// </summary>
-[CreateAssetMenu(fileName = "CgClip", menuName = "CG/CgClip")]
+[CreateAssetMenu(fileName = "CgClip", menuName = "SmallWarThunder/核心/CG/片段")]
 public class CgClip : ScriptableObject
 {
     [Header("CG 资源")]

@@ -6,7 +6,7 @@ using UnityEngine;
 /// 资产中配置 MapEntry（地图预制体 + 世界位置），
 /// LevelStreamingEngine 运行时 Instantiate 地图并扫描子物体自动注册为 RegionEntry。
 /// </summary>
-[CreateAssetMenu(fileName = "LevelRegistrySystem", menuName = "LevelSystem/LevelRegistrySystem")]
+[CreateAssetMenu(fileName = "LevelRegistrySystem", menuName = "SmallWarThunder/核心/注册表/关卡注册表")]
 public class LevelRegistrySystem : ScriptableObject
 {
     [Header("地图列表（在 Inspector 中配置）")]

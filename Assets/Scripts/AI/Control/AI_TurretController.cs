@@ -14,22 +14,29 @@ namespace NAI
         [Header("引用")]
         [SerializeField] private AI_Controller _aiController;
         [SerializeField] private Transform _turretHorizontal; // 水平旋转根
-        [SerializeField] private Transform _turretBarrel;     // 炮管/俯仰旋转
+        [SerializeField] private Transform _turretBarrel;     // 炮管高低机系统
 
         [Header("参数")]
         [SerializeField] private float _rotationSpeed = 30f;
         [SerializeField] private float _pitchSpeed = 20f;
         [SerializeField] private float _minPitch = -10f;
         [SerializeField] private float _maxPitch = 30f;
+        [SerializeField] private float _debugLogInterval = 0.75f;
+        [SerializeField] private bool _enablePitchDebug = true;
 
         private AI_Blackboard _blackboard;
         private BehaviorConfig _behavior;
+        private Quaternion _turretBindLocalRotation = Quaternion.identity;
+        private Quaternion _barrelBindLocalRotation = Quaternion.identity;
+        private bool _loggedPitchRangeInterpretation;
+        private float _lastPitchDebugTime;
 
         private void Start()
         {
             if (_aiController == null) _aiController = GetComponent<AI_Controller>();
             _blackboard = _aiController?.Blackboard;
             _behavior = _aiController?.BehaviorConfig;
+            CacheBindRotations();
 
             if (_turretHorizontal == null)
                 Debug.LogWarning($"{AIConstants.DebugTagTurret} turretHorizontal not assigned.");
@@ -58,29 +65,51 @@ namespace NAI
         /// </summary>
         private void RotateTurret(Transform target)
         {
-            Vector3 dirToTarget = (target.position - transform.position).normalized;
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
 
             // 水平旋转 (Yaw)
             if (_turretHorizontal != null)
             {
-                Quaternion targetRot = Quaternion.LookRotation(
-                    new Vector3(dirToTarget.x, 0f, dirToTarget.z).normalized
-                );
-                _turretHorizontal.rotation = Quaternion.RotateTowards(
-                    _turretHorizontal.rotation, targetRot, _rotationSpeed * Time.deltaTime
-                );
+                Transform turretParent = _turretHorizontal.parent;
+                Vector3 turretLocalDirection = turretParent != null
+                    ? turretParent.InverseTransformDirection(targetPoint - _turretHorizontal.position)
+                    : transform.InverseTransformDirection(targetPoint - _turretHorizontal.position);
+                turretLocalDirection.y = 0f;
+
+                if (turretLocalDirection.sqrMagnitude > 0.0001f)
+                {
+                    float targetYaw = GetTargetTurretYaw(turretLocalDirection.normalized);
+                    Quaternion targetRotation = Quaternion.Euler(0f, targetYaw, 0f) * _turretBindLocalRotation;
+                    _turretHorizontal.localRotation = Quaternion.RotateTowards(
+                        _turretHorizontal.localRotation,
+                        targetRotation,
+                        _rotationSpeed * Time.deltaTime);
+                }
             }
 
             // 垂直旋转 (Pitch)
             if (_turretBarrel != null && _turretHorizontal != null)
             {
-                float pitchAngle = Mathf.Asin(Mathf.Clamp(dirToTarget.y, -1f, 1f)) * Mathf.Rad2Deg;
-                pitchAngle = Mathf.Clamp(pitchAngle, _minPitch, _maxPitch);
+                ResolvePitchLimits(out float minPitch, out float maxPitch);
+                Vector3 targetInTurretSpace = _turretHorizontal.InverseTransformPoint(targetPoint);
+                float horizontalDistance = new Vector2(targetInTurretSpace.x, targetInTurretSpace.z).magnitude;
+                float rawPitch = -Mathf.Atan2(targetInTurretSpace.y, Mathf.Max(0.0001f, horizontalDistance)) * Mathf.Rad2Deg;
+                float targetPitch = Mathf.Clamp(rawPitch, minPitch, maxPitch);
+                float currentPitch = GetCurrentBarrelPitch();
 
-                Quaternion barrelTarget = _turretHorizontal.rotation * Quaternion.Euler(pitchAngle, 0f, 0f);
-                _turretBarrel.rotation = Quaternion.RotateTowards(
-                    _turretBarrel.rotation, barrelTarget, _pitchSpeed * Time.deltaTime
-                );
+                Quaternion barrelTarget = Quaternion.Euler(targetPitch, 0f, 0f) * _barrelBindLocalRotation;
+                _turretBarrel.localRotation = Quaternion.RotateTowards(
+                    _turretBarrel.localRotation,
+                    barrelTarget,
+                    _pitchSpeed * Time.deltaTime);
+
+                if (_enablePitchDebug && Time.time - _lastPitchDebugTime >= Mathf.Max(0.1f, _debugLogInterval))
+                {
+                    _lastPitchDebugTime = Time.time;
+                    Debug.Log(
+                        $"{AIConstants.DebugTagTurret} Pitch debug: currentPitch={currentPitch:F2}, rawPitch={rawPitch:F2}, targetPitch={targetPitch:F2}, " +
+                        $"minPitch={minPitch:F2}, maxPitch={maxPitch:F2}, targetInTurretSpace={targetInTurretSpace}, horizontalDistance={horizontalDistance:F2}, turretBarrelLocalEuler={_turretBarrel.localEulerAngles}");
+                }
             }
         }
 
@@ -91,18 +120,70 @@ namespace NAI
         {
             if (_turretHorizontal != null)
             {
-                Quaternion forwardRot = Quaternion.LookRotation(transform.forward);
-                _turretHorizontal.rotation = Quaternion.RotateTowards(
-                    _turretHorizontal.rotation, forwardRot, _rotationSpeed * 0.5f * Time.deltaTime
-                );
+                _turretHorizontal.localRotation = Quaternion.RotateTowards(
+                    _turretHorizontal.localRotation,
+                    _turretBindLocalRotation,
+                    _rotationSpeed * 0.5f * Time.deltaTime);
             }
             if (_turretBarrel != null && _turretHorizontal != null)
             {
-                Quaternion barrelNeutral = _turretHorizontal.rotation * Quaternion.identity;
                 _turretBarrel.localRotation = Quaternion.RotateTowards(
-                    _turretBarrel.localRotation, Quaternion.identity, _pitchSpeed * 0.5f * Time.deltaTime
+                    _turretBarrel.localRotation,
+                    _barrelBindLocalRotation,
+                    _pitchSpeed * 0.5f * Time.deltaTime
                 );
             }
+        }
+
+        private void CacheBindRotations()
+        {
+            _turretBindLocalRotation = _turretHorizontal != null ? _turretHorizontal.localRotation : Quaternion.identity;
+            _barrelBindLocalRotation = _turretBarrel != null ? _turretBarrel.localRotation : Quaternion.identity;
+        }
+
+        private float GetTargetTurretYaw(Vector3 localTargetDirection)
+        {
+            Vector3 bindForward = _turretBindLocalRotation * Vector3.forward;
+            bindForward.y = 0f;
+            if (bindForward.sqrMagnitude < 0.0001f)
+            {
+                bindForward = Vector3.forward;
+            }
+
+            return Vector3.SignedAngle(bindForward.normalized, localTargetDirection.normalized, Vector3.up);
+        }
+
+        private float GetCurrentBarrelPitch()
+        {
+            Quaternion relativeRotation = _turretBarrel.localRotation * Quaternion.Inverse(_barrelBindLocalRotation);
+            Vector3 euler = relativeRotation.eulerAngles;
+            float pitch = euler.x;
+            if (pitch > 180f)
+            {
+                pitch -= 360f;
+            }
+
+            return pitch;
+        }
+
+        private void ResolvePitchLimits(out float minPitch, out float maxPitch)
+        {
+            if (_minPitch >= 0f && _maxPitch >= 0f)
+            {
+                minPitch = -Mathf.Abs(_minPitch);
+                maxPitch = Mathf.Abs(_maxPitch);
+
+                if (!_loggedPitchRangeInterpretation)
+                {
+                    _loggedPitchRangeInterpretation = true;
+                    Debug.Log($"{AIConstants.DebugTagTurret} Pitch range interpreted as signed magnitudes: configuredMin={_minPitch:F2}, configuredMax={_maxPitch:F2}, resolvedMin={minPitch:F2}, resolvedMax={maxPitch:F2}");
+                }
+
+                return;
+            }
+
+            minPitch = Mathf.Min(_minPitch, _maxPitch);
+            maxPitch = Mathf.Max(_minPitch, _maxPitch);
         }
     }
 }

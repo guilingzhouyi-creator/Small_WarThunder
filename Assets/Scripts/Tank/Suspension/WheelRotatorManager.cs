@@ -4,7 +4,7 @@ using System.Collections.Generic;
 public class WheelRotatorManager : MonoBehaviour
 {
     [Header("引用")]
-    public TrackController _trackController;
+    public TrackPathRendererBase _trackController;
 
     [Header("参数")]
     public float wheelRadius = 0.85f;

@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-[CreateAssetMenu(fileName = "TankAudioDatabase", menuName = "TankAudioSystem/AudioDatabase")]
+[CreateAssetMenu(fileName = "TankAudioDatabase", menuName = "SmallWarThunder/坦克/音频/音频数据库")]
 public class TankAudioDatabase : ScriptableObject, ISerializationCallbackReceiver
 {
     [SerializeField] private List<TankAudioData> allConfigs;

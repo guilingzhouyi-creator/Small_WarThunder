@@ -82,14 +82,14 @@ public class #SCRIPTNAME# : MonoBehaviour
     private static string GetSOTemplate()
     {
         return
-@"using UnityEngine;
+    @"using UnityEngine;
 
-//资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = ""#SCRIPTNAME#"", menuName = ""Scriptable Objects/#SCRIPTNAME#"")]
-public class #SCRIPTNAME# : ScriptableObject
-{
+    //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
+    [CreateAssetMenu(fileName = ""#SCRIPTNAME#"", menuName = ""SmallWarThunder/生成/资源配置/#SCRIPTNAME#"")]
+    public class #SCRIPTNAME# : ScriptableObject
+    {
     
-}";
+    }";
     }
 
     private static string GetNullTemplate()

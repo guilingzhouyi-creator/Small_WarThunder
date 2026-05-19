@@ -5,7 +5,7 @@ using UnityEngine;
 /// 控制小地图/大地图的时间间隔、网格、玩家指示器和标记样式。
 /// 创建路径：右键 → SmallWarThunder → Map → MapConfig
 /// </summary>
-[CreateAssetMenu(menuName = "SmallWarThunder/Map/MapConfig")]
+[CreateAssetMenu(menuName = "SmallWarThunder/UI/地图/地图配置")]
 public class MapConfigSO : ScriptableObject
 {
     [Header("时间间隔")]

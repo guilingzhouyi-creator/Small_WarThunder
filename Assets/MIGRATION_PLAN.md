@@ -56,6 +56,55 @@
 | `TaskSystemData/Event/TaskEventSO.cs` | 任务事件 SO |
 | `TaskSystemData/Event/TaskEventRuleSO.cs` | 任务事件规则 SO |
 
+### 2.3 ScriptableObject 快捷创建菜单分类规范
+
+> 统一原则：顶部使用 `SmallWarThunder`，第二层按功能域分组，第三层按对象类型细分。新建 SO 优先放入下列分类。
+
+| 菜单路径 | 内容 | 典型文件 |
+|------|------|------|
+| `SmallWarThunder/核心/场景/` | 场景目录、场景切换与场景信息 | `SceneCatalog.cs` |
+| `SmallWarThunder/核心/时间/` | 游戏时间配置 | `TimeData.cs` |
+| `SmallWarThunder/核心/注册表/` | 核心运行时注册表 | `LevelRegistrySystem.cs` |
+| `SmallWarThunder/核心/字幕/` | 字幕颜色主题、字幕片段、字幕辅助资源 | `ColorThemeSO.cs`、`CgClip.cs` |
+| `SmallWarThunder/输入/按键绑定/` | 输入与按键绑定数据/保存 | `KeyBindingData.cs`、`KeyBindingSaveData.cs` |
+| `SmallWarThunder/UI/地图/` | 地图配置 | `MapConfigSO.cs` |
+| `SmallWarThunder/UI/指示器/` | 指示器配置 | `IndicatorCentralRegistry.cs` |
+| `SmallWarThunder/任务/注册表/` | 任务配置表 | `MissionRegistrySystem.cs` |
+| `SmallWarThunder/任务/文本/` | 任务文本库 | `MissionTextData.cs` |
+| `SmallWarThunder/任务/定义/` | 任务定义表 | `TaskConfigSO.cs` |
+| `SmallWarThunder/任务/事件/` | 事件模板、命中规则表 | `TaskEventSO.cs`、`TaskEventRuleSO.cs` |
+| `SmallWarThunder/任务/状态/` | 状态快照 | `TaskStateSO.cs` |
+| `SmallWarThunder/数据库/结构/` | 数据库结构表 | `DatabaseSchemaSO.cs` |
+| `SmallWarThunder/数据库/规则/` | 写入规则表、解析规则 | `DatabaseRuleSO.cs`、`DatabaseParseRuleSO.cs` |
+| `SmallWarThunder/数据库/索引/` | 键/类型/版本映射表 | `DatabaseKeyIndexSO.cs`、`DatabaseTypeIndexSO.cs`、`DatabaseVersionIndexSO.cs` |
+| `SmallWarThunder/数据库/状态/` | 运行快照、批次快照 | `DatabaseStateSO.cs`、`DatabaseBatchStateSO.cs` |
+| `SmallWarThunder/数据库/记录/` | 记录实体 | `DatabaseRecordSO.cs` |
+| `SmallWarThunder/数据库/清单/` | 清单文件 | `DatabaseManifestSO.cs` |
+| `SmallWarThunder/AI/总配置/` | AI 中央配置 | `AICentralConfig.cs` |
+| `SmallWarThunder/AI/感知/` | 敌方感知配置 | `EnemyConfig.cs` |
+| `SmallWarThunder/AI/行为/` | AI 行为配置 | `BehaviorConfig.cs` |
+| `SmallWarThunder/AI/悬挂/` | AI 悬挂配置 | `AISuspensionConfig.cs` |
+| `SmallWarThunder/AI/运动/` | AI 运动配置 | `AIMotionConfig.cs` |
+| `SmallWarThunder/瞄准/配置/` | 瞄准配置 | `NewAimConfigData.cs` |
+| `SmallWarThunder/瞄准/相机/` | 瞄准相关相机过渡配置 | `CameraTransitionConfig.cs` |
+| `SmallWarThunder/坦克/主系统/` | 坦克主数据 | `TankMainData.cs` |
+| `SmallWarThunder/坦克/移动/` | 坦克移动数据 | `TankMoveData.cs` |
+| `SmallWarThunder/坦克/武器/` | 坦克武器数据 | `TankWeaponData.cs` |
+| `SmallWarThunder/坦克/弹药/` | 弹药数据 | `ProjectileData.cs` |
+| `SmallWarThunder/坦克/装甲/` | 装甲区数据 | `ArmoredZoneData.cs` |
+| `SmallWarThunder/坦克/炮塔/` | 炮塔数据 | `TankTurretData.cs` |
+| `SmallWarThunder/坦克/音频/` | 坦克音频数据库与音频数据 | `TankAudioDatabase.cs`、`TankAudioData.cs` |
+
+#### 快速使用建议
+
+| 场景 | 推荐菜单 |
+|------|------|
+| 新建核心基础资源 | `SmallWarThunder/核心/...` |
+| 新建任务/情报相关资源 | `SmallWarThunder/任务/...` |
+| 新建坦克参数资源 | `SmallWarThunder/坦克/...` |
+| 新建数据库结构资源 | `SmallWarThunder/数据库/...` |
+| 新建 AI 参数资源 | `SmallWarThunder/AI/总配置...` |
+
 ---
 
 ## 三、场景 `Assets/Levels/`

@@ -22,13 +22,20 @@ namespace NAI
         [SerializeField] private float _retreatDistance = 10f;
         [SerializeField] private float _patrolRandomInterval = 3f;
         [SerializeField] private float _patrolDirectionBias = 0.3f;
+        [SerializeField] private float _stationaryTargetSpeedThreshold = 0.75f;
+        [SerializeField] private float _stationaryTargetHoldTime = 1.2f;
+        [SerializeField] private float _holdAimDistanceFactor = 1.05f;
+        [SerializeField] private float _holdAimHullTurnMaxInput = 0.2f;
+        [SerializeField] private float _holdAimHullTurnDeadZone = 8f;
 
         private AI_Blackboard _blackboard;
         private EnemyConfig _config;
         private float _patrolTimer;
         private Vector3 _patrolMoveDir;
         private Vector3 _previousTargetPos;
-        private float _targetPosChangeThreshold = 2f;
+        private float _targetStationaryTimer;
+        private bool _hasTargetPositionSample;
+        private bool _wasHoldingAim;
 
         private void Start()
         {
@@ -53,14 +60,15 @@ namespace NAI
             }
 
             Transform target = _blackboard.Get<Transform>(AIConstants.BbKeyTargetEnemy);
+            bool shouldHoldAim = ShouldHoldAimOnTarget(target);
 
             switch (state)
             {
                 case AIConstants.StateLockBuffer:
-                    ChaseTarget(target);
+                    ChaseTarget(target, shouldHoldAim);
                     break;
                 case AIConstants.StateRandomAttack:
-                    StrafeTarget(target);
+                    StrafeTarget(target, shouldHoldAim);
                     break;
                 case AIConstants.StateSpecial:
                     RetreatFromTarget(target);
@@ -79,12 +87,19 @@ namespace NAI
         /// <summary>
         /// Chase: 朝目标前进，到达攻击距离附近时减速停车
         /// </summary>
-        private void ChaseTarget(Transform target)
+        private void ChaseTarget(Transform target, bool shouldHoldAim)
         {
             if (target == null) { IdleStop(); return; }
 
-            Vector3 dir = (target.position - transform.position).normalized;
-            float dist = Vector3.Distance(transform.position, target.position);
+            if (shouldHoldAim)
+            {
+                HoldAndAimTarget(target);
+                return;
+            }
+
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
+            Vector3 dir = (targetPoint - transform.position).normalized;
+            float dist = Vector3.Distance(transform.position, targetPoint);
             float attackRange = _config?.attackRange ?? 50f;
 
             if (dist > attackRange + _chaseApproachDistance)
@@ -111,12 +126,19 @@ namespace NAI
         /// <summary>
         /// Strafe: 围绕目标横向移动，保持理想交战距离
         /// </summary>
-        private void StrafeTarget(Transform target)
+        private void StrafeTarget(Transform target, bool shouldHoldAim)
         {
             if (target == null) { IdleStop(); return; }
 
-            Vector3 dir = (target.position - transform.position).normalized;
-            float dist = Vector3.Distance(transform.position, target.position);
+            if (shouldHoldAim)
+            {
+                HoldAndAimTarget(target);
+                return;
+            }
+
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
+            Vector3 dir = (targetPoint - transform.position).normalized;
+            float dist = Vector3.Distance(transform.position, targetPoint);
             float attackRange = _config?.attackRange ?? 50f;
             float idealDist = attackRange * _strafeIdealDistanceFactor;
 
@@ -141,12 +163,89 @@ namespace NAI
         {
             if (target == null) { IdleStop(); return; }
 
-            Vector3 away = (transform.position - target.position).normalized;
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
+            Vector3 away = (transform.position - targetPoint).normalized;
             float angle = Vector3.SignedAngle(transform.forward, away, Vector3.up);
             float forward = Mathf.Max(0.3f, 1f - Mathf.Abs(angle) / 90f);
             float turn = Mathf.Clamp(angle / 45f, -1f, 1f);
 
             _motionDriver.SetMoveInput(forward, turn);
+        }
+
+        private bool ShouldHoldAimOnTarget(Transform target)
+        {
+            if (target == null)
+            {
+                ResetTargetMotionTracking();
+                return false;
+            }
+
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
+            if (!_hasTargetPositionSample)
+            {
+                _previousTargetPos = targetPoint;
+                _hasTargetPositionSample = true;
+                _targetStationaryTimer = 0f;
+                _wasHoldingAim = false;
+                return false;
+            }
+
+            float deltaTime = Mathf.Max(Time.fixedDeltaTime, 0.0001f);
+            float targetSpeed = Vector3.Distance(targetPoint, _previousTargetPos) / deltaTime;
+            _previousTargetPos = targetPoint;
+
+            if (targetSpeed <= _stationaryTargetSpeedThreshold)
+            {
+                _targetStationaryTimer += deltaTime;
+            }
+            else
+            {
+                _targetStationaryTimer = 0f;
+            }
+
+            float attackRange = _config?.attackRange ?? 50f;
+            float targetDistance = Vector3.Distance(transform.position, targetPoint);
+            bool shouldHoldAim = _targetStationaryTimer >= _stationaryTargetHoldTime
+                && targetDistance <= attackRange * _holdAimDistanceFactor;
+
+            if (shouldHoldAim != _wasHoldingAim)
+            {
+                _wasHoldingAim = shouldHoldAim;
+                Debug.Log($"{AIConstants.DebugTagMove} HoldAim {(shouldHoldAim ? "enter" : "exit")}: target={target.name}, targetSpeed={targetSpeed:F2}, stationaryTime={_targetStationaryTimer:F2}, distance={targetDistance:F2}");
+            }
+
+            return shouldHoldAim;
+        }
+
+        private void HoldAndAimTarget(Transform target)
+        {
+            if (target == null)
+            {
+                IdleStop();
+                return;
+            }
+
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
+            Vector3 flatDirection = Vector3.ProjectOnPlane(targetPoint - transform.position, Vector3.up);
+            if (flatDirection.sqrMagnitude < 0.001f)
+            {
+                IdleStop();
+                return;
+            }
+
+            float angle = Vector3.SignedAngle(transform.forward, flatDirection.normalized, Vector3.up);
+            float turn = Mathf.Abs(angle) <= _holdAimHullTurnDeadZone
+                ? 0f
+                : Mathf.Clamp(angle / 45f, -_holdAimHullTurnMaxInput, _holdAimHullTurnMaxInput);
+
+            _motionDriver.SetMoveInput(0f, turn);
+        }
+
+        private void ResetTargetMotionTracking()
+        {
+            _targetStationaryTimer = 0f;
+            _hasTargetPositionSample = false;
+            _wasHoldingAim = false;
         }
 
         /// <summary>

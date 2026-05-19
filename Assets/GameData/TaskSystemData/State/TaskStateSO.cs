@@ -47,7 +47,7 @@ namespace NTaskSystem.State
     /// 职责：描述"当前到哪一步"。
     /// 用于存档、读档、场景切换和任务恢复。
     /// </summary>
-    [CreateAssetMenu(fileName = "TaskStateSO", menuName = "TaskSystem/TaskStateSO")]
+    [CreateAssetMenu(fileName = "TaskStateSO", menuName = "SmallWarThunder/任务/状态/状态快照")]
     public class TaskStateSO : ScriptableObject
     {
         [Header("任务状态列表")]

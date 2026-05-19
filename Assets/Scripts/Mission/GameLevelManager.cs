@@ -39,7 +39,10 @@ public class GameLevelManager : MonoBehaviour
     [SerializeField] private MissionCategory _narrativeCategory = MissionCategory.Training;
     [SerializeField] private int _narrativeStartId = 100;
     [SerializeField] private int _narrativeEndId = 105;
-    [SerializeField] private SubtitleChannel _narrativeChannel = SubtitleChannel.Dialogue;
+    [SerializeField] private bool _enableIntelligenceNarrative = true;
+    [SerializeField] private SubtitleChannel _intelligenceChannel = SubtitleChannel.Mission;
+    [SerializeField] private bool _enableOverlayNarrative = true;
+    [SerializeField] private SubtitleChannel _overlayChannel = SubtitleChannel.Dialogue;
 
     [Header("运行时触发配置")]
     [SerializeField] private MissionNarrativeTriggerMode _triggerMode = MissionNarrativeTriggerMode.RepeatWhileInside;
@@ -58,12 +61,14 @@ public class GameLevelManager : MonoBehaviour
     [SerializeField] private TriggerPolicy _cgPolicy = TriggerPolicy.OnceOnly;
 
     private GameObject _trackedPlayerTank;
-    private SubtitlePackage _runtimeNarrativePackage;
+    private SubtitlePackage _runtimeIntelligencePackage;
+    private SubtitlePackage _runtimeOverlayPackage;
     private string _activeRegionId;
     private bool _isPlayerInside;
     private bool _hasTriggeredOnce;
     private bool _cgTriggered;
-    private bool _narrativeFinishCallbackWired;
+    private bool _intelligenceFinishCallbackWired;
+    private bool _overlayFinishCallbackWired;
     private float _narrativeFinishedTime = float.NegativeInfinity;
     private float _lastDispatchTime = float.NegativeInfinity;
 
@@ -119,8 +124,10 @@ public class GameLevelManager : MonoBehaviour
         _activeRegionId = ResolveRegionId(regionId);
         _trackedPlayerTank = null;
         _isPlayerInside = false;
-        _runtimeNarrativePackage = null;
-        _narrativeFinishCallbackWired = false;
+        _runtimeIntelligencePackage = null;
+        _runtimeOverlayPackage = null;
+        _intelligenceFinishCallbackWired = false;
+        _overlayFinishCallbackWired = false;
         _narrativeFinishedTime = float.NegativeInfinity;
 
         // CG 标记永不重置（一次性）
@@ -216,37 +223,70 @@ public class GameLevelManager : MonoBehaviour
             return;
         }
 
+        if (MissionNarrativeRuntime.IsNarrativeCompleted(this, ActiveRegionId))
+        {
+            return;
+        }
+
         if (_missionRegistry == null)
         {
             Debug.LogWarning($"[GameLevelManager] 关卡 {_levelIndex} 未配置 MissionRegistrySystem", this);
             return;
         }
 
-        if (_runtimeNarrativePackage == null)
+        bool hasRuntimePackage = _runtimeIntelligencePackage != null || _runtimeOverlayPackage != null;
+        if (!hasRuntimePackage)
         {
             if (!CanCreateNextNarrativePackage(isInitialEntry))
             {
                 return;
             }
 
-            _runtimeNarrativePackage = BuildNarrativePackage();
-            if (_runtimeNarrativePackage == null)
+            bool hasPublishedAnyPackage = false;
+
+            if (_enableIntelligenceNarrative)
             {
-                Debug.LogWarning($"[GameLevelManager] 关卡 {_levelIndex} 未能生成字幕包", this);
+                _runtimeIntelligencePackage = BuildNarrativePackage(_intelligenceChannel);
+                if (_runtimeIntelligencePackage != null)
+                {
+                    WireNarrativeFinishCallback(_runtimeIntelligencePackage, true);
+                    MissionNarrativeRuntime.PublishNarrative(this, ActiveRegionId, _runtimeIntelligencePackage);
+                    hasPublishedAnyPackage = true;
+                }
+            }
+
+            if (_enableOverlayNarrative)
+            {
+                _runtimeOverlayPackage = BuildNarrativePackage(_overlayChannel);
+                if (_runtimeOverlayPackage != null)
+                {
+                    WireNarrativeFinishCallback(_runtimeOverlayPackage, false);
+                    MissionNarrativeRuntime.PublishNarrative(this, ActiveRegionId, _runtimeOverlayPackage);
+                    hasPublishedAnyPackage = true;
+                }
+            }
+
+            if (!hasPublishedAnyPackage)
+            {
+                Debug.LogWarning($"[GameLevelManager] 关卡 {_levelIndex} 未能生成任何叙事包", this);
                 return;
             }
 
             _lastDispatchTime = Time.unscaledTime;
             _hasTriggeredOnce = true;
-            WireNarrativeFinishCallback(_runtimeNarrativePackage);
-            MissionNarrativeRuntime.PublishNarrative(this, ActiveRegionId, _runtimeNarrativePackage);
             Debug.Log($"[GameLevelManager] 玩家进入任务区域 {ActiveRegionId}，触发关卡 {_levelIndex} 的叙事包。", this);
             return;
         }
 
-        if (!_runtimeNarrativePackage.HasFinished)
+        if (!AreRuntimeNarrativesFinished())
         {
             return;
+        }
+
+        if (_runtimeIntelligencePackage != null)
+        {
+            // 情报栏完成后保持最终文本，不再按区域停留逻辑反复重置和重播。
+            _runtimeIntelligencePackage = null;
         }
 
         if (_triggerMode != MissionNarrativeTriggerMode.RepeatWhileInside)
@@ -259,14 +299,27 @@ public class GameLevelManager : MonoBehaviour
             return;
         }
 
-        _runtimeNarrativePackage.ResetProgress();
+        _runtimeOverlayPackage?.ResetProgress();
         _lastDispatchTime = Time.unscaledTime;
-        MissionNarrativeRuntime.PublishNarrative(this, ActiveRegionId, _runtimeNarrativePackage);
+        if (_runtimeOverlayPackage != null)
+        {
+            MissionNarrativeRuntime.PublishNarrative(this, ActiveRegionId, _runtimeOverlayPackage);
+        }
     }
 
-    private void WireNarrativeFinishCallback(SubtitlePackage package)
+    private void WireNarrativeFinishCallback(SubtitlePackage package, bool isIntelligencePackage)
     {
-        if (package == null || _narrativeFinishCallbackWired)
+        if (package == null)
+        {
+            return;
+        }
+
+        if (isIntelligencePackage && _intelligenceFinishCallbackWired)
+        {
+            return;
+        }
+
+        if (!isIntelligencePackage && _overlayFinishCallbackWired)
         {
             return;
         }
@@ -274,9 +327,21 @@ public class GameLevelManager : MonoBehaviour
         package.OnFinished = () =>
         {
             _narrativeFinishedTime = Time.unscaledTime;
+
+            if (isIntelligencePackage)
+            {
+                MissionNarrativeRuntime.MarkNarrativeCompleted(this, ActiveRegionId);
+            }
         };
 
-        _narrativeFinishCallbackWired = true;
+        if (isIntelligencePackage)
+        {
+            _intelligenceFinishCallbackWired = true;
+        }
+        else
+        {
+            _overlayFinishCallbackWired = true;
+        }
     }
 
     private bool CanCreateNextNarrativePackage(bool isInitialEntry)
@@ -299,13 +364,20 @@ public class GameLevelManager : MonoBehaviour
         return Time.unscaledTime - _lastDispatchTime >= Mathf.Max(0.1f, _repeatInterval);
     }
 
-    private SubtitlePackage BuildNarrativePackage()
+    private SubtitlePackage BuildNarrativePackage(SubtitleChannel channel)
     {
         return _missionRegistry.GetPackageSequence(
             _narrativeCategory,
             _narrativeStartId,
             _narrativeEndId,
-            _narrativeChannel);
+            channel);
+    }
+
+    private bool AreRuntimeNarrativesFinished()
+    {
+        bool intelligenceFinished = _runtimeIntelligencePackage == null || _runtimeIntelligencePackage.HasFinished;
+        bool overlayFinished = _runtimeOverlayPackage == null || _runtimeOverlayPackage.HasFinished;
+        return intelligenceFinished && overlayFinished;
     }
 
     private string ResolveRegionId(string regionId)

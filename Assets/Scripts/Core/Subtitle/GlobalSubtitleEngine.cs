@@ -17,6 +17,7 @@ public partial class GlobalSubtitleEngine : MonoBehaviour
 
     [SerializeField] private TextMeshProUGUI targetLabel;
     [SerializeField] private float typingSpeed = 0.05f;
+    [SerializeField] private int maxVisibleIntelligenceLines = 6;
 
     private static SubtitlePackage _activePackage;
     private readonly List<SubtitlePackage> _priorityPool = new List<SubtitlePackage>();

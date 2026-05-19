@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Serialization;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "TankMoveData", menuName = "Scriptable Objects/TankMoveData")]
+[CreateAssetMenu(fileName = "TankMoveData", menuName = "SmallWarThunder/坦克/移动/坦克移动数据")]
 public class TankMoveData : ScriptableObject
 {
 

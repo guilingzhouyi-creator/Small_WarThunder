@@ -19,6 +19,28 @@ public class FcsHudPainter : VisualElement
     private Color _cachedShadowColor;
     private Texture2D _appliedBackgroundTexture;
 
+    private Vector2 PanelSize
+    {
+        get
+        {
+            Rect currentContentRect = contentRect;
+            if (currentContentRect.width > 0.01f && currentContentRect.height > 0.01f)
+            {
+                return currentContentRect.size;
+            }
+
+            Rect layoutRect = layout;
+            if (layoutRect.width > 0.01f && layoutRect.height > 0.01f)
+            {
+                return layoutRect.size;
+            }
+
+            return new Vector2(
+                Mathf.Max(1f, _state.ScreenWidth),
+                Mathf.Max(1f, _state.ScreenHeight));
+        }
+    }
+
     public FcsHudPainter()
     {
         generateVisualContent += OnGenerateVisualContent;
@@ -160,8 +182,9 @@ public class FcsHudPainter : VisualElement
 
     private Vector2 ResolveAnchorPoint(NewAimConfigData.HudAnchor anchor)
     {
-        float width = _state.ScreenWidth;
-        float height = _state.ScreenHeight;
+        Vector2 panelSize = PanelSize;
+        float width = panelSize.x;
+        float height = panelSize.y;
 
         switch (anchor)
         {
@@ -194,8 +217,9 @@ public class FcsHudPainter : VisualElement
             return;
         }
 
-        int textureWidth = Mathf.Clamp(Mathf.RoundToInt(Mathf.Max(1f, _state.ScreenWidth) * 0.25f), 128, 512);
-        int textureHeight = Mathf.Clamp(Mathf.RoundToInt(Mathf.Max(1f, _state.ScreenHeight) * 0.25f), 128, 512);
+        Vector2 panelSize = PanelSize;
+        int textureWidth = Mathf.Clamp(Mathf.RoundToInt(Mathf.Max(1f, panelSize.x) * 0.25f), 128, 512);
+        int textureHeight = Mathf.Clamp(Mathf.RoundToInt(Mathf.Max(1f, panelSize.y) * 0.25f), 128, 512);
         float cornerShadowLongSideRange = Mathf.Clamp01(_config.CornerShadowLongSideRange);
         float cornerShadowShortSideRange = Mathf.Clamp01(_config.CornerShadowShortSideRange);
         float centerViewLongSideSize = Mathf.Clamp01(_config.CenterViewLongSideSize);
@@ -339,7 +363,7 @@ public class FcsHudPainter : VisualElement
     private void DrawGraticules(Painter2D painter, Vector2 center, float zoomScale, NewAimConfigData.HudElementDefinition element = null)
     {
         float vFovRad = _state.CurrentFov * Mathf.Deg2Rad;
-        float pixelPerRad = (_state.ScreenHeight / vFovRad) * zoomScale;
+        float pixelPerRad = (PanelSize.y / vFovRad) * zoomScale;
         float spacingMil = element != null
             ? Mathf.Max(0.1f, element.RepeatSpacing)
             : Mathf.Max(0.1f, _config.GraticuleSpacingMil);

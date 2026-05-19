@@ -106,7 +106,7 @@ public class TankAImUIController : UIToolkitViewAdapter<object>
         HandleAimZoom(isAimMode, config);
 
         Vector2 targetScreenPos = ResolveTargetScreenPosition(isAimMode, state, config);
-        Vector2 uiTargetPos = FCSRenderingEngine.ScreenToUIToolkit(targetScreenPos, state.ScreenHeight);
+        Vector2 uiTargetPos = ConvertScreenToHudPosition(targetScreenPos, state);
         WorldAimPoint = ResolveWorldAimPoint(targetScreenPos, config);
 
         if (!isAimMode && TankWeaponController.Instance != null)
@@ -120,6 +120,54 @@ public class TankAImUIController : UIToolkitViewAdapter<object>
         }
 
         _wasAimModeLastFrame = isAimMode;
+    }
+
+    private Vector2 ConvertScreenToHudPosition(Vector2 screenPos, FCSSnapshot state)
+    {
+        IPanel panel = _painter != null ? _painter.panel : _rootVisual?.panel;
+        if (panel != null)
+        {
+            Vector2 panelPosition = RuntimePanelUtils.ScreenToPanel(panel, screenPos);
+            float panelHeight = ResolveHudPanelHeight(state);
+            return new Vector2(panelPosition.x, panelHeight - panelPosition.y);
+        }
+
+        return FCSRenderingEngine.ScreenToUIToolkit(screenPos, state.ScreenHeight);
+    }
+
+    private float ResolveHudPanelHeight(FCSSnapshot state)
+    {
+        if (_painter != null)
+        {
+            Rect painterContentRect = _painter.contentRect;
+            if (painterContentRect.height > 0.01f)
+            {
+                return painterContentRect.height;
+            }
+
+            Rect painterLayout = _painter.layout;
+            if (painterLayout.height > 0.01f)
+            {
+                return painterLayout.height;
+            }
+        }
+
+        if (_rootVisual != null)
+        {
+            Rect rootContentRect = _rootVisual.contentRect;
+            if (rootContentRect.height > 0.01f)
+            {
+                return rootContentRect.height;
+            }
+
+            Rect rootLayout = _rootVisual.layout;
+            if (rootLayout.height > 0.01f)
+            {
+                return rootLayout.height;
+            }
+        }
+
+        return Mathf.Max(1f, state.ScreenHeight);
     }
 
     private void ResolveSceneReferences()

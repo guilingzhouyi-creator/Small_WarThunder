@@ -9,7 +9,7 @@ using UnityEngine.Serialization;
 /// 
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "AimConfigData", menuName = "DFCCCSystem/AimConfigData")]
+[CreateAssetMenu(fileName = "AimConfigData", menuName = "SmallWarThunder/瞄准/配置/瞄准配置")]
 public class NewAimConfigData : ScriptableObject
 {
     public enum HudPreset

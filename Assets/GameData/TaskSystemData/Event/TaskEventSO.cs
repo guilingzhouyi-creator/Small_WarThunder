@@ -75,7 +75,7 @@ namespace NTaskSystem.Event
     /// 任务事件SO — 只描述触发任务所需的事件类型和参数，不直接判断任务是否完成。
     /// 职责：描述"怎么被触发"，作为外部事件输入与任务校验层之间的适配层。
     /// </summary>
-    [CreateAssetMenu(fileName = "TaskEventSO", menuName = "TaskSystem/TaskEventSO")]
+    [CreateAssetMenu(fileName = "TaskEventSO", menuName = "SmallWarThunder/任务/事件/事件模板")]
     public class TaskEventSO : ScriptableObject
     {
         [Header("事件模板列表")]

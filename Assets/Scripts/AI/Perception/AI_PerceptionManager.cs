@@ -15,16 +15,20 @@ namespace NAI
         [SerializeField] private AI_Controller _aiController;
         [SerializeField] private Transform _eyePoint;
 
+        [Header("扫描调度")]
+        [SerializeField, Min(0.05f)] private float _scanInterval = 0.12f;
+
         private AI_Blackboard _blackboard;
         private EnemyConfig _config;
         private Collider[] _overlapResults;
         private int _currentSliceIndex;
         private LayerMask _layerMask;
+        private float _nextScanTime;
 
         private void Awake()
         {
             _overlapResults = new Collider[AIConstants.MaxPerceptionResults];
-            _layerMask = LayerMask.GetMask(AIConstants.PerceptionLayerName, "Player");
+            _layerMask = Physics.DefaultRaycastLayers;
             if (_layerMask.value == 0) _layerMask = Physics.DefaultRaycastLayers;
         }
 
@@ -35,11 +39,18 @@ namespace NAI
 
             _blackboard = _aiController?.Blackboard;
             _config = _aiController?.EnemyConfig;
+            _nextScanTime = Time.time + ComputeInitialScanOffset();
         }
 
         private void Update()
         {
+            if (Time.time < _nextScanTime)
+            {
+                return;
+            }
+
             PerformSlicedScan();
+            ScheduleNextScan();
         }
 
         /// <summary>
@@ -67,9 +78,13 @@ namespace NAI
             for (int i = 0; i < hitCount; i++)
             {
                 Collider col = _overlapResults[i];
-                if (col == null || col.transform == transform) continue;
+                if (col == null) continue;
 
-                Vector3 dirToTarget = (col.transform.position - center).normalized;
+                Transform candidateTarget = ResolvePlayerTarget(col);
+                if (candidateTarget == null) continue;
+                if (candidateTarget == transform || candidateTarget == transform.root) continue;
+
+                Vector3 dirToTarget = (candidateTarget.position - center).normalized;
                 float angleToTarget = Vector3.Angle(forward, dirToTarget);
 
                 // 判断是否在当前切片角度范围内
@@ -82,7 +97,7 @@ namespace NAI
                 if (angleToTarget < bestAngle)
                 {
                     bestAngle = angleToTarget;
-                    bestTarget = col.transform;
+                    bestTarget = candidateTarget;
                 }
             }
 
@@ -94,6 +109,57 @@ namespace NAI
 
             // 轮询下一个切片
             _currentSliceIndex = (_currentSliceIndex + 1) % sliceCount;
+        }
+
+        private static Transform ResolvePlayerTarget(Collider collider)
+        {
+            if (collider == null)
+            {
+                return null;
+            }
+
+            if (collider.TryGetComponent<PlayerMarker>(out PlayerMarker directMarker))
+            {
+                return directMarker.transform;
+            }
+
+            PlayerMarker markerInParents = collider.GetComponentInParent<PlayerMarker>();
+            if (markerInParents != null)
+            {
+                return markerInParents.transform;
+            }
+
+            Transform root = collider.transform.root;
+            if (root != null && root.TryGetComponent<PlayerMarker>(out PlayerMarker rootMarker))
+            {
+                return rootMarker.transform;
+            }
+
+            return null;
+        }
+
+        private float ComputeInitialScanOffset()
+        {
+            float interval = Mathf.Max(0.05f, _scanInterval);
+            int stableHash = Mathf.Abs(GetInstanceID());
+            float normalizedOffset = (stableHash % 997) / 997f;
+            return interval * normalizedOffset;
+        }
+
+        private void ScheduleNextScan()
+        {
+            float interval = Mathf.Max(0.05f, _scanInterval);
+            if (_nextScanTime <= 0f)
+            {
+                _nextScanTime = Time.time + interval;
+                return;
+            }
+
+            _nextScanTime += interval;
+            if (_nextScanTime < Time.time)
+            {
+                _nextScanTime = Time.time + interval;
+            }
         }
     }
 }

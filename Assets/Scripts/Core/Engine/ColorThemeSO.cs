@@ -12,7 +12,7 @@ using UnityEngine;
 /// ChannelOverrides  — 按 SubtitleChannel 枚举覆盖颜色/样式（编译期类型安全）。
 /// KeywordRules      — 按关键词匹配，对文本片段进行局部高亮覆盖。
 /// </summary>
-[CreateAssetMenu(menuName = "Subtitle/Color Theme", fileName = "ColorTheme_Default")]
+[CreateAssetMenu(menuName = "SmallWarThunder/核心/字幕/颜色主题", fileName = "ColorTheme_Default")]
 public class ColorThemeSO : ScriptableObject
 {
     /// <summary>主题名称（用于 Inspector 区分）</summary>

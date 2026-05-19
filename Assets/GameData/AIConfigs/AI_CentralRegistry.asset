@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9fc913103c83cb84c91c1387b2874eab, type: 3}
+  m_Name: AI_CentralRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::NGameData.NAIConfigs.AICentralConfig
+  defaultEnemyConfig: {fileID: 11400000, guid: 5cb3aa0ddf3c4b4db33f2d34696b05bb, type: 2}
+  defaultBehaviorConfig: {fileID: 11400000, guid: 1be173e9c18343ee80d1c68504f6e323, type: 2}
+  defaultMotionConfig: {fileID: 11400000, guid: 9cc3380286d54c4bbd51d22ce476f756, type: 2}
+  defaultSuspensionConfig: {fileID: 11400000, guid: c9575e4988ac42fa8189869f048393ca, type: 2}
+  configMappingList:
+  - prefab: {fileID: 3277777049157209068, guid: 761918996a09bec468cfe3310e4e078e, type: 3}
+    enemyConfig: {fileID: 11400000, guid: 5cb3aa0ddf3c4b4db33f2d34696b05bb, type: 2}
+    behaviorConfig: {fileID: 11400000, guid: 1be173e9c18343ee80d1c68504f6e323, type: 2}
+    motionConfig: {fileID: 11400000, guid: 9cc3380286d54c4bbd51d22ce476f756, type: 2}
+    suspensionConfig: {fileID: 11400000, guid: c9575e4988ac42fa8189869f048393ca, type: 2}
+    aiType: 0

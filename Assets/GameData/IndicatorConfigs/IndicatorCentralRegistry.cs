@@ -6,7 +6,7 @@ using UnityEngine;
 /// 指示系统中央注册表：ScriptableObject 配置表，存储所有指示类型的视觉属性。
 /// 提供通过类型快速查询对应配置的能力。
 /// </summary>
-[CreateAssetMenu(fileName = "IndicatorCentralRegistry", menuName = "SmallWarThunder/Indicator/IndicatorCentralRegistry")]
+[CreateAssetMenu(fileName = "IndicatorCentralRegistry", menuName = "SmallWarThunder/UI/指示器/中央注册表")]
 public class IndicatorCentralRegistry : ScriptableObject
 {
     [Serializable]

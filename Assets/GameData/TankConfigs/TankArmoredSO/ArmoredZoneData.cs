@@ -1,7 +1,7 @@
 using UnityEngine;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "ArmoredZoneData", menuName = "Scriptable Objects/ArmoredZoneData")]
+[CreateAssetMenu(fileName = "ArmoredZoneData", menuName = "SmallWarThunder/坦克/装甲/装甲区数据")]
 public class ArmoredZoneData : ScriptableObject
 {
     public string zoneName; //装甲区名称，例如：车体、炮塔、炮管等

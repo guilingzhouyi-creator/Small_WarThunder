@@ -43,9 +43,31 @@ partial class GlobalSubtitleEngine
 
     private string GetRenderedPanelNarrativeBuffer(SubtitleChannel channel)
     {
+        string visibleText = channel == SubtitleChannel.Mission
+            ? GetLatestVisibleNarrativeLines()
+            : _panelNarrativeBuffer.ToString();
+
         return SubtitleColorRenderEngine.Process(
-            _panelNarrativeBuffer.ToString(),
+            visibleText,
             SubtitleRenderScope.Intelligence,
             channel);
+    }
+
+    private string GetLatestVisibleNarrativeLines()
+    {
+        string fullText = _panelNarrativeBuffer.ToString();
+        if (string.IsNullOrEmpty(fullText) || maxVisibleIntelligenceLines <= 0)
+        {
+            return fullText;
+        }
+
+        string[] lines = fullText.Split('\n');
+        if (lines.Length <= maxVisibleIntelligenceLines)
+        {
+            return fullText;
+        }
+
+        int startIndex = lines.Length - maxVisibleIntelligenceLines;
+        return string.Join("\n", lines, startIndex, maxVisibleIntelligenceLines);
     }
 }

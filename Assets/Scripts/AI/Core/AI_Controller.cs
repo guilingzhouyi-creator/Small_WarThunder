@@ -13,8 +13,6 @@ namespace NAI
     {
         [Header("配置引用")]
         [SerializeField] private AICentralConfig _centralConfig;
-        [SerializeField] private EnemyConfig _enemyConfig;
-        [SerializeField] private BehaviorConfig _behaviorConfig;
 
         [Header("运行时")]
         [SerializeField] private AI_Blackboard _blackboard;
@@ -22,51 +20,131 @@ namespace NAI
         private string _currentState;
         private string _previousState;
         private float _stateEnterTime;
+        private float _lastAwarenessLogTime;
 
+        private EnemyConfig _resolvedEnemyConfig;
+        private BehaviorConfig _resolvedBehaviorConfig;
         private AIMotionConfig _resolvedMotionConfig;
+        private AISuspensionConfig _resolvedSuspensionConfig;
 
         public AI_Blackboard Blackboard => _blackboard;
         public string CurrentState => _currentState;
-        public EnemyConfig EnemyConfig => _enemyConfig;
-        public BehaviorConfig BehaviorConfig => _behaviorConfig;
-        /// <summary>经过中央配置映射表解析后的物理驱动配置（不会为null，必然返回有效值或默认值）</summary>
+        public EnemyConfig EnemyConfig => _resolvedEnemyConfig;
+        public BehaviorConfig BehaviorConfig => _resolvedBehaviorConfig;
         public AIMotionConfig ResolvedMotionConfig => _resolvedMotionConfig;
+        public AISuspensionConfig ResolvedSuspensionConfig => _resolvedSuspensionConfig;
 
         private void Awake()
         {
             _blackboard = new AI_Blackboard();
-            ResolveMotionConfig();
-            ApplyConfig(_enemyConfig);
+            ResolveConfigs();
+            ApplyConfig(_resolvedEnemyConfig);
+            ApplyResolvedRuntimeConfigs();
             TransitionToState(AIConstants.StateWatch);
         }
 
-        /// <summary>
-        /// 从 centralConfig 中解析该 Prefab 对应的 AIMotionConfig
-        /// </summary>
-        private void ResolveMotionConfig()
+        private void ResolveConfigs()
         {
             if (_centralConfig == null)
             {
-                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller: centralConfig is null, motionConfig will be null");
+                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller.ResolveConfigs: centralConfig is null on {gameObject.name}");
                 return;
             }
 
-            foreach (var mapping in _centralConfig.configMappingList)
+            AIConfigMapping mapping = ResolveConfigMapping();
+
+            _resolvedEnemyConfig = mapping != null && mapping.enemyConfig != null
+                ? mapping.enemyConfig
+                : _centralConfig.defaultEnemyConfig;
+
+            _resolvedBehaviorConfig = mapping != null && mapping.behaviorConfig != null
+                ? mapping.behaviorConfig
+                : _centralConfig.defaultBehaviorConfig;
+
+            _resolvedMotionConfig = mapping != null && mapping.motionConfig != null
+                ? mapping.motionConfig
+                : _centralConfig.defaultMotionConfig;
+
+            _resolvedSuspensionConfig = mapping != null && mapping.suspensionConfig != null
+                ? mapping.suspensionConfig
+                : _centralConfig.defaultSuspensionConfig;
+
+            if (_resolvedEnemyConfig == null)
             {
-                if (mapping != null && mapping.prefab != null && mapping.prefab == gameObject)
-                {
-                    _resolvedMotionConfig = mapping.motionConfig;
-                    break;
-                }
+                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller.ResolveConfigs: no enemyConfig found for {gameObject.name}");
+            }
+
+            if (_resolvedBehaviorConfig == null)
+            {
+                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller.ResolveConfigs: no behaviorConfig found for {gameObject.name}");
             }
 
             if (_resolvedMotionConfig == null)
-                _resolvedMotionConfig = _centralConfig.defaultMotionConfig;
+            {
+                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller.ResolveConfigs: no motionConfig found for {gameObject.name}");
+            }
 
-            if (_resolvedMotionConfig == null)
-                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller.ResolveMotionConfig: no motionConfig found for {gameObject.name}, using null");
-            else
-                Debug.Log($"{AIConstants.DebugTagAI} AI_Controller.ResolveMotionConfig: resolved motionConfig={_resolvedMotionConfig.name} for {gameObject.name}");
+            if (_resolvedSuspensionConfig == null)
+            {
+                Debug.LogWarning($"{AIConstants.DebugTagAI} AI_Controller.ResolveConfigs: no suspensionConfig found for {gameObject.name}");
+            }
+        }
+
+        private AIConfigMapping ResolveConfigMapping()
+        {
+            if (_centralConfig == null || _centralConfig.configMappingList == null)
+            {
+                return null;
+            }
+
+            string normalizedName = NormalizePrefabName(gameObject.name);
+            foreach (AIConfigMapping mapping in _centralConfig.configMappingList)
+            {
+                if (mapping == null || mapping.prefab == null)
+                {
+                    continue;
+                }
+
+                if (mapping.prefab == gameObject)
+                {
+                    return mapping;
+                }
+
+                if (NormalizePrefabName(mapping.prefab.name) == normalizedName)
+                {
+                    return mapping;
+                }
+            }
+
+            return null;
+        }
+
+        private void ApplyResolvedRuntimeConfigs()
+        {
+            AI_MotionDriver motionDriver = GetComponent<AI_MotionDriver>();
+            if (motionDriver != null)
+            {
+                motionDriver.ApplyConfig(_resolvedMotionConfig);
+            }
+
+            AI_TankSuspensionManager[] suspensionManagers = GetComponentsInChildren<AI_TankSuspensionManager>(true);
+            foreach (AI_TankSuspensionManager suspensionManager in suspensionManagers)
+            {
+                suspensionManager.ApplyConfig(_resolvedSuspensionConfig);
+            }
+        }
+
+        private static string NormalizePrefabName(string sourceName)
+        {
+            if (string.IsNullOrEmpty(sourceName))
+            {
+                return string.Empty;
+            }
+
+            const string cloneSuffix = "(Clone)";
+            return sourceName.EndsWith(cloneSuffix)
+                ? sourceName.Substring(0, sourceName.Length - cloneSuffix.Length).TrimEnd()
+                : sourceName;
         }
 
         /// <summary>
@@ -80,7 +158,7 @@ namespace NAI
                 return;
             }
 
-            _enemyConfig = config;
+            _resolvedEnemyConfig = config;
             _blackboard.Set(AIConstants.BbKeyHealth, config.maxHealth);
             _blackboard.Set(AIConstants.BbKeyCurrentAwareness, 0f);
 
@@ -133,8 +211,19 @@ namespace NAI
             float health = _blackboard.Get<float>(AIConstants.BbKeyHealth);
             Transform target = _blackboard.Get<Transform>(AIConstants.BbKeyTargetEnemy);
             float awareness = _blackboard.Get<float>(AIConstants.BbKeyCurrentAwareness);
+            float suspiciousThreshold = _resolvedEnemyConfig != null
+                ? Mathf.Clamp01(_resolvedEnemyConfig.awarenessThreshold)
+                : 0.35f;
+            float attackThreshold = Mathf.Clamp01(Mathf.Max(suspiciousThreshold + 0.25f, 0.7f));
+            float lockThreshold = Mathf.Clamp01(Mathf.Max(attackThreshold + 0.15f, 0.9f));
 
             if (_currentState == AIConstants.StateDead) return;
+
+            if (Application.isPlaying && target != null && Time.time - _lastAwarenessLogTime >= 1f)
+            {
+                _lastAwarenessLogTime = Time.time;
+                Debug.Log($"{AIConstants.DebugTagFSM} Evaluate: state={_currentState}, awareness={awareness:F2}, suspiciousThreshold={suspiciousThreshold:F2}, attackThreshold={attackThreshold:F2}, lockThreshold={lockThreshold:F2}, target={target.name}");
+            }
 
             if (health <= 0f)
             {
@@ -142,17 +231,17 @@ namespace NAI
                 return;
             }
 
-            if (target != null && awareness > 0.7f)
+            if (target != null && awareness > attackThreshold)
             {
                 float dist = Vector3.Distance(transform.position, target.position);
-                if (dist < (_enemyConfig?.attackRange ?? 50f))
+                if (dist < (_resolvedEnemyConfig?.attackRange ?? 50f))
                     TransitionToState(AIConstants.StateRandomAttack);
-                else if (awareness > 0.9f)
+                else if (awareness > lockThreshold)
                     TransitionToState(AIConstants.StateLockBuffer);
                 else
                     TransitionToState(AIConstants.StateSuspicious);
             }
-            else if (awareness > 0.3f)
+            else if (awareness > suspiciousThreshold)
             {
                 TransitionToState(AIConstants.StateSuspicious);
             }

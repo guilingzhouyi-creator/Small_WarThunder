@@ -1,0 +1,49 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 07fd2a344e7ada840b6ff5ee7f6d7809, type: 3}
+  m_Name: M1A2 SEPv2_AI_MotionConfig
+  m_EditorClassIdentifier: Assembly-CSharp::NGameData.NAIConfigs.AIMotionConfig
+  vehicleMass: 100
+  linearDamping: 0
+  angularDamping: 0.05
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  groundProbeLength: 2.2
+  groundProbeRadius: 0.35
+  groundStickForce: 5500
+  maxMotorForce: 9500
+  maxBrakeForce: 14000
+  maxForwardSpeed: 22
+  maxReverseSpeed: 8
+  maxTurnSpeed: 48
+  trackWidth: 3.4
+  trackWheelBase: 4.8
+  movingLinearDamping: 0.03
+  idleLinearDamping: 1
+  forwardFriction: 1.7
+  sideFriction: 0.8
+  frictionBlendSharpness: 3
+  pivotTurnBlendSharpness: 5
+  fallbackGroundFrictionCoefficient: 1
+  rollingResistanceScale: 0.03
+  maxRollingResistanceCoefficient: 0.05
+  rollingResistanceCoeff: 0.055
+  staticFrictionThreshold: 0.5
+  cogHeight: 0.65
+  lateralFrictionMultiplier: 3.5
+  turnResponseTime: 0.15
+  maxLateralSpeedRatio: 0.3
+  maxTotalSpeedMultiplier: 1.5
+  maxAngularSpeedMultiplier: 1.5
+  slopeCompensationFactor: 0.35
+  slopeRecoveryForce: 2400

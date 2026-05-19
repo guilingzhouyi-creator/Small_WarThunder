@@ -56,7 +56,7 @@ public class SceneCatalogEntry
     }
 }
 
-[CreateAssetMenu(fileName = "SceneCatalog", menuName = "GameSceneSystem/Scene Catalog")]
+[CreateAssetMenu(fileName = "SceneCatalog", menuName = "SmallWarThunder/核心/场景/场景目录")]
 public sealed class SceneCatalog : ScriptableObject, ISerializationCallbackReceiver
 {
     [SerializeField] private SceneCatalogEntry[] _entries;

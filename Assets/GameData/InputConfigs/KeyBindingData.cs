@@ -31,7 +31,7 @@ public class KeyBindingEntry
 /// 实际绑定覆盖数据通过 InputSystem 的 JSON 序列化，不在此 SO 中持久化。
 /// 位于 Assets/GameData/InputConfigs/ 目录下。
 /// </summary>
-[CreateAssetMenu(fileName = "KeyBindingData", menuName = "SmallWarThunder/Input/KeyBindingData", order = 1)]
+[CreateAssetMenu(fileName = "KeyBindingData", menuName = "SmallWarThunder/输入/按键绑定/数据", order = 1)]
 public class KeyBindingData : ScriptableObject
 {
     /// <summary>可重绑定按键列表</summary>

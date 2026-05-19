@@ -49,6 +49,9 @@ public partial class TankWeaponController : MonoBehaviour
     // private Camera _mainCamera;
     private Vector3 _currentAimPoint;
     private Transform _tankRoot;
+    private Quaternion _turretBindLocalRotation = Quaternion.identity;
+    private Quaternion _barrelBindLocalRotation = Quaternion.identity;
+    private Quaternion _barrelRootBindLocalRotation = Quaternion.identity;
     private readonly List<Collider> _selfAvoidanceColliders = new List<Collider>();
 
     void Awake()
@@ -73,6 +76,8 @@ public partial class TankWeaponController : MonoBehaviour
         _tankRoot = transform.root;
         _orbitalFollow = FindFirstObjectByType<CinemachineOrbitalFollow>();
 
+        CacheHardwareBindRotations();
+
 
         CacheSelfAvoidanceColliders();
 
@@ -82,6 +87,13 @@ public partial class TankWeaponController : MonoBehaviour
         {
             FCSRegistry.RegisterCameraTransitionConfig(cameraTransitionConfig);
         }
+    }
+
+    private void CacheHardwareBindRotations()
+    {
+        _turretBindLocalRotation = turret != null ? turret.localRotation : Quaternion.identity;
+        _barrelBindLocalRotation = barrel != null ? barrel.localRotation : Quaternion.identity;
+        _barrelRootBindLocalRotation = barrelRoot != null ? barrelRoot.localRotation : Quaternion.identity;
     }
 
     void Update()

@@ -237,15 +237,15 @@ public partial class TankSuspensionManager : MonoBehaviour
 
     private void DistributeControlToTracks()
     {
-        TrackController[] trackControllers = GetComponentsInChildren<TrackController>(true);
-        foreach (TrackController trackController in trackControllers)
+        TrackPathRendererBase[] trackControllers = GetComponentsInChildren<TrackPathRendererBase>(true);
+        foreach (TrackPathRendererBase trackController in trackControllers)
         {
             if (trackController == null)
             {
                 continue;
             }
 
-            trackController.suspensionManager = this;
+            trackController.SetTankSuspensionManager(this);
         }
     }
 

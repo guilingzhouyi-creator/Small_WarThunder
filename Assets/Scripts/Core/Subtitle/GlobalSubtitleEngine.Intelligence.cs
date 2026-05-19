@@ -24,6 +24,7 @@ partial class GlobalSubtitleEngine
         }
 
         OnIntelligenceTextChanged?.Invoke(string.Empty);
+        OnOverlayTextChanged?.Invoke(string.Empty);
     }
 
     /// <summary>
@@ -46,6 +47,7 @@ partial class GlobalSubtitleEngine
             }
 
             OnIntelligenceTextChanged?.Invoke(colored);
+            OnOverlayTextChanged?.Invoke(colored);
 
             package.CurrentLineIndex++;
 

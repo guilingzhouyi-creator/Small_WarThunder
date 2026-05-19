@@ -35,10 +35,12 @@ namespace NAI
         private float _currentReloadTime;
         private float _lastFireTime;
         private const float FIRE_COOLDOWN = 0.5f;
+        private float _lastBlockedLogTime;
 
         public bool IsReloading => _isReloading;
         public bool CanFire => !_isReloading && Time.time - _lastFireTime >= FIRE_COOLDOWN;
         public ProjectileType CurrentAmmoType => _currentAmmoType;
+        public Transform FirePoint => _firePoint;
 
         private void Awake()
         {
@@ -149,15 +151,19 @@ namespace NAI
         /// </summary>
         public bool FireMainGun()
         {
+            return FireMainGun(null);
+        }
+
+        public bool FireMainGun(Vector3? overrideDirection)
+        {
             if (_isReloading)
             {
-                Debug.Log("[AI_FireController] 装填中，无法开火");
-                return false;
+                return LogBlockedFire($"装填中，无法开火，reloadProgress={_currentReloadTime:F2}/{_reloadTime:F2}");
             }
 
             if (Time.time - _lastFireTime < FIRE_COOLDOWN)
             {
-                return false;
+                return LogBlockedFire($"冷却中，remaining={(FIRE_COOLDOWN - (Time.time - _lastFireTime)):F2}s");
             }
 
             // 确保当前弹种有库存，否则自动切换
@@ -173,7 +179,7 @@ namespace NAI
                 _nextAmmoType = available;
             }
 
-            if (SpawnProjectile())
+            if (SpawnProjectile(overrideDirection))
             {
                 _lastFireTime = Time.time;
                 StartCoroutine(ReloadRoutine());
@@ -186,10 +192,12 @@ namespace NAI
         /// <summary>
         /// 生成并发射炮弹
         /// </summary>
-        private bool SpawnProjectile()
+        private bool SpawnProjectile(Vector3? overrideDirection)
         {
             ProjectileType ammoType = _currentAmmoType;
             ProjectileData projectileData = ResolveProjectileData(ammoType);
+
+            Debug.Log($"[AI_FireController] Spawn request: ammoType={ammoType}, readyAmmo={_currentReadyAmmo}, hasAmmo={HasAmmo(ammoType)}, firePointAssigned={_firePoint != null}");
 
             if (projectileData == null)
             {
@@ -230,7 +238,9 @@ namespace NAI
                 return false;
             }
 
-            Vector3 fireDirection = _firePoint != null ? _firePoint.forward : transform.forward;
+            Vector3 fireDirection = overrideDirection.HasValue && overrideDirection.Value.sqrMagnitude > 0.0001f
+                ? overrideDirection.Value.normalized
+                : (_firePoint != null ? _firePoint.forward : transform.forward);
 
             cannonBallObj.transform.SetParent(pool.transform);
             cannonBallObj.transform.position = _firePoint != null ? _firePoint.position : transform.position + transform.forward;
@@ -239,8 +249,19 @@ namespace NAI
 
             cannonBall.Shoot(fireDirection, projectileData);
 
-            Debug.Log($"[AI_FireController] 发射炮弹: {ammoType}, 剩余: {_ammoInventory[ammoType]}");
+            Debug.Log($"[AI_FireController] 发射炮弹: {ammoType}, 剩余: {_ammoInventory[ammoType]}, spawnPos={cannonBallObj.transform.position}, fireDirection={fireDirection}");
             return true;
+        }
+
+        private bool LogBlockedFire(string reason)
+        {
+            if (Time.time - _lastBlockedLogTime >= 0.5f)
+            {
+                _lastBlockedLogTime = Time.time;
+                Debug.Log($"[AI_FireController] 开火请求被阻止: {reason}");
+            }
+
+            return false;
         }
 
         /// <summary>

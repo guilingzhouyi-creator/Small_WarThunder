@@ -82,7 +82,7 @@ public class TankAudioCueDefinition
     public TankAudioCueParameterDefinition[] Parameters;
 }
 
-[CreateAssetMenu(fileName = "TankAudioData", menuName = "TankAudioSystem/TankAudioData")]
+[CreateAssetMenu(fileName = "TankAudioData", menuName = "SmallWarThunder/坦克/音频/音频数据")]
 public class TankAudioData : ScriptableObject
 {
     [Header("Tank Identity")]

@@ -66,8 +66,8 @@ public partial class TankSuspensionManager : MonoBehaviour
         // 收集所有固定轮（诱导轮/传动轮）的位置，这些轮子附近的节点不应被悬挂臂拉动
         FixedWheelMarker[] fixedWheels = GetComponentsInChildren<FixedWheelMarker>(true);
 
-        TrackController[] tracks = GetComponentsInChildren<TrackController>(true);
-        foreach (TrackController track in tracks)
+        TrackPathRendererBase[] tracks = GetComponentsInChildren<TrackPathRendererBase>(true);
+        foreach (TrackPathRendererBase track in tracks)
         {
             if (track == null || track.pathRoot == null) continue;
 

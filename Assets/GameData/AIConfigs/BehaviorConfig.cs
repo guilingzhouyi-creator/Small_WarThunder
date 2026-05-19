@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 namespace NGameData.NAIConfigs
 {
-    [CreateAssetMenu(fileName = "BehaviorConfig", menuName = "SmallWarThunder/AI/BehaviorConfig", order = 2)]
+    [CreateAssetMenu(fileName = "BehaviorConfig", menuName = "SmallWarThunder/AI/配置/行为配置", order = 2)]
     public class BehaviorConfig : ScriptableObject
     {
         [Header("可疑态")]

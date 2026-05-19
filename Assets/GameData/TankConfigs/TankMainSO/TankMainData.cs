@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "TankMainData", menuName = "Scriptable Objects/TankMainData")]
+[CreateAssetMenu(fileName = "TankMainData", menuName = "SmallWarThunder/坦克/主系统/坦克主数据")]
 public class TankMainData : ScriptableObject
 {
     public float TankMaxHealth;

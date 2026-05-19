@@ -1,0 +1,41 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8f6a829d107d8ce46b28d39c4108c296, type: 3}
+  m_Name: M1A2 SEPv2_AI_SuspensionConfig
+  m_EditorClassIdentifier: Assembly-CSharp::NGameData.NAIConfigs.AISuspensionConfig
+  restLength: 0.25
+  springStrength: 8500
+  damperStrength: 900
+  maxCompression: 0.38
+  maxExtension: 0.5
+  probeExtraLength: 0.2
+  wheelRadius: 0.85
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  autoTuneSpringDamper: 1
+  targetRideCompressionRatio: 0.5
+  damperRatio: 0.9
+  suspensionRotationAxis: {x: 1, y: 0, z: 0}
+  angleMultiplier: 40
+  extensionAngleMultiplier: 110
+  minAngle: -55
+  maxAngle: 22
+  rotationLerpSpeed: 20
+  rotationSmoothTime: 0.06
+  antiRollForce: 5000
+  enableAntiRoll: 1
+  normalAlignStrength: 3000
+  normalAlignDamping: 500
+  maxAlignAngle: 15
+  pitchStabilization: 2000
+  rollStabilization: 3000

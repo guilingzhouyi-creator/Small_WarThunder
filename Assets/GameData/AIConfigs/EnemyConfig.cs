@@ -5,7 +5,7 @@ using UnityEngine;
 /// </summary>
 namespace NGameData.NAIConfigs
 {
-    [CreateAssetMenu(fileName = "EnemyConfig", menuName = "SmallWarThunder/AI/EnemyConfig", order = 1)]
+    [CreateAssetMenu(fileName = "EnemyConfig", menuName = "SmallWarThunder/AI/配置/敌方配置", order = 1)]
     public class EnemyConfig : ScriptableObject
     {
         [Header("感知")]

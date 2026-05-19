@@ -7,38 +7,48 @@ using UnityEngine;
 /// </summary>
 namespace NGameData.NAIConfigs
 {
-    [CreateAssetMenu(fileName = "AISuspensionConfig", menuName = "AI/AISuspensionConfig", order = 1)]
+    [CreateAssetMenu(fileName = "AISuspensionConfig", menuName = "SmallWarThunder/AI/配置/悬挂配置", order = 1)]
     public class AISuspensionConfig : ScriptableObject
     {
         [Header("悬挂臂几何参数")]
         [Tooltip("悬挂臂静止长度(m)")]
-        public float restLength = 0.8f;
+        public float restLength = 0.25f;
         [Tooltip("弹簧刚度(N/m)")]
-        public float springStrength = 15000f;
+        public float springStrength = 8500f;
         [Tooltip("阻尼系数(N·s/m)")]
-        public float damperStrength = 2000f;
+        public float damperStrength = 900f;
         [Tooltip("最大压缩量(m)")]
-        public float maxCompression = 0.4f;
+        public float maxCompression = 0.38f;
         [Tooltip("最大伸展量(m)")]
-        public float maxExtension = 0.3f;
+        public float maxExtension = 0.5f;
+        [Tooltip("额外探测长度(m)")]
+        public float probeExtraLength = 0.2f;
         [Tooltip("负重轮半径(m)，用于SphereCast和视觉")]
-        public float wheelRadius = 0.4f;
+        public float wheelRadius = 0.85f;
         [Tooltip("地面探测图层遮罩")]
         public LayerMask groundMask = ~0;
 
+        [Header("自动整定")]
+        [Tooltip("根据车体质量自动更新弹簧和阻尼")]
+        public bool autoTuneSpringDamper = true;
+        [Range(0.3f, 0.8f)] public float targetRideCompressionRatio = 0.5f;
+        [Range(0.1f, 2f)] public float damperRatio = 0.9f;
+
         [Header("悬挂臂视觉参数")]
+        [Tooltip("悬挂旋转轴")]
+        public Vector3 suspensionRotationAxis = new Vector3(1f, 0f, 0f);
         [Tooltip("压缩角度乘数(deg/m)")]
         public float angleMultiplier = 40f;
         [Tooltip("伸展角度乘数(deg/m)")]
-        public float extensionAngleMultiplier = 60f;
+        public float extensionAngleMultiplier = 110f;
         [Tooltip("最小视觉角度(deg)")]
         public float minAngle = -55f;
         [Tooltip("最大视觉角度(deg)")]
         public float maxAngle = 22f;
+        [Tooltip("视觉角度响应速度")]
+        public float rotationLerpSpeed = 20f;
         [Tooltip("视觉角度平滑时间(s)")]
         public float rotationSmoothTime = 0.06f;
-        [Tooltip("视觉角度最大速度(deg/s)")]
-        public float rotationMaxSpeed = 400f;
 
         [Header("防翻滚杆")]
         [Tooltip("防翻滚杆力矩系数")]

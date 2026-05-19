@@ -1,7 +1,7 @@
 using UnityEngine;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "MissionTextData", menuName = "MissionSystem/MissionTextData")]
+[CreateAssetMenu(fileName = "MissionTextData", menuName = "SmallWarThunder/任务/文本/任务文本库")]
 public class MissionEntryAsset : ScriptableObject
 {
     public SmallWar.Data.MissionCategory category;

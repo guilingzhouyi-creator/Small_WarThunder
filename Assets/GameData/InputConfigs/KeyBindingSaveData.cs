@@ -20,7 +20,7 @@ public struct KeyBindingOverride
 /// ScriptableObject 形式的按键绑定持久化数据容器。
 /// 存储玩家所有自定义绑定覆盖信息。默认绑定由 GameInputingSystem.inputactions 资产提供。
 /// </summary>
-[CreateAssetMenu(fileName = "KeyBindingSaveData", menuName = "KeyBinding/SaveData")]
+[CreateAssetMenu(fileName = "KeyBindingSaveData", menuName = "SmallWarThunder/输入/按键绑定/保存数据")]
 public class KeyBindingSaveData : ScriptableObject
 {
     /// <summary>

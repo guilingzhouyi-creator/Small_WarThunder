@@ -35,7 +35,7 @@ namespace NTaskSystem.Event
     /// 职责：连接"怎么被触发"与"哪个任务受影响"，不直接判断任务是否完成。
     /// 作为Event层与Config层之间的桥接，确保事件标准化后能准确命中目标任务。
     /// </summary>
-    [CreateAssetMenu(fileName = "TaskEventRuleSO", menuName = "TaskSystem/TaskEventRuleSO")]
+    [CreateAssetMenu(fileName = "TaskEventRuleSO", menuName = "SmallWarThunder/任务/事件/命中规则表")]
     public class TaskEventRuleSO : ScriptableObject
     {
         [Header("事件规则列表")]

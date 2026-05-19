@@ -35,7 +35,16 @@ public partial class CreateParentForSelected : EditorWindow
         CreateParent,
         Reparent,
         AssignMesh,
-        Rename
+        AssignMaterial,
+        Rename,
+        Combined
+    }
+
+    private enum AssignMaterialMode
+    {
+        OneToOne,
+        ManyToOne,
+        ManyToMany
     }
 
     // ============================================================
@@ -62,6 +71,14 @@ public partial class CreateParentForSelected : EditorWindow
     private Vector2 _assignMeshScrollPos;
     private string _assignStatusMessage = "";
 
+    // ---- 赋值材质用 ----
+    private AssignMaterialMode _assignMaterialMode = AssignMaterialMode.OneToOne;
+    private List<GameObject> _assignMatTargets = new List<GameObject>();
+    private List<Material> _assignMaterials = new List<Material>();
+    private Vector2 _assignMatTargetScrollPos;
+    private Vector2 _assignMatMaterialScrollPos;
+    private string _assignMatStatusMessage = "";
+
     // ---- 批量重命名用 ----
     private string renamePrefixInput = "";
 
@@ -85,8 +102,14 @@ public partial class CreateParentForSelected : EditorWindow
             case Page.AssignMesh:
                 DrawAssignMeshGUI();
                 break;
+            case Page.AssignMaterial:
+                DrawAssignMaterialGUI();
+                break;
             case Page.Rename:
                 DrawRenameGUI();
+                break;
+            case Page.Combined:
+                DrawCombinedGUI();
                 break;
         }
     }
@@ -126,6 +149,24 @@ public partial class CreateParentForSelected : EditorWindow
         {
             currentPage = Page.AssignMesh;
             UpdateWindowSizeForPage(Page.AssignMesh);
+            Repaint();
+        }
+
+        GUILayout.Space(15);
+
+        if (GUILayout.Button("赋值材质", GUILayout.Height(45)))
+        {
+            currentPage = Page.AssignMaterial;
+            UpdateWindowSizeForPage(Page.AssignMaterial);
+            Repaint();
+        }
+
+        GUILayout.Space(15);
+
+        if (GUILayout.Button("综合功能", GUILayout.Height(45)))
+        {
+            currentPage = Page.Combined;
+            UpdateWindowSizeForPage(Page.Combined);
             Repaint();
         }
 
@@ -173,9 +214,17 @@ public partial class CreateParentForSelected : EditorWindow
                 minSize = new Vector2(420, 480);
                 maxSize = new Vector2(560, 600);
                 break;
+            case Page.AssignMaterial:
+                minSize = new Vector2(420, 480);
+                maxSize = new Vector2(560, 600);
+                break;
             case Page.Rename:
                 minSize = new Vector2(340, 200);
                 maxSize = new Vector2(460, 240);
+                break;
+            case Page.Combined:
+                minSize = new Vector2(420, 480);
+                maxSize = new Vector2(560, 600);
                 break;
         }
     }

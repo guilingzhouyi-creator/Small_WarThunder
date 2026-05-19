@@ -1,6 +1,7 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.TextCore;
 using NNewUIFramework;
 
 /// <summary>
@@ -48,6 +49,7 @@ public class MissionPannelUIController : UGUIViewAdapter
         }
 
         _instance = this;
+        ConfigureSubtitleLabel();
     }
 
     private void OnDestroy()
@@ -70,6 +72,7 @@ public class MissionPannelUIController : UGUIViewAdapter
 
     private void OnEnable()
     {
+        ConfigureSubtitleLabel();
         MissionNarrativeRuntime.RebindMissionPanel();
 
         if (_displayActive && _requestedNarrative != null)
@@ -179,5 +182,20 @@ public class MissionPannelUIController : UGUIViewAdapter
         }
 
         GlobalSubtitleEngine.Instance.PlayOrResume(_requestedNarrative);
+    }
+
+    private void ConfigureSubtitleLabel()
+    {
+        if (_subtitleLabel == null)
+        {
+            return;
+        }
+
+        _subtitleLabel.enableWordWrapping = true;
+        _subtitleLabel.overflowMode = TextOverflowModes.Ellipsis;
+        _subtitleLabel.textWrappingMode = TextWrappingModes.PreserveWhitespace;
+        _subtitleLabel.alignment = TextAlignmentOptions.TopLeft;
+        _subtitleLabel.verticalAlignment = VerticalAlignmentOptions.Top;
+        _subtitleLabel.horizontalAlignment = HorizontalAlignmentOptions.Left;
     }
 }

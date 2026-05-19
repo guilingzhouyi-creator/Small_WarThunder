@@ -44,6 +44,9 @@ namespace NTaskSystem.Config
         [Tooltip("目标数量")]
         public int targetCount;
 
+        [Tooltip("任务目标预制体引用 — 策划拖入带TaskTargetMarker的预制体，运行时实例化后挂载标记")]
+        public GameObject targetPrefab;
+
         [Tooltip("前置任务键，可为空表示无前置")]
         public string prerequisiteTaskKey;
     }
@@ -91,7 +94,7 @@ namespace NTaskSystem.Config
     /// 职责：描述"是什么任务"，是策划可编辑的单一真源。
     /// 运行时只读，不反向写回。
     /// </summary>
-    [CreateAssetMenu(fileName = "TaskConfigSO", menuName = "TaskSystem/TaskConfigSO")]
+    [CreateAssetMenu(fileName = "TaskConfigSO", menuName = "SmallWarThunder/任务/定义/任务定义表")]
     public class TaskConfigSO : ScriptableObject
     {
         [Header("任务定义列表")]

@@ -11,6 +11,8 @@ namespace NAI
 {
     public class AI_AwarenessMeterSystem : MonoBehaviour
     {
+        private readonly RaycastHit[] _losHits = new RaycastHit[16];
+
         [Header("引用")]
         [SerializeField] private AI_Controller _aiController;
         [SerializeField] private Transform _eyePoint;
@@ -23,6 +25,7 @@ namespace NAI
         private AI_Blackboard _blackboard;
         private EnemyConfig _config;
         private LayerMask _occlusionMask;
+        private float _lastAwarenessDebugTime;
 
         private void Start()
         {
@@ -47,10 +50,11 @@ namespace NAI
 
             float current = _blackboard.Get<float>(AIConstants.BbKeyCurrentAwareness, 0f);
             Transform target = _blackboard.Get<Transform>(AIConstants.BbKeyTargetEnemy);
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
 
             if (target != null && IsLineOfSightClear(target))
             {
-                float dist = Vector3.Distance(_eyePoint.position, target.position);
+                float dist = Vector3.Distance(_eyePoint.position, targetPoint);
                 float normalizedDist = Mathf.Clamp01(1f - dist / Mathf.Max(1f, effectiveDetectionRange));
 
                 // 近距离 + 无遮挡 = 快速累积
@@ -64,6 +68,13 @@ namespace NAI
             }
 
             _blackboard.Set(AIConstants.BbKeyCurrentAwareness, current);
+
+            if (Application.isPlaying && target != null && Time.time - _lastAwarenessDebugTime >= 1f)
+            {
+                _lastAwarenessDebugTime = Time.time;
+                bool hasLos = IsLineOfSightClear(target);
+                Debug.Log($"{AIConstants.DebugTagPerception} Awareness update: target={target.name}, awareness={current:F2}, hasLOS={hasLos}, eye={_eyePoint.position}, targetPoint={targetPoint}");
+            }
         }
 
         /// <summary>
@@ -94,10 +105,45 @@ namespace NAI
             if (target == null) return false;
 
             Vector3 origin = _eyePoint.position;
-            Vector3 dir = (target.position - origin).normalized;
-            float dist = Vector3.Distance(origin, target.position);
+            Vector3 targetPoint = AI_TargetingUtility.ResolveTargetPoint(target);
+            Vector3 toTarget = targetPoint - origin;
+            float dist = toTarget.magnitude;
+            if (dist <= 0.001f)
+            {
+                return true;
+            }
 
-            return !Physics.Raycast(origin, dir, dist, _occlusionMask);
+            Vector3 dir = toTarget / dist;
+            int hitCount = Physics.RaycastNonAlloc(origin, dir, _losHits, dist, _occlusionMask, QueryTriggerInteraction.Ignore);
+            if (hitCount == 0)
+            {
+                return true;
+            }
+
+            float nearestDistance = float.MaxValue;
+            RaycastHit nearestHit = default;
+            for (int i = 0; i < hitCount; i++)
+            {
+                RaycastHit hit = _losHits[i];
+                if (hit.collider == null)
+                {
+                    continue;
+                }
+
+                if (hit.distance < nearestDistance)
+                {
+                    nearestDistance = hit.distance;
+                    nearestHit = hit;
+                }
+            }
+
+            if (nearestHit.collider == null)
+            {
+                return true;
+            }
+
+            Transform hitTransform = nearestHit.collider.transform;
+            return hitTransform == target || hitTransform.IsChildOf(target) || target.IsChildOf(hitTransform);
         }
     }
 }

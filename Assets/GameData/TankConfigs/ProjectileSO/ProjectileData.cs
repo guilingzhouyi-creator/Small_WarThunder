@@ -1,7 +1,7 @@
 using UnityEngine;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "ProjectileData", menuName = "Scriptable Objects/ProjectileData")]
+[CreateAssetMenu(fileName = "ProjectileData", menuName = "SmallWarThunder/坦克/弹药/弹药数据")]
 public class ProjectileData : ScriptableObject
 {
     public ProjectileType cannonType; // 弹药类型，使用枚举来区分不同类型的弹药，例如穿甲弹、爆炸弹等

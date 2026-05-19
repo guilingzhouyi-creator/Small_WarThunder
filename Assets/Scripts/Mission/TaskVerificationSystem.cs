@@ -85,7 +85,46 @@ public class TaskVerificationSystem : MonoBehaviour
     }
 
     /// <summary>
-    /// 单位销毁时调用 — 校验该 UID 关联的所有任务进度。
+    /// 单位销毁时调用 — 通过 TaskTargetMarker 组件获取 missionKey 并推进进度。
+    /// </summary>
+    public void OnUnitDestroyed(GameObject unit)
+    {
+        if (unit == null) return;
+
+        TaskTargetMarker marker = unit.GetComponent<TaskTargetMarker>();
+        if (marker == null)
+        {
+            Debug.LogWarning($"[TaskVerificationSystem] 销毁的 GameObject {unit.name} 无 TaskTargetMarker 组件");
+            return;
+        }
+
+        if (!TryParseMissionKey(marker.missionKey, out MissionKey key))
+        {
+            Debug.LogWarning($"[TaskVerificationSystem] 无法解析任务键 '{marker.missionKey}'，请使用 'Category_SubId' 格式，例如 'Training_100'。", unit);
+            return;
+        }
+
+        if (!_allTasks.TryGetValue(key, out var progress))
+        {
+            Debug.LogWarning($"[TaskVerificationSystem] 未找到 MissionKey={marker.missionKey} 的任务进度");
+            return;
+        }
+
+        if (progress.IsCompleted) return;
+
+        progress.CurrentCount++;
+
+        if (progress.CurrentCount >= progress.Definition.requiredCount)
+        {
+            progress.IsCompleted = true;
+        }
+
+        Debug.Log($"[TaskVerificationSystem] 任务 {marker.missionKey} 进度更新: {progress.CurrentCount}/{progress.Definition.requiredCount}");
+        OnTaskProgressUpdated?.Invoke(key, progress.CurrentCount);
+    }
+
+    /// <summary>
+    /// 单位销毁时调用 — 校验该 UID 关联的所有任务进度（兼容旧版 string UID 调用）。
     /// </summary>
     public void OnUnitDestroyed(string unitUID)
     {
@@ -146,6 +185,45 @@ public class TaskVerificationSystem : MonoBehaviour
     {
         _allTasks.TryGetValue(key, out var progress);
         return progress;
+    }
+
+    private static bool TryParseMissionKey(string rawKey, out MissionKey missionKey)
+    {
+        missionKey = default;
+
+        if (string.IsNullOrWhiteSpace(rawKey))
+        {
+            return false;
+        }
+
+        string[] parts = rawKey.Split(new[] { '_', '-', '/' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length < 2)
+        {
+            return false;
+        }
+
+        int categoryIndex = 0;
+        int subIdIndex = 1;
+
+        if (parts.Length >= 3 && string.Equals(parts[0], "Mission", StringComparison.OrdinalIgnoreCase))
+        {
+            categoryIndex = 1;
+            subIdIndex = 2;
+        }
+
+        if (!Enum.TryParse(parts[categoryIndex], true, out MissionCategory category))
+        {
+            return false;
+        }
+
+        if (!int.TryParse(parts[subIdIndex], out int subId))
+        {
+            return false;
+        }
+
+        missionKey.category = category;
+        missionKey.subID = subId;
+        return true;
     }
 
     /// <summary>

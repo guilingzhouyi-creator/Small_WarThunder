@@ -3,7 +3,7 @@ using UnityEngine;
 using SmallWar.Data;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "MissionRegistrySystem", menuName = "MissionSystem/MissionRegistrySystem")]
+[CreateAssetMenu(fileName = "MissionRegistrySystem", menuName = "SmallWarThunder/任务/注册表/任务配置表")]
 public class MissionRegistrySystem : ScriptableObject
 {
     public List<MissionEntryAsset> allMissions;

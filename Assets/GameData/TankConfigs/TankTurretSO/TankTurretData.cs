@@ -1,7 +1,7 @@
 using UnityEngine;
 
 //资产配置的栏数据显示（Scriptable Objects//SCRIPTNAME//是可该目录部分）
-[CreateAssetMenu(fileName = "TankTurretData", menuName = "Scriptable Objects/TankTurretData")]
+[CreateAssetMenu(fileName = "TankTurretData", menuName = "SmallWarThunder/坦克/炮塔/炮塔数据")]
 public class TankTurretData : ScriptableObject
 {
     //炮塔最大旋转速度（未受损时）——电传

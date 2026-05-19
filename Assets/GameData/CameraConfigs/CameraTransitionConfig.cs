@@ -1,7 +1,7 @@
 using Unity.Cinemachine;
 using UnityEngine;
 
-[CreateAssetMenu(fileName = "CameraTransitionConfig", menuName = "DFCCCSystem/CameraTransitionConfig")]
+[CreateAssetMenu(fileName = "CameraTransitionConfig", menuName = "SmallWarThunder/瞄准/相机/过渡规则")]
 public class CameraTransitionConfig : ScriptableObject
 {
     [Header("混合规则列表（From -> To 的过渡配置）")]

@@ -99,8 +99,8 @@ public partial class TankWeaponController : MonoBehaviour
         int sampleCount = Mathf.Max(2, turretData.BarrelEnvelopeSampleCount);
         samplePoints = new Vector3[sampleCount];
 
-        Quaternion localPitchRotation = Quaternion.Euler(barrelPitch, 0f, 0f);
-        Vector3 barrelForward = barrelRoot.rotation * localPitchRotation * Vector3.forward;
+        Quaternion barrelRootRotation = GetBarrelRootWorldRotationForPitch(barrelPitch);
+        Vector3 barrelForward = barrelRootRotation * Vector3.forward;
 
         if (barrelForward.sqrMagnitude < 0.0001f || float.IsNaN(barrelForward.x) || float.IsNaN(barrelForward.y) || float.IsNaN(barrelForward.z))
         {

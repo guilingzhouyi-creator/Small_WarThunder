@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 namespace NGameData.NAIConfigs
 {
-    [CreateAssetMenu(fileName = "AICentralConfig", menuName = "SmallWarThunder/AI/AICentralConfig", order = 0)]
+    [CreateAssetMenu(fileName = "AICentralConfig", menuName = "SmallWarThunder/AI/总配置/AI中央配置", order = 0)]
     public class AICentralConfig : ScriptableObject
     {
         [Header("全局默认配置")]
