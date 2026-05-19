@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 # 更新日志
 
+## [v0.1.002-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.002-beta) — 2026-05-19
+
+### ⚡ 重大改动 — 26-05-07
+
+# v0.1.002-beta 版本更新说明
+
+本次更新主要解决了版本记录中的重复与冲突问题。我们对 CHANGELOG 中出现的重复条目进行了清理，确保版本历史更为清晰准确。同时，工作流中的路径忽略规则已优化，增加了对 `.last_processed` 的过滤，避免仓管机制被自身触发。这些改动将提升版本管理的稳定性和可维护性，为后续
+
 ## [v0.1.002-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.002-beta) — 2026-05-07
 
 ### ⚡ 重大改动 — 2026-05-07 14:28
