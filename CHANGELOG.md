@@ -4,6 +4,20 @@
 
 ---
 
+## [v0.1.003-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.003-beta) — 2026-05-20
+
+### ⚡ 重大改动 — 5.20.12:15
+
+# v0.1.003-beta 版本更新公告
+
+各位玩家，
+
+本次更新集中强化了玩家在战场上的感知能力与单位追踪体系，同时对后台工作流程进行了关键修复，以提升整体稳定性。
+
+**核心更新：三大感知与追踪系统正式实装**
+
+我们完成了玩家侦查与感知系统、敌方高亮系统以及全局单位追踪
+
 ## [v0.1.002-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.002-beta) — 2026-05-19
 
 ### 改动
