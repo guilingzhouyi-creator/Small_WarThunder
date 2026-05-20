@@ -40,6 +40,7 @@ namespace NNewUIFramework
 
         private bool _isInputBound;
         private bool _isSettingBound;
+        private int _initializedSceneHandle = -1;
 
         private void Awake()
         {
@@ -132,6 +133,11 @@ namespace NNewUIFramework
 
             foreach (var mb in all)
             {
+                if (!ShouldRegisterCandidate(mb))
+                {
+                    continue;
+                }
+
                 if (mb is IUIController<object> controller && mb is IUIViewAdapter viewAdapter)
                 {
                     foundCandidate++;
@@ -198,6 +204,36 @@ namespace NNewUIFramework
 
         private void HandleSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
         {
+            InitializeForScene(scene);
+        }
+
+        /// <summary>
+        /// 对外暴露的场景初始化入口。
+        /// 同一 scene handle 只执行一次，避免 sceneLoaded 与时序中枢重复触发时重复注册和重复刷新。
+        /// </summary>
+        public bool InitializeForScene(Scene scene)
+        {
+            if (!scene.IsValid() || !scene.isLoaded)
+            {
+                return false;
+            }
+
+            if (_initializedSceneHandle == scene.handle)
+            {
+                return true;
+            }
+
+            ApplySceneInitialization(scene);
+            _initializedSceneHandle = scene.handle;
+            return true;
+        }
+
+        private void ApplySceneInitialization(Scene scene)
+        {
+            _registry?.PruneDestroyedEntries();
+            UnbindSettingEvents();
+            AutoResolveReferences();
+
             if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
             {
                 SetCursorLocked(false);
@@ -219,12 +255,53 @@ namespace NNewUIFramework
                 AutoRegisterUIFromScene();
             }
 
+            BindSettingEvents();
             BindInputEvents();
             RefreshCursorLockState();
             RefreshUIState();
 
             if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
                 SetCursorLocked(false);
+        }
+
+        private static bool ShouldRegisterCandidate(MonoBehaviour candidate)
+        {
+            if (candidate == null)
+            {
+                return false;
+            }
+
+            if (candidate is SettingManager settingManager)
+            {
+                return SettingManager.Instance == null || SettingManager.Instance == settingManager;
+            }
+
+            if (candidate is TankStatsUIController tankStatsUIController)
+            {
+                return TankStatsUIController.Instance == null || TankStatsUIController.Instance == tankStatsUIController;
+            }
+
+            if (candidate is TankAImUIController tankAimUIController)
+            {
+                return TankAImUIController.Instance == null || TankAImUIController.Instance == tankAimUIController;
+            }
+
+            if (candidate is MapUIController mapUIController)
+            {
+                return MapUIController.Instance == null || MapUIController.Instance == mapUIController;
+            }
+
+            if (candidate is SubtitleOverlayController subtitleOverlayController)
+            {
+                return SubtitleOverlayController.Instance == null || SubtitleOverlayController.Instance == subtitleOverlayController;
+            }
+
+            if (candidate is MissionPannelUIController missionPannelUIController)
+            {
+                return MissionPannelUIController.Instance == null || MissionPannelUIController.Instance == missionPannelUIController;
+            }
+
+            return true;
         }
 
         private void Update()

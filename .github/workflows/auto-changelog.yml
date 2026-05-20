@@ -9,7 +9,8 @@ on:
       - 'hotfix/**'
     paths-ignore:
       - '.github/scripts/.last_processed'
-      - '.github/workflows/auto-changelog.yml'
+      - 'DEVLOG.md'
+      - 'CHANGELOG.md'
 
 permissions:
   contents: write

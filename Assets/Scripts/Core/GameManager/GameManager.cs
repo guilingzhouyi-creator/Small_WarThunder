@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -12,6 +11,7 @@ public partial class GameManager : MonoBehaviour
     public static GameManager Instance { get; private set; }
 
     private static int _levelIndex = 1;
+    private readonly SceneInitializer _sceneInitializer = new SceneInitializer();
 
     [Header("系统引用（可选，用于 Inspector 预绑定）")]
     [SerializeField] private SettingManager _settingManager;
@@ -45,10 +45,10 @@ public partial class GameManager : MonoBehaviour
 
     private void Start()
     {
-        MissionNarrativeRuntime.ResetAll();
+        Scene scene = SceneManager.GetActiveScene();
         BootstrapAudioAndSettings();
         StartValidationIfNeeded();
-        HandleGameSceneEntered(SceneManager.GetActiveScene());
+        InitializeSceneFlow(scene);
     }
 
     private void OnEnable()
@@ -63,34 +63,19 @@ public partial class GameManager : MonoBehaviour
 
     private void OnSceneLoaded(Scene scene, LoadSceneMode loadSceneMode)
     {
-        MissionNarrativeRuntime.ResetAll();
         BootstrapAudioAndSettings();
         OnSceneLoadedValidationIfNeeded(scene);
-        HandleGameSceneEntered(scene);
+        InitializeSceneFlow(scene);
     }
 
     /// <summary>
-    /// GameScene 进入时，总控层协调各执行层。
+    /// 统一的场景进入调度入口。
+    /// GameManager 持有首轮场景级初始化调用权，SceneInitializer 负责执行初始化步骤。
     /// </summary>
-    private void HandleGameSceneEntered(Scene scene)
+    private void InitializeSceneFlow(Scene scene)
     {
-        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
-        {
-            return;
-        }
-
-        // 1. 执行层：玩家生成
-        PlayerSpawnSystem.Instance?.SpawnPlayer();
-
-        // 2. 执行层：摄像机绑定
-        CameraSystem.Instance?.BindToPlayer();
-
-        // 3. 执行层：音频设置引导
-        _settingManager ??= SettingManager.Instance;
-
-        _audioManager ??= AudioManager.Instance;
-        _audioManager?.PlayBGM();
-
+        MissionNarrativeRuntime.ResetAll();
+        _sceneInitializer.InitializeForScene(scene);
     }
 
     /// <summary>
@@ -102,6 +87,7 @@ public partial class GameManager : MonoBehaviour
         _settingManager ??= SettingManager.Instance;
         _audioManager ??= AudioManager.Instance;
     }
+
     public static void ResetStaticData()
     {
         _levelIndex = 1;

@@ -1,6 +1,5 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections;
 using TMPro;
 using NNewUIFramework;
 
@@ -39,29 +38,10 @@ public class TankStatsUIController : UGUIViewAdapter
             Instance = this;
         }
     }
-    private void Start()//主动调用一次刷新UI状态，确保UI显示正确的初始状态
-    {
-        TryBindAndRefresh();
-        StartCoroutine(RefreshAfterInitialization());
-    }
 
-    private void OnEnable()
+    protected override void OnOpened(object data)
     {
-        // 防御性场景守卫：TankStateUI 仅允许在 GameScene 中激活
-        // 若框架因注册/栈状态异常未能关闭面板，这里作为最后防线
-        if (!SceneLoader.IsScene(SceneManager.GetActiveScene(), SceneLoader.Scene.GameScene))
-        {
-            gameObject.SetActive(false);
-            return;
-        }
-
-        TryBindAndRefresh();
-    }
-
-    private IEnumerator RefreshAfterInitialization()
-    {
-        yield return null;
-        TryBindAndRefresh();
+        InitializeForScene(SceneManager.GetActiveScene());
     }
 
     private void Update()
@@ -73,10 +53,26 @@ public class TankStatsUIController : UGUIViewAdapter
             return;
         }
 
-        if (!_isBound || IsBindingStale())//每帧检查绑定状态，如果发现绑定过期（例如坦克重生了），则重新绑定并刷新UI
+        if (!_isBound || IsBindingStale())// 首轮时序可能早于 Tank 单例就绪，因此未绑定时也要补一次
         {
             TryBindAndRefresh();
         }
+    }
+
+    public bool InitializeForScene(Scene scene)
+    {
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return false;
+        }
+
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            return false;
+        }
+
+        TryBindAndRefresh();
+        return _isBound;
     }
 
 

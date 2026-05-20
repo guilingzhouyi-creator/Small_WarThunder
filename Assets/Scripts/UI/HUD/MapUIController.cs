@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using NNewUIFramework;
 
@@ -41,22 +42,12 @@ public class MapUIController : UIToolkitViewAdapter<object>
     /// </summary>
     private void OnEnable()
     {
-        // MapPanel 由 RefreshUIState 直接管理，不走框架 Open/Close 路径。
-        // UIToolkitViewAdapter.Awake() 将 _rootVisual.display 设为 None，
-        // 且 UIDocument 重新激活时不会重建视觉树（display 不会自动恢复为 Flex），
-        // 因此必须在此显式将 rootVisualElement 设为可见。
-        if (_rootVisual == null)
-        {
-            ResolveUIDocumentIfNeeded();
-        }
+        EnsureRootVisible();
 
-        if (_rootVisual != null)
+        if (!_isInitialized || _engine == null)
         {
-            _rootVisual.style.display = DisplayStyle.Flex;
+            return;
         }
-
-        // 确保引擎已初始化（MapPanel 由 RefreshUIState 直接管理，不走框架 Open/Close 路径）
-        EnsureEngineInitialized();
 
         if (_engine != null)
         {
@@ -97,8 +88,7 @@ public class MapUIController : UIToolkitViewAdapter<object>
 
     protected override void OnOpened(object data)
     {
-        ResolveSceneReferences();
-        InitializeEngine();
+        RestoreOpenState();
     }
 
     protected override void OnClosing()
@@ -165,6 +155,31 @@ public class MapUIController : UIToolkitViewAdapter<object>
         }
     }
 
+    public bool InitializeForScene(Scene scene, Transform playerTransform)
+    {
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return false;
+        }
+
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            return false;
+        }
+
+        RestoreOpenState();
+        SetPlayerTransform(playerTransform);
+        CloseFullMap();
+        return _engine != null;
+    }
+
+    private void RestoreOpenState()
+    {
+        EnsureRootVisible();
+        ResolveSceneReferences();
+        EnsureEngineInitialized();
+    }
+
     private void InitializeEngine()
     {
         if (_isInitialized)
@@ -198,6 +213,19 @@ public class MapUIController : UIToolkitViewAdapter<object>
         _uiDocument.rootVisualElement.Add(_engine);
 
         _isInitialized = true;
+    }
+
+    private void EnsureRootVisible()
+    {
+        if (_rootVisual == null)
+        {
+            ResolveUIDocumentIfNeeded();
+        }
+
+        if (_rootVisual != null)
+        {
+            _rootVisual.style.display = DisplayStyle.Flex;
+        }
     }
 
     public void SetPlayerTransform(Transform playerTransform)

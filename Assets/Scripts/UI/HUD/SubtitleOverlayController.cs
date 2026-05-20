@@ -17,6 +17,7 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
     private bool _isManuallyVisible;   // ★ 仅 Map 模式下 Tab 按键切换
     private bool _isNarrativeActive;   // 由 MissionPannelUIController 设置：当前是否有叙事包在播放
     private bool _textBridgeBound;
+    private int _initializedSceneHandle = -1;
 
     // 缓存最近一次接收到的文本，用于切换显示时立即恢复
     private string _cachedText = string.Empty;
@@ -111,14 +112,7 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
 
     private void HandleSceneLoaded(Scene scene, LoadSceneMode mode)
     {
-        if (SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
-        {
-            InitializeUI();
-            ApplyVisibility();
-            return;
-        }
-
-        ResetForSceneExit();
+        InitializeForScene(scene);
     }
 
     private void ResetForSceneExit()
@@ -126,6 +120,32 @@ public class SubtitleOverlayController : UIToolkitViewAdapter<object>
         UnbindTextBridge();
 
         ClearOverlay();
+        _initializedSceneHandle = -1;
+    }
+
+    public bool InitializeForScene(Scene scene)
+    {
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return false;
+        }
+
+        if (_initializedSceneHandle == scene.handle)
+        {
+            return true;
+        }
+
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            ResetForSceneExit();
+            _initializedSceneHandle = scene.handle;
+            return true;
+        }
+
+        InitializeUI();
+        ApplyVisibility();
+        _initializedSceneHandle = scene.handle;
+        return true;
     }
 
     private void ResolveUIDocument()

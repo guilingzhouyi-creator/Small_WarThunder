@@ -21,18 +21,33 @@ namespace NNewUIFramework
 
         public virtual void Open(object data)
         {
+            if ((UnityEngine.Object)this == null)
+            {
+                return;
+            }
+
             gameObject.SetActive(true);
             OnOpened(data);
         }
 
         public virtual void Close()
         {
+            if ((UnityEngine.Object)this == null)
+            {
+                return;
+            }
+
             OnClosing();
             gameObject.SetActive(false);
         }
 
         public virtual void Suspend()
         {
+            if ((UnityEngine.Object)this == null)
+            {
+                return;
+            }
+
             // UGUI: 保持 GameObject Active 但设置 Canvas 不可交互/不渲染
             if (_canvas != null)
             {
@@ -42,6 +57,11 @@ namespace NNewUIFramework
 
         public virtual void Resume()
         {
+            if ((UnityEngine.Object)this == null)
+            {
+                return;
+            }
+
             if (_canvas != null)
             {
                 _canvas.enabled = true;
@@ -66,6 +86,11 @@ namespace NNewUIFramework
 
         public void SetVisible(bool visible)
         {
+            if ((UnityEngine.Object)this == null)
+            {
+                return;
+            }
+
             gameObject.SetActive(visible);
         }
 

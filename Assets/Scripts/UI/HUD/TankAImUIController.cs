@@ -1,5 +1,6 @@
 ﻿using Unity.Cinemachine;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UIElements;
 using NNewUIFramework;
 
@@ -54,10 +55,7 @@ public class TankAImUIController : UIToolkitViewAdapter<object>
 
     protected override void OnOpened(object data)
     {
-        ResolveSceneReferences();
-        TryBindHudPresenter();
-        ResetAimTarget();
-        ApplyCursorState();
+        RestoreOpenState();
     }
 
     protected override void OnClosing()
@@ -67,8 +65,6 @@ public class TankAImUIController : UIToolkitViewAdapter<object>
 
     private void Update()
     {
-        ResolveSceneReferences();
-        TryBindHudPresenter();
         ApplyCursorState();
         SetLegacyTpsOverlayVisible(false);
 
@@ -120,6 +116,31 @@ public class TankAImUIController : UIToolkitViewAdapter<object>
         }
 
         _wasAimModeLastFrame = isAimMode;
+    }
+
+    public bool InitializeForScene(Scene scene)
+    {
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return false;
+        }
+
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            return false;
+        }
+
+        RestoreOpenState();
+        return mainCamera != null;
+    }
+
+    private void RestoreOpenState()
+    {
+        ResolveSceneReferences();
+        TryBindHudPresenter();
+        ResetAimTarget();
+        ApplyCursorState();
+        SetLegacyTpsOverlayVisible(false);
     }
 
     private Vector2 ConvertScreenToHudPosition(Vector2 screenPos, FCSSnapshot state)

@@ -46,6 +46,9 @@ namespace NNewUIFramework
 
         /// <summary>获取面板所属的上下文层级</summary>
         EUIContextType GetContextType(EUIIdentity identity);
+
+        /// <summary>显式清理已销毁的场景 UI 条目（用于场景切换边界）。</summary>
+        void PruneDestroyedEntries();
     }
 
     /// <summary>
@@ -62,7 +65,7 @@ namespace NNewUIFramework
             if (_entries.ContainsKey(identity))
             {
                 Debug.LogWarning($"[UIRegistry.Register] 面板 {identity} 已注册，将覆盖旧条目。");
-                _entries.Remove(identity);
+                Unregister(identity);
             }
 
             _entries[identity] = new UIRegistryEntry
@@ -147,6 +150,56 @@ namespace NNewUIFramework
             }
             Debug.LogError($"[UIRegistry.GetContextType] 面板 {identity} 未注册。");
             return EUIContextType.Permanent;
+        }
+
+        public void PruneDestroyedEntries()
+        {
+            if (_entries.Count == 0)
+            {
+                return;
+            }
+
+            List<EUIIdentity> deadEntries = null;
+            foreach (var pair in _entries)
+            {
+                if (!IsEntryAlive(pair.Value))
+                {
+                    deadEntries ??= new List<EUIIdentity>();
+                    deadEntries.Add(pair.Key);
+                }
+            }
+
+            if (deadEntries == null)
+            {
+                return;
+            }
+
+            for (int index = 0; index < deadEntries.Count; index++)
+            {
+                EUIIdentity identity = deadEntries[index];
+                Debug.LogWarning($"[UIRegistry.PruneDestroyedEntries] 移除已销毁的 UI 条目: {identity}");
+                Unregister(identity);
+            }
+        }
+
+        private static bool IsEntryAlive(UIRegistryEntry entry)
+        {
+            return IsAlive(entry.controller) && IsAlive(entry.viewAdapter);
+        }
+
+        private static bool IsAlive(object candidate)
+        {
+            if (candidate == null)
+            {
+                return false;
+            }
+
+            if (candidate is UnityEngine.Object unityObject)
+            {
+                return unityObject != null;
+            }
+
+            return true;
         }
     }
 }

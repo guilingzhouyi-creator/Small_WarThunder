@@ -33,6 +33,7 @@ public partial class TankFireController : MonoBehaviour
     public ProjectileType NextAmmoType => _tank != null
         ? _tank.NextAmmoType
         : (_projectileData != null ? _projectileData.cannonType : ProjectileType.AP);
+    private bool _runtimeStateInitialized;
 
     private void Awake()
     {
@@ -49,20 +50,12 @@ public partial class TankFireController : MonoBehaviour
         Instance = this;
 
         InitializeAmmoPools();
+        EnsureRuntimeStateInitialized();
     }
 
     private void Start()
     {
-        ResolveTankReference();
-        CheckAllComponents();
-
-        if (_tank != null)
-        {
-            UpdateStatusFromMainData(_tank.MainData);
-        }
-
-        InitializeDirectionState();
-        InitializeReloadState();
+        EnsureRuntimeStateInitialized();
     }
 
     private void Update()
@@ -80,6 +73,27 @@ public partial class TankFireController : MonoBehaviour
         UpdateReferenceBarrelDirection();
         HandleAmmoSwitchInput();
         HandleFireInput();
+    }
+
+    public void EnsureRuntimeStateInitialized()
+    {
+        if (_runtimeStateInitialized)
+        {
+            return;
+        }
+
+        ResolveTankReference();
+        _tank?.EnsureRuntimeStateInitialized();
+        CheckAllComponents();
+
+        if (_tank != null)
+        {
+            UpdateStatusFromMainData(_tank.MainData);
+        }
+
+        InitializeDirectionState();
+        InitializeReloadState();
+        _runtimeStateInitialized = true;
     }
 
 }

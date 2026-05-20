@@ -1,6 +1,7 @@
 using System;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.TextCore;
 using NNewUIFramework;
 
@@ -62,6 +63,7 @@ public class MissionPannelUIController : UGUIViewAdapter
 
     protected override void OnOpened(object data)
     {
+        InitializeForScene(SceneManager.GetActiveScene());
         SetDisplayActive(true);
     }
 
@@ -70,15 +72,25 @@ public class MissionPannelUIController : UGUIViewAdapter
         SetDisplayActive(false);
     }
 
-    private void OnEnable()
+    public bool InitializeForScene(Scene scene)
     {
+        if (!scene.IsValid() || !scene.isLoaded)
+        {
+            return false;
+        }
+
+        if (!SceneLoader.IsScene(scene, SceneLoader.Scene.GameScene))
+        {
+            return false;
+        }
+
         ConfigureSubtitleLabel();
         MissionNarrativeRuntime.RebindMissionPanel();
 
         if (_displayActive && _requestedNarrative != null)
         {
             SyncRequestedNarrative();
-            return;
+            return true;
         }
 
         if (GlobalSubtitleEngine.Instance != null
@@ -86,10 +98,11 @@ public class MissionPannelUIController : UGUIViewAdapter
             && !GlobalSubtitleEngine.Instance.IsPlaying)
         {
             GlobalSubtitleEngine.Instance.ResumePlayback();
-            return;
+            return true;
         }
 
         GlobalSubtitleEngine.Instance?.ShowIdleState();
+        return true;
     }
 
     private void OnDisable()
@@ -191,7 +204,6 @@ public class MissionPannelUIController : UGUIViewAdapter
             return;
         }
 
-        _subtitleLabel.enableWordWrapping = true;
         _subtitleLabel.overflowMode = TextOverflowModes.Ellipsis;
         _subtitleLabel.textWrappingMode = TextWrappingModes.PreserveWhitespace;
         _subtitleLabel.alignment = TextAlignmentOptions.TopLeft;

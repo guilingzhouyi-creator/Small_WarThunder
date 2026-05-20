@@ -91,7 +91,7 @@ def get_new_commits(prev_commit, current_commit):
     cmd = [
         "git", "log",
         f"{prev_commit}..{current_commit}",
-        f"--pretty=format:%H%n%B%n{COMMIT_SEPARATOR}",
+        "--pretty=format:%H%n%ai%n%B%n" + COMMIT_SEPARATOR,
         "--reverse"
     ]
     result = subprocess.run(cmd, capture_output=True, text=True)
@@ -111,36 +111,42 @@ def get_new_commits(prev_commit, current_commit):
             continue
         # 跳过可能由分隔符引入的空行
         lines = [l for l in block.split("\n") if l.strip() != COMMIT_SEPARATOR]
-        if not lines:
+        if len(lines) < 2:
             continue
         commit_hash = lines[0].strip()
-        commit_msg = "\n".join(lines[1:]).strip()
-        commits.append((commit_hash, commit_msg))
+        commit_date = lines[1].strip()  # ISO 8601: 2026-05-17 15:30:00 +0800
+        commit_msg = "\n".join(lines[2:]).strip()
+        commits.append((commit_hash, commit_date, commit_msg))
     return commits
 
 
 def normalize_timestamp(raw):
-    """统一时间戳为 YY-MM-DD 格式，兼容全日期/简写/斜杠/点分隔"""
+    """统一时间戳为 YY.M.D 格式，兼容全日期/简写/斜杠/点分隔，月日不带前导零"""
     raw = raw.strip()
-    # 已符合 YY-MM-DD HH:MM → 截取日期部分
-    m = re.match(r'^(\d{2})-(\d{2})-(\d{2})(?:\s+\d{2}:\d{2})?$', raw)
+    # 已符合 YY.M.D HH:MM 或 YY.M.D → 截取日期部分
+    m = re.match(r'^(\d{2})\.(\d{1,2})\.(\d{1,2})(?:\s+\d{2}:\d{2})?$', raw)
     if m:
-        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+        return f"{int(m.group(1))}.{int(m.group(2))}.{int(m.group(3))}"
 
-    # 全日期 YYYY-MM-DD HH:MM → 取后两位
+    # 全日期 YYYY-MM-DD HH:MM → 取后两位，转点分隔
     m = re.match(r'^\d{2}(\d{2})-(\d{2})-(\d{2})(?:\s+\d{2}:\d{2})?$', raw)
     if m:
-        return f"{m.group(1)}-{m.group(2)}-{m.group(3)}"
+        return f"{int(m.group(1))}.{int(m.group(2))}.{int(m.group(3))}"
 
-    # 点分隔 YY.M.D → YY-MM-DD
-    m = re.match(r'^(\d{2})\.(\d{1,2})\.(\d{1,2})$', raw)
+    # YY-MM-DD HH:MM 或 YY-MM-DD → 转点分隔
+    m = re.match(r'^(\d{2})-(\d{2})-(\d{2})(?:\s+\d{2}:\d{2})?$', raw)
     if m:
-        return f"{m.group(1)}-{m.group(2):0>2}-{m.group(3):0>2}"
+        return f"{int(m.group(1))}.{int(m.group(2))}.{int(m.group(3))}"
 
     # 斜杠分隔 YY/M/D
     m = re.match(r'^(\d{2})/(\d{1,2})/(\d{1,2})$', raw)
     if m:
-        return f"{m.group(1)}-{m.group(2):0>2}-{m.group(3):0>2}"
+        return f"{int(m.group(1))}.{int(m.group(2))}.{int(m.group(3))}"
+
+    # 点分隔 YY.MM.DD (带前导零) → 去除前导零
+    m = re.match(r'^(\d{2})\.(\d{2})\.(\d{2})$', raw)
+    if m:
+        return f"{int(m.group(1))}.{int(m.group(2))}.{int(m.group(3))}"
 
     return raw
 
@@ -373,7 +379,7 @@ def self_review_devlog():
         print("[REVIEW] 无需修改")
 
 
-def parse_commit_message(commit_hash, msg):
+def parse_commit_message(commit_hash, msg, commit_date=None):
     """解析 commit message，返回 dict 或 None（格式不符则跳过）"""
     # 跳过仓管自身的提交
     if "⚡内部操作：" in msg:
@@ -388,11 +394,14 @@ def parse_commit_message(commit_hash, msg):
 
     parsed = {"hash": commit_hash[:8]}
 
-    # 第1行：时间戳
+    # 第1行：时间戳；为空时用 commit author date 回退
     m = TIMESTAMP_RE.match(lines[0])
-    if not m:
+    if m:
+        parsed["timestamp"] = normalize_timestamp(m.group(1).strip())
+    elif lines[0].startswith("《东七三》开发日志<") and commit_date:
+        parsed["timestamp"] = normalize_timestamp(commit_date)
+    else:
         return None
-    parsed["timestamp"] = normalize_timestamp(m.group(1).strip())
 
     # 第2行：新增内容
     m = ADDITIONS_RE.match(lines[1])
@@ -722,8 +731,8 @@ def main():
     current_batch = []    # 当前正在收集的批次
     has_major = False
 
-    for commit_hash, msg in commits:
-        parsed = parse_commit_message(commit_hash, msg)
+    for commit_hash, commit_date, msg in commits:
+        parsed = parse_commit_message(commit_hash, msg, commit_date)
         if not parsed:
             print(f"[SKIP] {commit_hash[:8]} — 格式不符，跳过")
             continue

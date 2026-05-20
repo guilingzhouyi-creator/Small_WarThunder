@@ -171,6 +171,7 @@ public partial class TankMoveController : MonoBehaviour
     private float _debugTurnInput;
     private Vector3 _debugTurnCenterPoint;
     private bool _hasDebugTurnCenterPoint;
+    private bool _runtimeStateInitialized;
 
     private struct GroundContactInfo
     {
@@ -201,14 +202,7 @@ public partial class TankMoveController : MonoBehaviour
 
     private void Start()
     {
-        if (!ValidateSetup())
-        {
-            return;
-        }
-
-        CacheTrackDrivePoints();
-        ConfigureRuntimeMass();
-        RefreshSpeedEvent();
+        EnsureRuntimeStateInitialized();
     }
 
     private void OnDestroy()
@@ -232,6 +226,25 @@ public partial class TankMoveController : MonoBehaviour
         SimulatePowerSplit();
         RefreshSpeedEvent();
         UpdateEngineAudioStateMachine();
+    }
+
+    public bool EnsureRuntimeStateInitialized()
+    {
+        if (_runtimeStateInitialized)
+        {
+            return true;
+        }
+
+        if (!ValidateSetup())
+        {
+            return false;
+        }
+
+        CacheTrackDrivePoints();
+        ConfigureRuntimeMass();
+        RefreshSpeedEvent();
+        _runtimeStateInitialized = true;
+        return true;
     }
 
 

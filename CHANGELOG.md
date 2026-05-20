@@ -1,46 +1,39 @@
-# Changelog
-
-All notable changes to this project will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
-
 # 更新日志
+
+所有重要变更将记录在此文件，格式遵循 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)。
+
+---
 
 ## [v0.1.002-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.002-beta) — 2026-05-19
 
-### ⚡ 重大改动 — 26-05-07
+### 改动
 
-# v0.1.002-beta 版本更新说明
+- 清理 CHANGELOG 重复条目，统一日志格式规范
+- 优化工作流 paths-ignore，增加 .last_processed 过滤避免仓管自身递归触发
+- 修复自动化仓管工作流被跳过导致积压提交未处理的问题
 
-本次更新主要解决了版本记录中的重复与冲突问题。我们对 CHANGELOG 中出现的重复条目进行了清理，确保版本历史更为清晰准确。同时，工作流中的路径忽略规则已优化，增加了对 `.last_processed` 的过滤，避免仓管机制被自身触发。这些改动将提升版本管理的稳定性和可维护性，为后续
-
-## [v0.1.002-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.002-beta) — 2026-05-07
-
-### ⚡ 重大改动 — 2026-05-07 14:28
-
-# 版本更新公告
-
-我们很高兴地向大家发布 **v0.1.002-beta** 版本。本次更新聚焦于自动化日志系统的稳定性与可靠性，从根本上解决了仓管工具因循环触发导致的重复提交和文案虚假问题，并优化了变更日志的生成与管理流程。
-
-新版本引入了**DEVLOG / CHANGEL
+---
 
 ## [v0.1.001-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.001-beta) — 2026-05-05
 
-### ⚡ 重大改动 — 2026-05-05 17:15
+### 新增
 
-**新增内容：**
-自动化仓管系统规范——hook 放宽第4行校验、脚本只递增 patch 版本号
+- AI 总结集成：Deepseek AI 自动生成版本发布说明
+- CHANGELOG 按重大改动批次独立处理与版本号递增
+- 全局光标锁定引擎（纯静态服务，统一光标管理）
+- 全局时间管理器（跨场景时间流速集中化控制）
+- 标记组件重命名统一化（PlayerMarker / EnemyMarker / GameLevelMarker）
 
-**改动及优化描述：**
-清除上次误插入的重复 CHANGELOG 条目；commit-msg hook 改 vX.Y.Z 为任意文本校验；update_logs.py bump_version 改为 patch+1（保留 major.minor 人工控制）
+### 改动
+
+- commit-msg hook 放宽校验，改为任意文本格式兼容
+- update_logs.py 版本号递增规则改为 patch+1，major.minor 人工控制
+- DEVLOG 条目不再暴露文件路径/类名，仅保留功能级描述
+- 光标锁定、时间流速等分散逻辑收敛至全局服务
+
+---
 
 ## [v0.1.000-beta](https://github.com/guilingzhouyi-creator/Small_WarThunder/releases/tag/v0.1.000-beta) — 2026-04-30
-
-### Baseline — Core Gameplay Loop
-
-First public beta of Dong Qi San, completing the core tank simulation loop.
-
-这是《东七三》项目的第一个测试版本，完成了坦克载具模拟的核心玩法闭环。
 
 ### 新增
 
@@ -49,7 +42,6 @@ First public beta of Dong Qi San, completing the core tank simulation loop.
 - 功率预算分配（转向最多消耗 65% 引擎功率）
 - 各向异性地面摩擦力
 - 转向状态机：Idle → Straight → Pivot/Brake/MovingTurn
-- 引擎开关、电力管理、输入锁
 - 引擎音频状态机 → FMOD 驱动
 
 #### 炮塔与武器系统
@@ -68,9 +60,7 @@ First public beta of Dong Qi San, completing the core tank simulation loop.
 - 自定义 HUD 布局系统（锚点/偏移/缩放）
 - 准星、刻度线、环、角括号、中心点
 - 读数框（支持填充背景）
-- 水平和垂直刻度尺
 - FOV 缩放适配
-- 预设布局：Modern / TacticalRing / Custom
 
 #### 碰撞与伤害
 - 装甲区域定义（ArmoredZoneData）
@@ -79,26 +69,21 @@ First public beta of Dong Qi San, completing the core tank simulation loop.
 
 #### 对象池
 - 炮弹通用对象池（Objectpooler + PooledObject）
-- 池化回收流程
 
 #### 音频系统
 - FMOD Studio 集成
 - 引擎状态机：Off → Startup → Idle → Move → Shutdown
-- 一次性音效：fire / reload / hit
 - 音量分类控制（Engine / Weapon / Reload / Impact）
 
 #### 悬挂系统
 - 悬挂臂物理模拟
 - 轮子旋转与视觉同步
 
-#### UI 系统
-- 暂停界面
-- 设置界面（图形/音频/控制）
-- HUD 与瞄准镜
-- 任务界面框架
-
 #### 天气系统
 - 动态天气切换
+
+#### UI 系统
+- 暂停界面、设置界面、HUD 与瞄准镜
 
 ### 技术基础设施
 - Git LFS 管理大文件（模型/音频/插件）
@@ -107,11 +92,3 @@ First public beta of Dong Qi San, completing the core tank simulation loop.
 - FMOD Studio 音频中间件
 - Cinemachine 相机系统
 - Input System 输入管理
-
-### 项目结构
-- 10 个 partial 文件拆分 TankMoveController
-- 5 个 partial 文件拆分 TankWeaponController
-- 9 个 partial 文件拆分 TankFireController
-- 6 个 partial 文件拆分 TankController
-- ScriptableObject 数据驱动所有坦克参数
-- FCSRegistrySystem 火控数据注册中心

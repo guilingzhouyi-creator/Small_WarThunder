@@ -18,30 +18,14 @@ public partial class Tank : MonoBehaviour
     private int _currentCrewCount; // 当前成员数量
     private int _currentSmokeAmmo; // 当前烟雾弹数量
     private int _currentEngineSmokeCount; // 当前发动机排烟数量
+    private bool _runtimeStateInitialized;
 
 
 
     private void Awake()
     {
 
-        // if (colliders == null || colliders.Length == 0)
-        // {
-        //     colliders = GetComponentsInChildren<Collider>(true);
-        // }
 
-        // if (Instance == null)
-        // {
-        //     Instance = this;
-        // }
-        // else
-        // {
-        //     if (Application.isPlaying)
-        //     {
-        //         Destroy(gameObject);
-        //     }
-
-        //     return;
-        // }
 
         //如果场景中已经存在一个坦克实例（例如在坦克重生时）并且当前正在运行游戏，则销毁新创建的坦克对象，确保场景中始终只有一个坦克实例存在，避免潜在的冲突和错误。
         if (Instance != null && Instance != this)
@@ -64,6 +48,7 @@ public partial class Tank : MonoBehaviour
             Instance = this;
             // DontDestroyOnLoad(gameObject); // 可选：如果需要在场景切换时保持坦克对象，可以取消注释这行代码
         }
+
         if (Instance != null && Instance != this)
         {
 
@@ -79,12 +64,13 @@ public partial class Tank : MonoBehaviour
             Instance = this;
             // DontDestroyOnLoad(gameObject); // 可选：如果需要在场景切换时保持坦克对象，可以取消注释这行代码
         }
+
+        InitializeRuntimeState();
     }
 
     private void Start()
     {
-        GetValuesFromMainData(); // 从核心数据中获取初始状态值
-
+        InitializeRuntimeState();
     }
 
     private void Update()
@@ -95,6 +81,22 @@ public partial class Tank : MonoBehaviour
     /// <summary>
     /// 将SO中的核心数据赋值到坦克的当前状态变量中，这些变量将被坦克的各个子系统使用和修改。这个方法在坦克初始化时调用，确保坦克的状态与核心数据保持一致。
     /// </summary>
+    public void EnsureRuntimeStateInitialized()
+    {
+        if (_runtimeStateInitialized)
+        {
+            return;
+        }
+
+        GetValuesFromMainData();
+        _runtimeStateInitialized = true;
+    }
+
+    private void InitializeRuntimeState()
+    {
+        EnsureRuntimeStateInitialized();
+    }
+
     private void GetValuesFromMainData()
     {
         _currentHealth = mainData.TankMaxHealth;
